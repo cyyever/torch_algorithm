@@ -1,7 +1,7 @@
 import copy
 
-from data_structure.synced_tensor_dict import SyncedTensorDict
-from hooks.add_index_to_dataset import AddIndexToDataset
+from cyy_torch_toolbox.data_structure.synced_tensor_dict import SyncedTensorDict
+from cyy_torch_toolbox.hooks.add_index_to_dataset import AddIndexToDataset
 
 from .sample_gradient import get_sample_gradient
 

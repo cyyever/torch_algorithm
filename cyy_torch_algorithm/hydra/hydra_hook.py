@@ -4,14 +4,15 @@ import pickle
 import shutil
 
 import torch
-from algorithm.hessian_vector_product import get_hessian_vector_product_func
-from algorithm.sample_gradient.sample_gradient_hook import SampleGradientHook
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
 from cyy_naive_lib.log import get_logger
 from cyy_naive_lib.time_counter import TimeCounter
-from data_structure.synced_tensor_dict import SyncedTensorDict
-from ml_type import MachineLearningPhase
-from model_util import ModelUtil
+from cyy_torch_toolbox.data_structure.synced_tensor_dict import \
+    SyncedTensorDict
+from cyy_torch_toolbox.ml_type import MachineLearningPhase
+from cyy_torch_toolbox.model_util import ModelUtil
+from hessian_vector_product import get_hessian_vector_product_func
+from sample_gradient.sample_gradient_hook import SampleGradientHook
 
 
 class HyDRAHook(SampleGradientHook):

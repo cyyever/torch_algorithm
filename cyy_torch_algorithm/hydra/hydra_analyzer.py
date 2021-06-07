@@ -1,9 +1,9 @@
 import tempfile
 
-from algorithm.sample_gradient.sample_gradient_util import \
-    get_sample_gradient_dict
-from data_structure.synced_tensor_dict import SyncedTensorDict
-from inference import Inferencer
+from cyy_torch_toolbox.data_structure.synced_tensor_dict import \
+    SyncedTensorDict
+from cyy_torch_toolbox.inference import Inferencer
+from sample_gradient.sample_gradient_util import get_sample_gradient_dict
 
 from .hydra_hook import HyDRAHook
 

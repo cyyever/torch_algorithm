@@ -1,6 +1,7 @@
-from data_structure.synced_tensor_dict import SyncedTensorDict
+from cyy_torch_toolbox.data_structure.synced_tensor_dict import \
+    SyncedTensorDict
 
-from algorithm.inverse_hessian_vector_product import \
+from .inverse_hessian_vector_product import \
     stochastic_inverse_hessian_vector_product
 
 
