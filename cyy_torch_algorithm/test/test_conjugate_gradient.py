@@ -1,7 +1,7 @@
 import torch
 from cyy_torch_toolbox.device import get_device
 
-from algorithm.conjugate_gradient import conjugate_gradient
+from conjugate_gradient import conjugate_gradient
 
 
 def test_conjugate_gradient():

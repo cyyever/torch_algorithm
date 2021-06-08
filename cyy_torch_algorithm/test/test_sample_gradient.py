@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 
 import torch
-from cyy_naive_lib.profiling import Profile
+# from cyy_naive_lib.profiling import Profile
 from cyy_naive_lib.time_counter import TimeCounter
-from default_config import DefaultConfig
+from cyy_torch_toolbox.default_config import DefaultConfig
 from cyy_torch_toolbox.device import get_device
-
-from algorithm.sample_gradient.sample_gradient import (get_sample_gradient,
-                                                       stop_task_queue)
+from sample_gradient.sample_gradient import (get_sample_gradient,
+                                             stop_task_queue)
 
 
 def test_get_sample_gradient():

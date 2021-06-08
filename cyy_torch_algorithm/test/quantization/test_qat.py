@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-from algorithm.quantization.qat import QuantizationAwareTraining
-from default_config import DefaultConfig
+from cyy_torch_toolbox.default_config import DefaultConfig
+
+from quantization.qat import QuantizationAwareTraining
 
 
 def test_training():

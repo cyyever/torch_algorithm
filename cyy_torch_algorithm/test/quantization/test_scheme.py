@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import torch
 
-from algorithm.quantization.scheme import stochastic_quantization
+from quantization.scheme import stochastic_quantization
 
 
 def test_stochastic_quantization():

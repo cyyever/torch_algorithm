@@ -1,16 +1,14 @@
 import torch
 from cyy_naive_lib.time_counter import TimeCounter
-
-from algorithm.hessian_vector_product import (get_hessian_vector_product_func,
-                                              stop_task_queue)
-from default_config import DefaultConfig
+from cyy_torch_toolbox.default_config import DefaultConfig
 from cyy_torch_toolbox.model_util import ModelUtil
+from hessian_vector_product import (get_hessian_vector_product_func,
+                                    stop_task_queue)
 
 # from cyy_naive_lib.profiling import Profile
 
 
 def test_hessian_vector_product():
-    return
     trainer = DefaultConfig("MNIST", "LeNet5").create_trainer()
     training_data_loader = torch.utils.data.DataLoader(
         trainer.dataset,
@@ -20,7 +18,9 @@ def test_hessian_vector_product():
     parameter_vector = ModelUtil(trainer.model).get_parameter_list()
     v = torch.ones(parameter_vector.shape)
     for batch in training_data_loader:
-        hvp_function = get_hessian_vector_product_func(trainer.model_with_loss, batch)
+        hvp_function = get_hessian_vector_product_func(
+            trainer.copy_model_with_loss(deepcopy=False), batch
+        )
         a = hvp_function([v, 2 * v, 3 * v])
         assert len(a) == 3
         assert torch.linalg.norm(a[1] - 2 * a[0], ord=2).data.item() < 0.0005
