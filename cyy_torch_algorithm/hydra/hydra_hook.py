@@ -92,8 +92,8 @@ class HyDRAHook(Hook):
         get_logger().info("end hyper-gradient tracking")
         trainer = kwargs["model_executor"]
         tester = trainer.get_inferencer(phase=MachineLearningPhase.Test)
-        tester.remove_logger()
-        tester.remove_performance_metric_logger()
+        tester.disable_logger()
+        tester.disable_performance_metric_logger()
         test_gradient = tester.get_gradient()
         if self.use_approximation:
             self.__save_hyper_gradients(
