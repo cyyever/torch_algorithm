@@ -9,15 +9,17 @@ from cyy_naive_lib.log import get_logger
 from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_toolbox.data_structure.synced_tensor_dict import \
     SyncedTensorDict
+from cyy_torch_toolbox.hook import Hook
 from cyy_torch_toolbox.ml_type import MachineLearningPhase
 from cyy_torch_toolbox.model_util import ModelUtil
 from hessian_vector_product import get_hessian_vector_product_func
 from sample_gradient.sample_gradient_hook import SampleGradientHook
 
 
-class HyDRAHook(SampleGradientHook):
+class HyDRAHook(Hook):
     def __init__(self, cache_size, save_dir, **kwargs):
         super().__init__(stripable=True)
+        self.sample_gradient_hook = SampleGradientHook()
         self.cache_size = cache_size
         self.save_dir = os.path.join(save_dir, "HyDRA")
 
@@ -43,8 +45,11 @@ class HyDRAHook(SampleGradientHook):
         os.makedirs(self.save_dir, exist_ok=True)
         self.__batch_gradient_indices = None
 
+    @property
+    def sample_gradient_dict(self):
+        return self.sample_gradient_hook.sample_gradient_dict
+
     def _before_execute(self, **kwargs):
-        super()._before_execute(**kwargs)
         trainer = kwargs["model_executor"]
         if not self.computed_indices:
             self.computed_indices = set(range(len(trainer.dataset)))
@@ -81,7 +86,7 @@ class HyDRAHook(SampleGradientHook):
             mode="wb",
         ) as f:
             pickle.dump(self.computed_indices, f)
-        super().set_computed_indices(computed_indices)
+        self.sample_gradient_hook.set_computed_indices(computed_indices)
 
     def _after_execute(self, **kwargs):
         get_logger().info("end hyper-gradient tracking")
@@ -102,7 +107,6 @@ class HyDRAHook(SampleGradientHook):
                 test_gradient,
                 use_approximation=False,
             )
-        super()._after_execute(**kwargs)
 
     def __do_computation_with_hessian(self):
         for chunk in split_list_to_chunks(
@@ -283,7 +287,6 @@ class HyDRAHook(SampleGradientHook):
         return tensor_dict
 
     def _before_batch(self, **kwargs):
-        super()._before_batch(**kwargs)
         batch = kwargs["batch"]
 
         assert len(batch) == 3
@@ -296,7 +299,6 @@ class HyDRAHook(SampleGradientHook):
         self.__batch_gradient_indices = batch_gradient_indices
 
     def _after_optimizer_step(self, **kwargs):
-        super()._after_optimizer_step(**kwargs)
         trainer = kwargs["model_executor"]
         batch = kwargs["batch"]
 
@@ -310,7 +312,6 @@ class HyDRAHook(SampleGradientHook):
         else:
             self.hessian_computation_arguments = None
 
-        trainer = kwargs["model_executor"]
         optimizer = trainer.get_optimizer()
         if not isinstance(optimizer, torch.optim.SGD):
             raise RuntimeError("optimizer is not SGD")

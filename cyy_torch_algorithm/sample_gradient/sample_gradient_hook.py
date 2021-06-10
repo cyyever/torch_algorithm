@@ -1,14 +1,16 @@
 from cyy_torch_toolbox.data_structure.synced_tensor_dict import \
     SyncedTensorDict
+from cyy_torch_toolbox.hook import Hook
 from cyy_torch_toolbox.hooks.add_index_to_dataset import AddIndexToDataset
 
 from .sample_gradient import get_sample_gradient
 
 
-class SampleGradientHook(AddIndexToDataset):
+class SampleGradientHook(Hook):
     def __init__(self, **kwargs):
         storage_dir = kwargs.pop("storage_dir", None)
         super().__init__(**kwargs)
+        self.dataset_index_hook = AddIndexToDataset()
         self.__computed_indices = None
         self.__sample_gradient_dict = None
         self.__storage_dir = storage_dir
@@ -71,4 +73,3 @@ class SampleGradientHook(AddIndexToDataset):
 
         self.__sample_gradient_dict.release()
         self.__sample_gradient_dict = None
-        super()._after_execute(**kwargs)
