@@ -287,6 +287,7 @@ class HyDRAHook(Hook):
         return tensor_dict
 
     def _before_batch(self, **kwargs):
+        trainer = kwargs["model_executor"]
         batch = kwargs["batch"]
 
         assert len(batch) == 3
@@ -298,15 +299,13 @@ class HyDRAHook(Hook):
             self.approx_hyper_gradient_mom_dict.prefetch(batch_gradient_indices)
         self.__batch_gradient_indices = batch_gradient_indices
 
-    def _after_optimizer_step(self, **kwargs):
-        trainer = kwargs["model_executor"]
-        batch = kwargs["batch"]
+        # def _after_optimizer_step(self, **kwargs):
 
         assert self.__batch_gradient_indices == self.sample_gradient_dict.keys()
 
         if self.use_hessian:
             self.hvp_function = get_hessian_vector_product_func(
-                trainer.copy_model_with_loss(True), batch
+                trainer.copy_model_with_loss(deepcopy=True), batch
             )
             self.hessian_computation_arguments = dict()
         else:

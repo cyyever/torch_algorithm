@@ -1,5 +1,6 @@
 from cyy_torch_toolbox.data_structure.synced_tensor_dict import \
     SyncedTensorDict
+from cyy_torch_toolbox.dataset import decode_batch
 from cyy_torch_toolbox.hook import Hook
 from cyy_torch_toolbox.hooks.add_index_to_dataset import AddIndexToDataset
 
@@ -14,7 +15,6 @@ class SampleGradientHook(Hook):
         self.__computed_indices = None
         self.__sample_gradient_dict = None
         self.__storage_dir = storage_dir
-        self.__model_with_loss = None
         self.__storage_dir = storage_dir
 
     @property
@@ -32,11 +32,11 @@ class SampleGradientHook(Hook):
     def _before_batch(self, **kwargs):
         self.sample_gradient_dict.clear()
 
-    def _after_optimizer_step(self, **kwargs):
+#     def _after_batch(self, **kwargs):
         trainer = kwargs["model_executor"]
         batch = kwargs["batch"]
 
-        instance_inputs, instance_targets, instance_info = trainer.decode_batch(batch)
+        instance_inputs, instance_targets, instance_info = decode_batch(batch)
         assert "index" in instance_info
         instance_indices = {idx.data.item() for idx in instance_info["index"]}
         batch_gradient_indices: set = instance_indices
@@ -55,10 +55,8 @@ class SampleGradientHook(Hook):
             sample_gradient_indices.append(instance_index)
         if not sample_gradient_indices:
             return
-        if self.__model_with_loss is None:
-            self.__model_with_loss = trainer.copy_model_with_loss(True)
         gradient_list = get_sample_gradient(
-            self.__model_with_loss,
+            trainer.copy_model_with_loss(deepcopy=True),
             sample_gradient_inputs,
             sample_gradient_targets,
         )

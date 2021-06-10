@@ -4,7 +4,8 @@ import atexit
 
 import torch
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
-from cyy_torch_toolbox.data_structure.torch_process_task_queue import TorchProcessTaskQueue
+from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
+    TorchProcessTaskQueue
 from cyy_torch_toolbox.device import get_cuda_devices
 from cyy_torch_toolbox.ml_type import MachineLearningPhase
 from cyy_torch_toolbox.model_util import ModelUtil
@@ -14,22 +15,28 @@ from cyy_torch_toolbox.model_with_loss import ModelWithLoss
 def __worker_fun(task, args):
     device = args[0]
     torch.cuda.set_device(device)
-    (index, input_chunk, target_chunk, model_with_loss) = task
+    cuda_stream = torch.cuda.Stream(device)
+    with torch.cuda.stream(cuda_stream):
+        (index, input_chunk, target_chunk, model_with_loss) = task
 
-    loss = None
-    gradient_lists = []
-    for (sample_input, sample_target) in zip(input_chunk, target_chunk):
-        model_with_loss.model.zero_grad()
-        sample_input.unsqueeze_(0)
-        sample_target.unsqueeze_(0)
-        # we should set phase to test so that BatchNorm would use running statistics
-        loss = model_with_loss(
-            sample_input, sample_target, phase=MachineLearningPhase.Test, device=device
-        )["loss"]
-        loss.backward()
-        gradient_lists.append(ModelUtil(model_with_loss.model).get_gradient_list())
-    assert len(gradient_lists) == len(input_chunk)
-    return (index, gradient_lists)
+        loss = None
+        gradient_lists = []
+        for (sample_input, sample_target) in zip(input_chunk, target_chunk):
+            model_with_loss.model.zero_grad(set_to_none=True)
+            sample_input.unsqueeze_(0)
+            sample_target.unsqueeze_(0)
+            # we should set phase to test so that BatchNorm would use running statistics
+            loss = model_with_loss(
+                sample_input,
+                sample_target,
+                phase=MachineLearningPhase.Test,
+                device=device,
+            )["loss"]
+            loss.backward()
+            gradient_lists.append(ModelUtil(model_with_loss.model).get_gradient_list())
+        assert len(gradient_lists) == len(input_chunk)
+        cuda_stream.synchronize()
+        return (index, gradient_lists)
 
 
 __task_queue = None
@@ -46,14 +53,11 @@ atexit.register(stop_task_queue)
 
 def get_sample_gradient(model_with_loss: ModelWithLoss, inputs, targets):
     global __task_queue
-    assert model_with_loss.loss_fun.reduction in ("mean", "elementwise_mean")
     assert len(inputs) == len(targets)
 
     model_with_loss.model.zero_grad(set_to_none=True)
-    model_with_loss.model.share_memory()
 
     devices = get_cuda_devices()
-    master_device = devices[0]
 
     input_chunks = list(
         split_list_to_chunks(inputs, (len(inputs) + len(devices) - 1) // len(devices))
@@ -78,7 +82,7 @@ def get_sample_gradient(model_with_loss: ModelWithLoss, inputs, targets):
     gradient_dict = dict()
     for _ in range(len(input_chunks)):
         idx, gradient_list = __task_queue.get_result()
-        gradient_dict[idx] = [p.to(master_device) for p in gradient_list]
+        gradient_dict[idx] = gradient_list
 
     gradient_lists = []
     for idx in sorted(gradient_dict.keys()):
