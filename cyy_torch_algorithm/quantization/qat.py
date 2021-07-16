@@ -4,6 +4,7 @@ import torch
 from cyy_naive_lib.log import get_logger
 from cyy_torch_toolbox.hook import Hook
 from cyy_torch_toolbox.model_util import ModelUtil
+from cyy_torch_toolbox.model_with_loss import ModelWithLoss
 from cyy_torch_toolbox.trainer import Trainer
 from torch.quantization.fuser_method_mappings import \
     DEFAULT_OP_LIST_TO_FUSER_METHOD
@@ -73,7 +74,14 @@ class QuantizationAwareTraining(Hook):
             get_logger().info("fuse modules %s", modules)
         torch.quantization.prepare_qat(quant_model, inplace=True)
         get_logger().debug("quant_model is %s", quant_model)
-        trainer.set_model(quant_model)
+        model_with_loss = trainer.model_with_loss
+        trainer.set_model_with_loss(
+            ModelWithLoss(
+                model=quant_model,
+                loss_fun=model_with_loss.loss_fun,
+                model_type=model_with_loss.model_type,
+            )
+        )
 
     @property
     def quantized_model(self) -> torch.nn.Module:
