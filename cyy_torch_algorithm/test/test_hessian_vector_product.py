@@ -21,10 +21,11 @@ def test_hessian_vector_product():
         hvp_function = get_hessian_vector_product_func(
             trainer.copy_model_with_loss(deepcopy=False), batch
         )
-        a = hvp_function([v, 2 * v, 3 * v])
-        assert len(a) == 3
+        a = hvp_function([v * (i + 1) for i in range(11)])
+        assert len(a) == 11
         assert torch.linalg.norm(a[1] - 2 * a[0], ord=2).data.item() < 0.0005
         assert torch.linalg.norm(a[2] - 3 * a[0], ord=2).data.item() < 0.05
+        assert torch.linalg.norm(a[10] - 11 * a[0], ord=2).data.item() < 0.05
 
         with TimeCounter() as c:
             a = hvp_function(v)
