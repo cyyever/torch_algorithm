@@ -52,12 +52,12 @@ class StocasticQuant:
             if stream is not None:
                 stream.synchronize()
             norm = put_data_to_device(norm, old_device)
-            sign_tensor = put_data_to_device(sign_tensor.char(), old_device).reshape(
-                old_tensor_shape
+            sign_tensor = (
+                sign_tensor.to(torch.int8).to(old_device).reshape(old_tensor_shape)
             )
-            slot_tensor = put_data_to_device(slot_tensor.byte(), old_device).reshape(
-                old_tensor_shape
-            )
+            if self.quantization_level <= 256:
+                slot_tensor = slot_tensor.to(torch.uint8)
+            slot_tensor = slot_tensor.to(old_device).reshape(old_tensor_shape)
 
             return (
                 norm,
