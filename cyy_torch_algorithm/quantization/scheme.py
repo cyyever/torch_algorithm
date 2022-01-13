@@ -26,9 +26,10 @@ class StocasticQuant:
         old_device = tensor.device
         if old_device == get_cpu_device():
             tensor = put_data_to_device(tensor, get_device())
-            stream = torch.cuda.Stream(device=tensor.device)
-        else:
+        if tensor.device == get_cpu_device():
             stream = None
+        else:
+            stream = torch.cuda.Stream(device=tensor.device)
         with torch.cuda.stream(stream):
             tensor = tensor.reshape(-1)
             assert len(tensor.shape) == 1
@@ -44,13 +45,7 @@ class StocasticQuant:
             slot_tensor = cyy_torch_cpp_extension.torch.stochastic_quantization(
                 normalized_abs_tensor, self.quantization_level
             )
-            prob_tensor = torch.clamp(
-                normalized_abs_tensor * self.quantization_level - slot_tensor,
-                min=0,
-                max=1,
-            )
-            if stream is not None:
-                stream.synchronize()
+            prob_tensor = normalized_abs_tensor * self.quantization_level - slot_tensor
             random_vector = torch.distributions.Bernoulli(prob_tensor).sample()
             slot_tensor += random_vector
 
