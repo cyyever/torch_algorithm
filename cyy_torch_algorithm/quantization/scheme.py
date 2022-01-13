@@ -1,6 +1,6 @@
 from typing import Callable, Tuple
 
-import cyy_naive_cpp_extension
+import cyy_torch_cpp_extension
 import torch
 from cyy_naive_lib.algorithm.mapping_op import get_mapping_values_by_key_order
 from cyy_torch_toolbox.device import (get_cpu_device, get_device,
@@ -41,7 +41,7 @@ class StocasticQuant:
             assert norm > 0
             sign_tensor = torch.sign(tensor)
             normalized_abs_tensor = tensor.abs() / norm
-            slot_tensor = cyy_naive_cpp_extension.torch.stochastic_quantization(
+            slot_tensor = cyy_torch_cpp_extension.torch.stochastic_quantization(
                 normalized_abs_tensor, self.quantization_level
             )
             prob_tensor = normalized_abs_tensor * self.quantization_level - slot_tensor
