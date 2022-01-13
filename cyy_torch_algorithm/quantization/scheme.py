@@ -1,6 +1,7 @@
 from typing import Callable, Tuple
 
 import cyy_torch_cpp_extension
+import numpy
 import torch
 from cyy_naive_lib.algorithm.mapping_op import get_mapping_values_by_key_order
 from cyy_torch_toolbox.device import (get_cpu_device, get_device,
@@ -52,11 +53,8 @@ class StocasticQuant:
             if stream is not None:
                 stream.synchronize()
             norm = put_data_to_device(norm, old_device)
-            sign_tensor = (
-                ((sign_tensor + 1) / 2)
-                .to(torch.bool)
-                .to(old_device)
-                .reshape(old_tensor_shape)
+            sign_tensor = numpy.packbits(
+                ((sign_tensor + 1) / 2).to(torch.bool).to(get_cpu_device()).numpy()
             )
             if self.quantization_level <= 256:
                 slot_tensor = slot_tensor.to(torch.uint8)
@@ -83,7 +81,10 @@ class StocasticDequant:
 
         quantized_tensor = quantized_tensor.float()
         quantized_tensor *= norm
-        res = quantized_tensor * (sign_tensor.float() * 2 - 1) / quantization_level
+        sign_tensor = (
+            torch.from_numpy(numpy.unpackbits(sign_tensor)).float() * 2 - 1
+        ).reshape(quantized_tensor.shape)
+        res = quantized_tensor * sign_tensor / quantization_level
 
         if name_and_shapes is not None:
             res = split_tensor_to_dict(name_and_shapes, res)
