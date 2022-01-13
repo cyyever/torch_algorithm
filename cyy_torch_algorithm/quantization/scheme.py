@@ -53,7 +53,7 @@ class StocasticQuant:
                 stream.synchronize()
             norm = put_data_to_device(norm, old_device)
             sign_tensor = (
-                sign_tensor.to(torch.int8).to(old_device).reshape(old_tensor_shape)
+                sign_tensor.to(torch.bool).to(old_device).reshape(old_tensor_shape)
             )
             if self.quantization_level <= 256:
                 slot_tensor = slot_tensor.to(torch.uint8)
