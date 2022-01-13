@@ -44,7 +44,11 @@ class StocasticQuant:
             slot_tensor = cyy_torch_cpp_extension.torch.stochastic_quantization(
                 normalized_abs_tensor, self.quantization_level
             )
-            prob_tensor = normalized_abs_tensor * self.quantization_level - slot_tensor
+            prob_tensor = torch.clamp(
+                normalized_abs_tensor * self.quantization_level - slot_tensor,
+                min=0,
+                max=1,
+            )
             random_vector = torch.distributions.Bernoulli(prob_tensor).sample()
             slot_tensor += random_vector
 
