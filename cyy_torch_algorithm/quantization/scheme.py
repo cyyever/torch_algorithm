@@ -49,9 +49,13 @@ class StocasticQuant:
                 min=0,
                 max=1,
             )
+            if stream is not None:
+                stream.synchronize()
             random_vector = torch.distributions.Bernoulli(prob_tensor).sample()
             slot_tensor += random_vector
 
+            if stream is not None:
+                stream.synchronize()
             norm = put_data_to_device(norm, old_device)
             sign_tensor = put_data_to_device(sign_tensor.char(), old_device).reshape(
                 old_tensor_shape
