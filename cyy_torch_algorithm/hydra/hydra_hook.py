@@ -38,7 +38,6 @@ class HyDRAHook(Hook):
 
         self.__approx_hyper_gradient_and_momentum_dir = None
         self.__approx_hyper_gradient_mom_dict = None
-        self.__batch_gradient_indices = None
 
     @property
     def sample_gradient_dict(self):
@@ -313,11 +312,8 @@ class HyDRAHook(Hook):
 
         if self.use_approximation:
             self.__approx_hyper_gradient_mom_dict.prefetch(batch_gradient_indices)
-        self.__batch_gradient_indices = batch_gradient_indices
 
-        # def _after_optimizer_step(self, **kwargs):
-
-        assert self.__batch_gradient_indices == self.sample_gradient_dict.keys()
+        assert batch_gradient_indices == self.sample_gradient_dict.keys()
 
         if self.use_hessian:
             self.__hvp_function = get_hessian_vector_product_func(
@@ -346,7 +342,7 @@ class HyDRAHook(Hook):
 
         for idx in self.__computed_indices:
             instance_gradient = None
-            if idx in self.sample_gradient_dict:
+            if idx in batch_gradient_indices:
                 instance_gradient = (
                     (self.sample_gradient_dict[idx] * training_set_size / batch_size)
                     .detach()
