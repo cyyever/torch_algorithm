@@ -65,21 +65,26 @@ def get_sample_gradient(model_with_loss: ModelWithLoss, inputs, targets):
 
     model_with_loss.model.zero_grad(set_to_none=True)
 
-    devices = get_cuda_devices()
-
-    input_chunks = list(
-        split_list_to_chunks(inputs, (len(inputs) + len(devices) - 1) // len(devices))
-    )
-
-    target_chunks = list(
-        split_list_to_chunks(targets, (len(targets) + len(devices) - 1) // len(devices))
-    )
     if __task_queue is None:
+        devices = get_cuda_devices()
         if len(devices) > 1:
             __task_queue = TorchProcessTaskQueue(worker_fun=__worker_fun)
         else:
             __task_queue = TorchThreadTaskQueue(worker_fun=__worker_fun)
         __task_queue.start()
+    input_chunks = list(
+        split_list_to_chunks(
+            inputs,
+            (len(inputs) + __task_queue.worker_num - 1) // __task_queue.worker_num,
+        )
+    )
+
+    target_chunks = list(
+        split_list_to_chunks(
+            targets,
+            (len(targets) + __task_queue.worker_num - 1) // __task_queue.worker_num,
+        )
+    )
     for idx, (input_chunk, target_chunk) in enumerate(zip(input_chunks, target_chunks)):
         __task_queue.add_task(
             (
