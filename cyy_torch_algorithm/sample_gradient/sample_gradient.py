@@ -13,7 +13,7 @@ from cyy_torch_toolbox.model_with_loss import ModelWithLoss
 
 
 def __worker_fun(task, args):
-    device = args[0]
+    device = args["device"]
     torch.cuda.set_device(device)
     cuda_stream = torch.cuda.Stream(device)
     with torch.cuda.stream(cuda_stream):
