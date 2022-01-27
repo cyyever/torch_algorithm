@@ -31,8 +31,6 @@ class SampleGradientHook(Hook):
 
     def _before_batch(self, **kwargs):
         self.sample_gradient_dict.clear()
-
-#     def _after_batch(self, **kwargs):
         trainer = kwargs["model_executor"]
         batch = kwargs["batch"]
 
@@ -56,7 +54,7 @@ class SampleGradientHook(Hook):
         if not sample_gradient_indices:
             return
         gradient_list = get_sample_gradient(
-            trainer.copy_model_with_loss(deepcopy=True),
+            trainer.model_with_loss,
             sample_gradient_inputs,
             sample_gradient_targets,
         )
