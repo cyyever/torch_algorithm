@@ -363,13 +363,8 @@ class HyDRAHook(Hook):
                     self.do_delayed_computation(idx)
         if self.use_hessian:
             self.__do_computation_with_hessian()
-        # if self.use_approximation:
-        #     for idx in self.__computed_indices:
-        #         if idx in self.sample_gradient_dict:
 
     def __get_hyper_gradient_and_momentum(self, index, use_approximation):
-        if use_approximation:
-            self.do_delayed_computation(index)
         return self.__decode_hyper_gradient_and_momentum(
             self.__get_hyper_gradient_mom_dict(use_approximation)[index]
         )
