@@ -17,75 +17,91 @@ from sample_gradient.sample_gradient_hook import SampleGradientHook
 
 
 class HyDRAHook(Hook):
-    def __init__(self, cache_size, save_dir, **kwargs):
+    def __init__(self, cache_size, **kwargs):
         super().__init__(stripable=True)
         self.sample_gradient_hook = SampleGradientHook()
-        self.cache_size = cache_size
-        self.save_dir = os.path.join(save_dir, "HyDRA")
+        self.__cache_size = cache_size
+        self.__save_dir = None
 
-        self.computed_indices = None
+        self.__computed_indices = None
         self.hessian_computation_arguments = None
         self.delayed_approximation_computations = None
 
         self.use_hessian = kwargs.get("use_hessian", False)
-        self.hessian_hyper_gradient_and_momentum_dir = os.path.join(
-            self.save_dir, "hessian_hyper_gradient_and_momentum_dir"
-        )
-        self.hvp_function = None
+        self.__hessian_hyper_gradient_and_momentum_dir = None
+        self.__hvp_function = None
         self.hessian_hyper_gradient_mom_dict = None
         self.use_approximation = kwargs.get("use_approximation", None)
 
         if self.use_approximation is None:
             self.use_approximation = not self.use_hessian
 
-        self.approx_hyper_gradient_and_momentum_dir = os.path.join(
-            self.save_dir, "approx_hyper_gradient_and_momentum_dir"
-        )
-        self.approx_hyper_gradient_mom_dict = None
-        os.makedirs(self.save_dir, exist_ok=True)
+        self.__approx_hyper_gradient_and_momentum_dir = None
+        self.__approx_hyper_gradient_mom_dict = None
         self.__batch_gradient_indices = None
 
     @property
     def sample_gradient_dict(self):
         return self.sample_gradient_hook.sample_gradient_dict
 
+    def __get_save_dir(self, trainer):
+        if self.__save_dir is None:
+            self.__save_dir = os.path.join(trainer.save_dir, "HyDRA")
+            os.makedirs(self.__save_dir, exist_ok=True)
+        return self.__save_dir
+
+    def get_hessian_hydra_dir(self, trainer=None):
+        if self.__hessian_hyper_gradient_and_momentum_dir is None:
+            self.__hessian_hyper_gradient_and_momentum_dir = os.path.join(
+                self.__get_save_dir(trainer), "hessian_hyper_gradient_and_momentum_dir"
+            )
+        return self.__hessian_hyper_gradient_and_momentum_dir
+
+    def get_approx_hydra_dir(self, trainer=None):
+        if self.__approx_hyper_gradient_and_momentum_dir is None:
+            self.__approx_hyper_gradient_and_momentum_dir = os.path.join(
+                self.__get_save_dir(trainer), "approx_hyper_gradient_and_momentum_dir"
+            )
+        return self.__approx_hyper_gradient_and_momentum_dir
+
     def _before_execute(self, **kwargs):
         trainer = kwargs["model_executor"]
-        if not self.computed_indices:
-            self.computed_indices = set(range(len(trainer.dataset)))
+        if not self.__computed_indices:
+            self.__computed_indices = set(range(len(trainer.dataset)))
+        else:
+            get_logger().info("only compute %s indices", len(self.__computed_indices))
+        with open(
+            os.path.join(self.__get_save_dir(trainer), "tracking_indices.json"),
+            mode="wb",
+        ) as f:
+            pickle.dump(self.__computed_indices, f)
         if self.use_hessian:
             get_logger().info("use hessian to compute hyper-gradients")
             self.hessian_hyper_gradient_mom_dict = HyDRAHook.create_hypergradient_dict(
-                self.cache_size,
+                self.__cache_size,
                 trainer.model,
-                storage_dir=self.hessian_hyper_gradient_and_momentum_dir,
+                storage_dir=self.get_hessian_hydra_dir(trainer),
             )
-            get_logger().info(
+            get_logger().debug(
                 "use hessian_hyper_gradient_mom_dir:%s",
-                os.path.abspath(self.hessian_hyper_gradient_and_momentum_dir),
+                os.path.abspath(self.hessian_hyper_gradient_mom_dict.get_storage_dir()),
             )
         if self.use_approximation:
-            self.approx_hyper_gradient_mom_dict = HyDRAHook.create_hypergradient_dict(
-                self.cache_size,
+            self.__approx_hyper_gradient_mom_dict = HyDRAHook.create_hypergradient_dict(
+                self.__cache_size,
                 trainer.model,
-                storage_dir=self.approx_hyper_gradient_and_momentum_dir,
+                storage_dir=self.get_approx_hydra_dir(trainer),
             )
             get_logger().info(
                 "use hyper_gradient_mom_dir:%s",
-                os.path.abspath(self.approx_hyper_gradient_and_momentum_dir),
+                os.path.abspath(self.get_approx_hydra_dir(trainer)),
             )
-            self.delayed_approximation_computations = dict()
-            for k in self.computed_indices:
-                self.delayed_approximation_computations[k] = []
+            self.delayed_approximation_computations = {
+                k: [] for k in self.__computed_indices
+            }
 
     def set_computed_indices(self, computed_indices):
-        get_logger().info("only compute %s indices", len(computed_indices))
-        self.computed_indices = set(computed_indices)
-        with open(
-            os.path.join(self.save_dir, "tracking_indices.json"),
-            mode="wb",
-        ) as f:
-            pickle.dump(self.computed_indices, f)
+        self.__computed_indices = set(computed_indices)
         self.sample_gradient_hook.set_computed_indices(computed_indices)
 
     def _after_execute(self, **kwargs):
@@ -110,14 +126,14 @@ class HyDRAHook(Hook):
 
     def __do_computation_with_hessian(self):
         for chunk in split_list_to_chunks(
-            list(self.computed_indices),
-            self.cache_size // 2,
+            list(self.__computed_indices),
+            self.__cache_size // 2,
         ):
             counter = TimeCounter()
             self.hessian_hyper_gradient_mom_dict.prefetch(chunk)
-            hyper_gradients = list()
-            hyper_gradient_indices = list()
-            hessian_vector_product_dict = dict()
+            hyper_gradients = []
+            hyper_gradient_indices = []
+            hessian_vector_product_dict = {}
             for index in chunk:
                 if index in self.hessian_hyper_gradient_mom_dict:
                     hyper_gradients.append(
@@ -126,7 +142,7 @@ class HyDRAHook(Hook):
                     hyper_gradient_indices.append(index)
             if hyper_gradients:
                 counter2 = TimeCounter()
-                hessian_vector_products = self.hvp_function(hyper_gradients)
+                hessian_vector_products = self.__hvp_function(hyper_gradients)
                 get_logger().info(
                     "hvp chunk size %s use time %s ms",
                     len(hyper_gradients),
@@ -202,7 +218,7 @@ class HyDRAHook(Hook):
                     unfinished_keys.append(k)
 
             if unfinished_keys:
-                for (k, _) in self.approx_hyper_gradient_mom_dict.iterate(
+                for (k, _) in self.__approx_hyper_gradient_mom_dict.iterate(
                     unfinished_keys
                 ):
                     get_logger().debug(
@@ -218,7 +234,7 @@ class HyDRAHook(Hook):
 
         hyper_gradient = None
         mom_gradient = None
-        if index in self.approx_hyper_gradient_mom_dict:
+        if index in self.__approx_hyper_gradient_mom_dict:
             hyper_gradient, mom_gradient = self.__get_hyper_gradient_and_momentum(
                 index, use_approximation=True
             )
@@ -293,10 +309,10 @@ class HyDRAHook(Hook):
         assert len(batch) == 3
         instance_indices = {idx.data.item() for idx in batch[2]["index"]}
 
-        batch_gradient_indices = instance_indices & self.computed_indices
+        batch_gradient_indices = instance_indices & self.__computed_indices
 
         if self.use_approximation:
-            self.approx_hyper_gradient_mom_dict.prefetch(batch_gradient_indices)
+            self.__approx_hyper_gradient_mom_dict.prefetch(batch_gradient_indices)
         self.__batch_gradient_indices = batch_gradient_indices
 
         # def _after_optimizer_step(self, **kwargs):
@@ -304,10 +320,10 @@ class HyDRAHook(Hook):
         assert self.__batch_gradient_indices == self.sample_gradient_dict.keys()
 
         if self.use_hessian:
-            self.hvp_function = get_hessian_vector_product_func(
+            self.__hvp_function = get_hessian_vector_product_func(
                 trainer.copy_model_with_loss(deepcopy=True), batch
             )
-            self.hessian_computation_arguments = dict()
+            self.hessian_computation_arguments = {}
         else:
             self.hessian_computation_arguments = None
 
@@ -328,7 +344,7 @@ class HyDRAHook(Hook):
         weight_decay = trainer.hyper_parameter.weight_decay
         training_set_size = len(trainer.dataset)
 
-        for idx in self.computed_indices:
+        for idx in self.__computed_indices:
             instance_gradient = None
             if idx in self.sample_gradient_dict:
                 instance_gradient = (
@@ -350,7 +366,7 @@ class HyDRAHook(Hook):
         if self.use_hessian:
             self.__do_computation_with_hessian()
         if self.use_approximation:
-            for idx in self.computed_indices:
+            for idx in self.__computed_indices:
                 if idx in self.sample_gradient_dict:
                     self.do_delayed_computation(idx)
 
@@ -374,23 +390,13 @@ class HyDRAHook(Hook):
 
     def __get_hyper_gradient_mom_dict(self, use_approximation):
         return (
-            self.approx_hyper_gradient_mom_dict
+            self.__approx_hyper_gradient_mom_dict
             if use_approximation
             else self.hessian_hyper_gradient_mom_dict
         )
 
     def __save_hyper_gradients(self, trainer, test_gradient, use_approximation):
-        if use_approximation:
-            hyper_gradient_dir = os.path.join(
-                self.save_dir, "approximation_hyper_gradient_dir"
-            )
-
-        else:
-            hyper_gradient_dir = os.path.join(
-                self.save_dir, "hessian_hyper_gradient_dir"
-            )
-
-        contribution = dict()
+        contribution = {}
         if use_approximation:
             get_logger().info("begin do do_delayed_computation")
             self.do_delayed_computation()
@@ -407,21 +413,33 @@ class HyDRAHook(Hook):
         tensor_dict.release()
         if use_approximation:
             with open(
-                os.path.join(self.save_dir, "approx_hydra_contribution.json"),
+                os.path.join(
+                    self.__get_save_dir(trainer), "approx_hydra_contribution.json"
+                ),
                 mode="wt",
+                encoding="utf-8",
             ) as f:
                 json.dump(contribution, f)
-            shutil.move(self.approx_hyper_gradient_and_momentum_dir, hyper_gradient_dir)
+            hyper_gradient_dir = os.path.join(
+                self.__get_save_dir(trainer), "approximation_hyper_gradient_dir"
+            )
+            shutil.move(tensor_dict.get_storage_dir(), hyper_gradient_dir)
         else:
             with open(
-                os.path.join(self.save_dir, "hessian_hydra_contribution.json"),
+                os.path.join(
+                    self.__get_save_dir(trainer), "hessian_hydra_contribution.json"
+                ),
                 mode="wt",
+                encoding="utf-8",
             ) as f:
                 json.dump(contribution, f)
-            shutil.move(
-                self.hessian_hyper_gradient_and_momentum_dir, hyper_gradient_dir
+            hyper_gradient_dir = os.path.join(
+                self.__get_save_dir(trainer), "hessian_hyper_gradient_dir"
             )
-        with open(os.path.join(self.save_dir, "training_set_size"), "wb") as f:
+            shutil.move(tensor_dict.get_storage_dir(), hyper_gradient_dir)
+        with open(
+            os.path.join(self.__get_save_dir(trainer), "training_set_size"), "wb"
+        ) as f:
             pickle.dump(training_set_size, f)
 
     def foreach_hyper_gradient(self, use_approximation: bool, callback):

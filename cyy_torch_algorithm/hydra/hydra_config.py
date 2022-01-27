@@ -12,8 +12,6 @@ class HyDRAConfig(DefaultConfig):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.cache_size: int = None
-        self.approx_hyper_gradient_and_momentum_dir: str = None
-        self.hessian_hyper_gradient_and_momentum_dir: str = None
         self.tracking_percentage: float = None
         self.__tracking_indices = None
         self.use_hessian: bool = False
@@ -30,10 +28,7 @@ class HyDRAConfig(DefaultConfig):
         trainer = super().create_trainer(**kwargs)
 
         hydra_hook = HyDRAHook(
-            self.cache_size,
-            self.get_save_dir(),
-            hessian_hyper_gradient_and_momentum_dir=self.hessian_hyper_gradient_and_momentum_dir,
-            approx_hyper_gradient_and_momentum_dir=self.approx_hyper_gradient_and_momentum_dir,
+            cache_size=self.cache_size,
             use_hessian=self.use_hessian,
             use_approximation=self.use_approximation,
         )
