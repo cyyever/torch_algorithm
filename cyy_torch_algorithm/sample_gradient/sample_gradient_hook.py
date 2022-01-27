@@ -15,6 +15,8 @@ class SampleGradientHook(Hook):
         self.__computed_indices = None
         self.__sample_gradient_dict = None
         self.__storage_dir = storage_dir
+
+    def set_storage_dir(self, storage_dir):
         self.__storage_dir = storage_dir
 
     @property
@@ -24,19 +26,23 @@ class SampleGradientHook(Hook):
     def set_computed_indices(self, computed_indices):
         self.__computed_indices = set(computed_indices)
 
-    def _before_execute(self, **kwargs):
-        if self.__storage_dir is not None:
-            self.__sample_gradient_dict.set_storage_dir(self.__storage_dir)
-        self.__sample_gradient_dict = SyncedTensorDict.create()
-
     def _before_batch(self, **kwargs):
-        self.sample_gradient_dict.clear()
         trainer = kwargs["model_executor"]
         batch = kwargs["batch"]
 
         instance_inputs, instance_targets, instance_info = decode_batch(batch)
         assert "index" in instance_info
         instance_indices = {idx.data.item() for idx in instance_info["index"]}
+
+        if self.__sample_gradient_dict is None:
+            self.__sample_gradient_dict = SyncedTensorDict.create(
+                cache_size=min(64, trainer.hyper_parameter.batch_size)
+            )
+            if self.__storage_dir is not None:
+                self.__sample_gradient_dict.set_storage_dir(self.__storage_dir)
+        else:
+            self.sample_gradient_dict.clear()
+
         batch_gradient_indices: set = instance_indices
         if self.__computed_indices is not None:
             batch_gradient_indices &= self.__computed_indices

@@ -10,7 +10,8 @@ from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_toolbox.data_structure.synced_tensor_dict import \
     SyncedTensorDict
 from cyy_torch_toolbox.hook import Hook
-from cyy_torch_toolbox.ml_type import MachineLearningPhase
+from cyy_torch_toolbox.ml_type import (MachineLearningPhase,
+                                       ModelExecutorHookPoint)
 from cyy_torch_toolbox.model_util import ModelUtil
 from hessian_vector_product import get_hessian_vector_product_func
 from sample_gradient.sample_gradient_hook import SampleGradientHook
@@ -98,6 +99,12 @@ class HyDRAHook(Hook):
             self.delayed_approximation_computations = {
                 k: [] for k in self.__computed_indices
             }
+            trainer.prepend_named_hook(
+                hook_point=ModelExecutorHookPoint.BEFORE_BATCH,
+                name="prepare_hook",
+                fun=self.__prepare_hook,
+                stripable=True,
+            )
 
     def set_computed_indices(self, computed_indices):
         self.__computed_indices = set(computed_indices)
@@ -106,6 +113,7 @@ class HyDRAHook(Hook):
     def _after_execute(self, **kwargs):
         get_logger().info("end hyper-gradient tracking")
         trainer = kwargs["model_executor"]
+        trainer.remove_hook(name="prepare_hook")
         tester = trainer.get_inferencer(phase=MachineLearningPhase.Test)
         tester.disable_logger()
         tester.disable_performance_metric_logger()
@@ -301,6 +309,12 @@ class HyDRAHook(Hook):
         )
         return tensor_dict
 
+    def __prepare_hook(self, **kwargs):
+        trainer = kwargs["model_executor"]
+        self.sample_gradient_hook.set_storage_dir(
+            os.path.join(self.__get_save_dir(trainer), "tmp_sample_gradient")
+        )
+
     def _before_batch(self, **kwargs):
         trainer = kwargs["model_executor"]
         batch = kwargs["batch"]
@@ -308,10 +322,7 @@ class HyDRAHook(Hook):
         assert len(batch) == 3
         instance_indices = {idx.data.item() for idx in batch[2]["index"]}
 
-        batch_gradient_indices = instance_indices & self.__computed_indices
-
-        if self.use_approximation:
-            self.__approx_hyper_gradient_mom_dict.prefetch(batch_gradient_indices)
+        batch_gradient_indices: set = instance_indices & self.__computed_indices
 
         assert batch_gradient_indices == self.sample_gradient_dict.keys()
 
