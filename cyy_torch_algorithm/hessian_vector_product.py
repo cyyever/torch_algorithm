@@ -32,7 +32,7 @@ def __get_f(device, inputs, targets, model_with_loss: ModelWithLoss):
 
 
 def worker_fun(task, args):
-    worker_device = args[0]
+    worker_device = args["device"]
     torch.cuda.set_device(worker_device)
     (idx, vector_chunk, model_with_loss, parameter_list, inputs, targets) = task
     for index, vector in enumerate(vector_chunk):
