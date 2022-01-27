@@ -15,7 +15,7 @@ class HyDRAConfig(DefaultConfig):
         self.approx_hyper_gradient_and_momentum_dir: str = None
         self.hessian_hyper_gradient_and_momentum_dir: str = None
         self.tracking_percentage: float = None
-        self.tracking_indices = None
+        self.__tracking_indices = None
         self.use_hessian: bool = False
         self.use_approximation: bool = True
 
@@ -43,9 +43,9 @@ class HyDRAConfig(DefaultConfig):
             subset_dict = DatasetUtil(trainer.dataset).iid_sample(
                 self.tracking_percentage
             )
-            self.tracking_indices = sum(subset_dict.values(), [])
-        if self.tracking_indices:
-            hydra_hook.set_computed_indices(self.tracking_indices)
-        if not return_hydra_hook:
-            return trainer
-        return trainer, hydra_hook
+            self.__tracking_indices = sum(subset_dict.values(), [])
+        if self.__tracking_indices:
+            hydra_hook.set_computed_indices(self.__tracking_indices)
+        if return_hydra_hook:
+            return trainer, hydra_hook
+        return trainer
