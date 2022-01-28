@@ -35,11 +35,12 @@ class SampleGradientHook(Hook):
         instance_indices = {idx.data.item() for idx in instance_info["index"]}
 
         if self.__sample_gradient_dict is None:
-            self.__sample_gradient_dict = SyncedTensorDict.create(
-                cache_size=min(64, trainer.hyper_parameter.batch_size)
-            )
-            if self.__storage_dir is not None:
-                self.__sample_gradient_dict.set_storage_dir(self.__storage_dir)
+            # self.__sample_gradient_dict = SyncedTensorDict.create(
+            #     cache_size=min(64, trainer.hyper_parameter.batch_size)
+            # )
+            # if self.__storage_dir is not None:
+            #     self.__sample_gradient_dict.set_storage_dir(self.__storage_dir)
+            self.__sample_gradient_dict = {}
         else:
             self.sample_gradient_dict.clear()
 

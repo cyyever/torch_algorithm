@@ -239,13 +239,9 @@ class HyDRAHook(Hook):
         if not self.delayed_approximation_computations[index]:
             return
 
-        hyper_gradient = None
-        mom_gradient = None
-        if index in self.__approx_hyper_gradient_mom_dict:
-            hyper_gradient, mom_gradient = self.__get_hyper_gradient_and_momentum(
-                index, use_approximation=True
-            )
-
+        hyper_gradient, mom_gradient = self.__get_hyper_gradient_and_momentum(
+            index, use_approximation=True
+        )
         for arguments in self.delayed_approximation_computations[index]:
             (momentum, weight_decay, learning_rate, instance_gradient) = arguments
             if mom_gradient is not None:
@@ -311,9 +307,17 @@ class HyDRAHook(Hook):
 
     def __prepare_hook(self, **kwargs):
         trainer = kwargs["model_executor"]
+        batch = kwargs["batch"]
         self.sample_gradient_hook.set_storage_dir(
             os.path.join(self.__get_save_dir(trainer), "tmp_sample_gradient")
         )
+        if self.use_approximation:
+            instance_indices = {idx.data.item() for idx in batch[2]["index"]}
+            batch_gradient_indices: set = instance_indices & self.__computed_indices
+            if batch_gradient_indices:
+                self.__get_hyper_gradient_mom_dict(self.use_approximation).prefetch(
+                    batch_gradient_indices
+                )
 
     def _before_batch(self, **kwargs):
         trainer = kwargs["model_executor"]
@@ -351,13 +355,13 @@ class HyDRAHook(Hook):
         weight_decay = trainer.hyper_parameter.weight_decay
         training_set_size = len(trainer.dataset)
 
+        counter = TimeCounter()
         for idx in self.__computed_indices:
             instance_gradient = None
             if idx in batch_gradient_indices:
+                instance_gradient = self.sample_gradient_dict[idx]
                 instance_gradient = (
-                    (self.sample_gradient_dict[idx] * training_set_size / batch_size)
-                    .detach()
-                    .clone()
+                    instance_gradient.detach() * training_set_size / batch_size
                 )
             if self.use_hessian:
                 self.hessian_computation_arguments[idx] = (
@@ -372,13 +376,18 @@ class HyDRAHook(Hook):
                 )
                 if instance_gradient is not None:
                     self.do_delayed_computation(idx)
+        get_logger().info(
+            "use_approximation use time %s ms",
+            counter.elapsed_milliseconds(),
+        )
         if self.use_hessian:
             self.__do_computation_with_hessian()
 
     def __get_hyper_gradient_and_momentum(self, index, use_approximation):
-        return self.__decode_hyper_gradient_and_momentum(
-            self.__get_hyper_gradient_mom_dict(use_approximation)[index]
-        )
+        data = self.__get_hyper_gradient_mom_dict(use_approximation)[index]
+        if data is None:
+            return None, None
+        return self.__decode_hyper_gradient_and_momentum(data)
 
     def __decode_hyper_gradient_and_momentum(self, tensor):
         return torch.split(tensor, tensor.shape[0] // 2)
