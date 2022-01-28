@@ -1,5 +1,5 @@
-from cyy_torch_toolbox.data_structure.synced_tensor_dict import \
-    SyncedTensorDict
+# from cyy_torch_toolbox.data_structure.synced_tensor_dict import \
+#     SyncedTensorDict
 from cyy_torch_toolbox.dataset import decode_batch
 from cyy_torch_toolbox.hook import Hook
 from cyy_torch_toolbox.hooks.add_index_to_dataset import AddIndexToDataset
@@ -74,5 +74,6 @@ class SampleGradientHook(Hook):
         if not self.__storage_dir:
             self.sample_gradient_dict.clear()
 
-        self.__sample_gradient_dict.release()
+        if not isinstance(self.__sample_gradient_dict, dict):
+            self.__sample_gradient_dict.release()
         self.__sample_gradient_dict = None
