@@ -96,9 +96,7 @@ class HyDRAHook(Hook):
                 "use hyper_gradient_mom_dir:%s",
                 os.path.abspath(self.get_approx_hydra_dir(trainer)),
             )
-            self.delayed_approximation_computations = {
-                k: [] for k in self.__computed_indices
-            }
+            self.delayed_approximation_computations = {}
             trainer.prepend_named_hook(
                 hook_point=ModelExecutorHookPoint.BEFORE_BATCH,
                 name="prepare_hook",
@@ -220,9 +218,8 @@ class HyDRAHook(Hook):
     def do_delayed_computation(self, index=None):
         if index is None:
             unfinished_keys = []
-            for k, v in self.delayed_approximation_computations.items():
-                if v:
-                    unfinished_keys.append(k)
+            for k in self.delayed_approximation_computations:
+                unfinished_keys.append(k)
 
             if unfinished_keys:
                 for (k, _) in self.__approx_hyper_gradient_mom_dict.iterate(
@@ -232,11 +229,6 @@ class HyDRAHook(Hook):
                         "do delayed_approximation_computations for %s", k
                     )
                     self.do_delayed_computation(k)
-            return
-
-        if index not in self.delayed_approximation_computations:
-            return
-        if not self.delayed_approximation_computations[index]:
             return
 
         hyper_gradient, mom_gradient = self.__get_hyper_gradient_and_momentum(
@@ -268,7 +260,7 @@ class HyDRAHook(Hook):
 
         assert hyper_gradient is not None
         assert mom_gradient is not None
-        self.delayed_approximation_computations[index] = []
+        del self.delayed_approximation_computations[index]
         self.__set_hyper_gradient_and_momentum(
             index, hyper_gradient, mom_gradient, use_approximation=True
         )
@@ -371,6 +363,8 @@ class HyDRAHook(Hook):
                     instance_gradient,
                 )
             if self.use_approximation:
+                if idx not in self.delayed_approximation_computations:
+                    self.delayed_approximation_computations[idx] = []
                 self.delayed_approximation_computations[idx].append(
                     (momentum, weight_decay, cur_learning_rate, instance_gradient)
                 )

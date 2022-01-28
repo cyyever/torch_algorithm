@@ -30,6 +30,7 @@ def __worker_fun(task, args):
 
         loss = None
         gradient_lists = []
+        model_util = ModelUtil(model_with_loss.model)
         for (sample_input, sample_target) in zip(input_chunk, target_chunk):
             model_with_loss.model.zero_grad(set_to_none=True)
             sample_input.unsqueeze_(0)
@@ -42,7 +43,7 @@ def __worker_fun(task, args):
                 device=__worker_device,
             )["loss"]
             loss.backward()
-            gradient_lists.append(ModelUtil(model_with_loss.model).get_gradient_list())
+            gradient_lists.append(model_util.get_gradient_list())
         assert len(gradient_lists) == len(input_chunk)
         __worker_stream.synchronize()
         return (index, gradient_lists)
