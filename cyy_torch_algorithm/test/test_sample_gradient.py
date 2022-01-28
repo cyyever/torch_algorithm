@@ -4,7 +4,6 @@ import torch
 # from cyy_naive_lib.profiling import Profile
 from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_toolbox.default_config import DefaultConfig
-from cyy_torch_toolbox.device import get_device
 from sample_gradient.sample_gradient import (get_sample_gradient,
                                              stop_task_queue)
 
@@ -17,8 +16,6 @@ def test_get_sample_gradient():
         shuffle=True,
     )
 
-    device = get_device()
-    trainer.model.to(device)
     for cnt, batch in enumerate(training_data_loader):
         with TimeCounter():
             gradients = get_sample_gradient(
