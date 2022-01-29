@@ -4,7 +4,7 @@ from cyy_torch_toolbox.dataset import decode_batch
 from cyy_torch_toolbox.hook import Hook
 from cyy_torch_toolbox.hooks.add_index_to_dataset import AddIndexToDataset
 
-from .sample_gradient import get_sample_gradient
+from .sample_gradient import get_sample_gradient, stop_task_queue
 
 
 class SampleGradientHook(Hook):
@@ -77,3 +77,4 @@ class SampleGradientHook(Hook):
         if not isinstance(self.__sample_gradient_dict, dict):
             self.__sample_gradient_dict.release()
         self.__sample_gradient_dict = None
+        stop_task_queue()

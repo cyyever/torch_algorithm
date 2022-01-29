@@ -53,8 +53,10 @@ __task_queue = None
 
 
 def stop_task_queue():
+    global __task_queue
     if __task_queue is not None:
         __task_queue.force_stop()
+        __task_queue = None
 
 
 atexit.register(stop_task_queue)
