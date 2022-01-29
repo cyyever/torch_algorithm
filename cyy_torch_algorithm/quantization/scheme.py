@@ -1,11 +1,9 @@
 from typing import Callable, Tuple
 
-import cyy_torch_cpp_extension
 import numpy
 import torch
 from cyy_naive_lib.algorithm.mapping_op import get_mapping_values_by_key_order
-from cyy_torch_toolbox.device import (get_cpu_device, get_device,
-                                      put_data_to_device)
+from cyy_torch_toolbox.device import get_cpu_device
 from cyy_torch_toolbox.tensor import (cat_tensors_to_vector,
                                       split_tensor_to_dict)
 
@@ -24,49 +22,38 @@ class StocasticQuant:
             tensor = cat_tensors_to_vector(get_mapping_values_by_key_order(tensor))
 
         old_tensor_shape = tensor.shape
-        old_device = tensor.device
-        if old_device == get_cpu_device():
-            tensor = put_data_to_device(tensor, get_device())
-        if tensor.device == get_cpu_device():
-            stream = None
+        tensor = tensor.reshape(-1)
+        assert len(tensor.shape) == 1
+
+        norm = None
+        if self.use_l2_norm:
+            norm = torch.linalg.norm(tensor)
         else:
-            stream = torch.cuda.Stream(device=tensor.device)
-        with torch.cuda.stream(stream):
-            tensor = tensor.reshape(-1)
-            assert len(tensor.shape) == 1
+            norm = torch.linalg.norm(tensor, ord=float("inf"))
+        assert norm > 0
+        sign_tensor = torch.sign(tensor)
+        normalized_abs_tensor = tensor.abs() / norm
+        tmp = normalized_abs_tensor * self.quantization_level
+        slot_tensor = tmp.trunc()
+        prob_tensor = tmp - slot_tensor
+        random_vector = torch.distributions.Bernoulli(prob_tensor).sample()
+        slot_tensor += random_vector
 
-            norm = None
-            if self.use_l2_norm:
-                norm = torch.linalg.norm(tensor)
-            else:
-                norm = torch.linalg.norm(tensor, ord=float("inf"))
-            assert norm > 0
-            sign_tensor = torch.sign(tensor)
-            normalized_abs_tensor = tensor.abs() / norm
-            slot_tensor = cyy_torch_cpp_extension.torch.stochastic_quantization(
-                normalized_abs_tensor, self.quantization_level
-            )
-            prob_tensor = normalized_abs_tensor * self.quantization_level - slot_tensor
-            random_vector = torch.distributions.Bernoulli(prob_tensor).sample()
-            slot_tensor += random_vector
+        sign_tensor = numpy.packbits(
+            ((sign_tensor + 1) / 2).to(torch.bool).to(get_cpu_device()).numpy()
+        )
+        if self.quantization_level <= 256:
+            slot_tensor = slot_tensor.to(torch.uint8)
+        # slot_tensor = slot_tensor.to(old_device).reshape(old_tensor_shape)
+        slot_tensor = slot_tensor.reshape(old_tensor_shape)
 
-            if stream is not None:
-                stream.synchronize()
-            norm = put_data_to_device(norm, old_device)
-            sign_tensor = numpy.packbits(
-                ((sign_tensor + 1) / 2).to(torch.bool).to(get_cpu_device()).numpy()
-            )
-            if self.quantization_level <= 256:
-                slot_tensor = slot_tensor.to(torch.uint8)
-            slot_tensor = slot_tensor.to(old_device).reshape(old_tensor_shape)
-
-            return (
-                norm,
-                sign_tensor,
-                slot_tensor,
-                self.quantization_level,
-                name_and_shapes,
-            )
+        return (
+            norm,
+            sign_tensor,
+            slot_tensor,
+            self.quantization_level,
+            name_and_shapes,
+        )
 
 
 class StocasticDequant:
