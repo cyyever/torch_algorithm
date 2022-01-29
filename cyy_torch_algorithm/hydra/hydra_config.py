@@ -23,6 +23,10 @@ class HyDRAConfig(DefaultConfig):
 
         parser.add_argument("--tracking_percentage", type=float, default=None)
         super().load_args(parser=parser)
+        if self.hyper_parameter_config.optimizer_name != "SGD":
+            raise NotImplementedError(
+                f"you choose optimizer {self.hyper_parameter_config.optimizer_name} but we support SGD only."
+            )
 
     def create_trainer(self, return_hydra_hook=False, **kwargs):
         trainer = super().create_trainer(**kwargs)
