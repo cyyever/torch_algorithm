@@ -1,10 +1,16 @@
 # from cyy_torch_toolbox.data_structure.synced_tensor_dict import \
 #     SyncedTensorDict
+from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
+from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
+    TorchProcessTaskQueue
+from cyy_torch_toolbox.data_structure.torch_thread_task_queue import \
+    TorchThreadTaskQueue
 from cyy_torch_toolbox.dataset import decode_batch
+from cyy_torch_toolbox.device import get_cuda_devices
 from cyy_torch_toolbox.hook import Hook
 from cyy_torch_toolbox.hooks.add_index_to_dataset import AddIndexToDataset
 
-from .sample_gradient import get_sample_gradient, stop_task_queue
+from .sample_gradient import sample_gradient_worker_fun
 
 
 class SampleGradientHook(Hook):
@@ -15,6 +21,7 @@ class SampleGradientHook(Hook):
         self.__computed_indices = None
         self.__sample_gradient_dict = None
         self.__storage_dir = storage_dir
+        self.__task_queue = None
 
     def set_storage_dir(self, storage_dir):
         self.__storage_dir = storage_dir
@@ -60,7 +67,7 @@ class SampleGradientHook(Hook):
             sample_gradient_indices.append(instance_index)
         if not sample_gradient_indices:
             return
-        gradient_list = get_sample_gradient(
+        gradient_list = self.__get_sample_gradient(
             trainer.model_with_loss,
             sample_gradient_inputs,
             sample_gradient_targets,
@@ -77,4 +84,55 @@ class SampleGradientHook(Hook):
         if not isinstance(self.__sample_gradient_dict, dict):
             self.__sample_gradient_dict.release()
         self.__sample_gradient_dict = None
-        stop_task_queue()
+        if self.__task_queue is not None:
+            self.__task_queue.force_stop()
+            self.__task_queue = None
+
+    def __get_sample_gradient(self, model_with_loss, inputs, targets) -> list:
+        model_with_loss.model.zero_grad(set_to_none=True)
+        if self.__task_queue is None:
+            devices = get_cuda_devices()
+            if len(devices) > 1:
+                self.__task_queue = TorchProcessTaskQueue(
+                    worker_fun=sample_gradient_worker_fun
+                )
+            else:
+                self.__task_queue = TorchThreadTaskQueue(
+                    worker_fun=sample_gradient_worker_fun
+                )
+            self.__task_queue.start()
+        input_chunks = split_list_to_chunks(
+            inputs,
+            (len(inputs) + self.__task_queue.worker_num - 1)
+            // self.__task_queue.worker_num,
+        )
+
+        target_chunks = split_list_to_chunks(
+            targets,
+            (len(targets) + self.__task_queue.worker_num - 1)
+            // self.__task_queue.worker_num,
+        )
+        chunks = 0
+        for idx, (input_chunk, target_chunk) in enumerate(
+            zip(input_chunks, target_chunks)
+        ):
+            chunks += 1
+            self.__task_queue.add_task(
+                (
+                    idx,
+                    input_chunk,
+                    target_chunk,
+                    model_with_loss,
+                )
+            )
+
+        gradient_dict = {}
+        for _ in range(chunks):
+            idx, gradient_list = self.__task_queue.get_result()
+            gradient_dict[idx] = gradient_list
+
+        gradient_lists = []
+        for idx in sorted(gradient_dict.keys()):
+            gradient_lists += gradient_dict[idx]
+        assert len(gradient_lists) == len(inputs)
+        return gradient_lists
