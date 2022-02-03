@@ -31,7 +31,7 @@ class HyDRAHook(Hook):
         self.use_hessian = kwargs.get("use_hessian", False)
         self.__hessian_hyper_gradient_and_momentum_dir = None
         self.__hvp_function = None
-        self.hessian_hyper_gradient_mom_dict = None
+        self.__hessian_hyper_gradient_mom_dict = None
         self.use_approximation = kwargs.get("use_approximation", None)
 
         if self.use_approximation is None:
@@ -77,14 +77,14 @@ class HyDRAHook(Hook):
             pickle.dump(self.__computed_indices, f)
         if self.use_hessian:
             get_logger().info("use hessian to compute hyper-gradients")
-            self.hessian_hyper_gradient_mom_dict = HyDRAHook.create_hypergradient_dict(
+            self.__hessian_hyper_gradient_mom_dict = HyDRAHook.create_hypergradient_dict(
                 self.__cache_size,
                 trainer.model,
                 storage_dir=self.get_hessian_hydra_dir(trainer),
             )
             get_logger().debug(
                 "use hessian_hyper_gradient_mom_dir:%s",
-                os.path.abspath(self.hessian_hyper_gradient_mom_dict.get_storage_dir()),
+                os.path.abspath(self.__hessian_hyper_gradient_mom_dict.get_storage_dir()),
             )
         if self.use_approximation:
             self.__approx_hyper_gradient_mom_dict = HyDRAHook.create_hypergradient_dict(
@@ -135,12 +135,12 @@ class HyDRAHook(Hook):
             self.__cache_size // 2,
         ):
             counter = TimeCounter()
-            self.hessian_hyper_gradient_mom_dict.prefetch(chunk)
+            self.__hessian_hyper_gradient_mom_dict.prefetch(chunk)
             hyper_gradients = []
             hyper_gradient_indices = []
             hessian_vector_product_dict = {}
             for index in chunk:
-                if index in self.hessian_hyper_gradient_mom_dict:
+                if index in self.__hessian_hyper_gradient_mom_dict:
                     hyper_gradients.append(
                         self.get_hyper_gradient(index, use_approximation=False)
                     )
@@ -170,7 +170,7 @@ class HyDRAHook(Hook):
 
                 hyper_gradient = None
                 mom_gradient = None
-                if index in self.hessian_hyper_gradient_mom_dict:
+                if index in self.__hessian_hyper_gradient_mom_dict:
                     (
                         hyper_gradient,
                         mom_gradient,
@@ -400,7 +400,7 @@ class HyDRAHook(Hook):
         return (
             self.__approx_hyper_gradient_mom_dict
             if use_approximation
-            else self.hessian_hyper_gradient_mom_dict
+            else self.__hessian_hyper_gradient_mom_dict
         )
 
     def __save_hyper_gradients(self, trainer, test_gradient, use_approximation):
