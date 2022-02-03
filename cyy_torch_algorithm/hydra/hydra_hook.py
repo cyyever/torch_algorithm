@@ -418,7 +418,6 @@ class HyDRAHook(Hook):
             ).data.item()
             tensor_dict[index] = hyper_gradient
         tensor_dict.flush_all(True)
-        tensor_dict.release()
         if use_approximation:
             with open(
                 os.path.join(
@@ -445,6 +444,7 @@ class HyDRAHook(Hook):
                 self.__get_save_dir(trainer), "hessian_hyper_gradient_dir"
             )
             shutil.move(tensor_dict.get_storage_dir(), hyper_gradient_dir)
+        tensor_dict.release()
         with open(
             os.path.join(self.__get_save_dir(trainer), "training_set_size"), "wb"
         ) as f:
