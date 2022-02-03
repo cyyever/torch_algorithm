@@ -94,7 +94,7 @@ class SampleGradientHook(Hook):
             devices = get_devices()
             if len(devices) > 1:
                 self.__task_queue = TorchProcessTaskQueue(
-                    worker_fun=sample_gradient_worker_fun
+                    worker_fun=sample_gradient_worker_fun, move_data_in_cpu=False
                 )
             else:
                 self.__task_queue = TorchThreadTaskQueue(
