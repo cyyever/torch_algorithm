@@ -6,7 +6,7 @@ from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
 from cyy_torch_toolbox.data_structure.torch_thread_task_queue import \
     TorchThreadTaskQueue
 from cyy_torch_toolbox.dataset import decode_batch
-from cyy_torch_toolbox.device import get_cuda_devices
+from cyy_torch_toolbox.device import get_devices
 from cyy_torch_toolbox.hook import Hook
 from cyy_torch_toolbox.hooks.add_index_to_dataset import AddIndexToDataset
 
@@ -91,7 +91,7 @@ class SampleGradientHook(Hook):
     def __get_sample_gradient(self, model_with_loss, inputs, targets) -> list:
         model_with_loss.model.zero_grad(set_to_none=True)
         if self.__task_queue is None:
-            devices = get_cuda_devices()
+            devices = get_devices()
             if len(devices) > 1:
                 self.__task_queue = TorchProcessTaskQueue(
                     worker_fun=sample_gradient_worker_fun
