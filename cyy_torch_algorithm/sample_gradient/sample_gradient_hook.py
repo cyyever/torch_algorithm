@@ -85,7 +85,7 @@ class SampleGradientHook(Hook):
             self.__sample_gradient_dict.release()
         self.__sample_gradient_dict = None
         if self.__task_queue is not None:
-            self.__task_queue.force_stop()
+            self.__task_queue.release()
             self.__task_queue = None
 
     def __get_sample_gradient(self, model_with_loss, inputs, targets) -> list:
