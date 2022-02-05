@@ -77,14 +77,18 @@ class HyDRAHook(Hook):
             pickle.dump(self.__computed_indices, f)
         if self.use_hessian:
             get_logger().info("use hessian to compute hyper-gradients")
-            self.__hessian_hyper_gradient_mom_dict = HyDRAHook.create_hypergradient_dict(
-                self.__cache_size,
-                trainer.model,
-                storage_dir=self.get_hessian_hydra_dir(trainer),
+            self.__hessian_hyper_gradient_mom_dict = (
+                HyDRAHook.create_hypergradient_dict(
+                    self.__cache_size,
+                    trainer.model,
+                    storage_dir=self.get_hessian_hydra_dir(trainer),
+                )
             )
             get_logger().debug(
                 "use hessian_hyper_gradient_mom_dir:%s",
-                os.path.abspath(self.__hessian_hyper_gradient_mom_dict.get_storage_dir()),
+                os.path.abspath(
+                    self.__hessian_hyper_gradient_mom_dict.get_storage_dir()
+                ),
             )
         if self.use_approximation:
             self.__approx_hyper_gradient_mom_dict = HyDRAHook.create_hypergradient_dict(
@@ -148,7 +152,7 @@ class HyDRAHook(Hook):
             if hyper_gradients:
                 counter2 = TimeCounter()
                 hessian_vector_products = self.__hvp_function(hyper_gradients)
-                get_logger().info(
+                get_logger().debug(
                     "hvp chunk size %s use time %s ms",
                     len(hyper_gradients),
                     counter2.elapsed_milliseconds(),
@@ -209,7 +213,7 @@ class HyDRAHook(Hook):
                         index, hyper_gradient, mom_gradient, use_approximation=False
                     )
                 self.hessian_computation_arguments[index] = None
-            get_logger().info(
+            get_logger().debug(
                 "__do_computation_with_hessian chunk size %s use time %s ms",
                 len(chunk),
                 counter.elapsed_milliseconds(),
@@ -370,7 +374,7 @@ class HyDRAHook(Hook):
                 )
                 if instance_gradient is not None:
                     self.do_delayed_computation(idx)
-        get_logger().info(
+        get_logger().debug(
             "use_approximation use time %s ms",
             counter.elapsed_milliseconds(),
         )
