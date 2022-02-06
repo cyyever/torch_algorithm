@@ -319,13 +319,6 @@ class HyDRAHook(Hook):
         trainer = kwargs["model_executor"]
         batch = kwargs["batch"]
 
-        assert len(batch) == 3
-        instance_indices = {idx.data.item() for idx in batch[2]["index"]}
-
-        batch_gradient_indices: set = instance_indices & self.__computed_indices
-
-        assert batch_gradient_indices == self.sample_gradient_dict.keys()
-
         if self.use_hessian:
             self.__hvp_function = get_hessian_vector_product_func(
                 trainer.copy_model_with_loss(deepcopy=True), batch
@@ -354,7 +347,7 @@ class HyDRAHook(Hook):
         counter = TimeCounter()
         for idx in self.__computed_indices:
             instance_gradient = None
-            if idx in batch_gradient_indices:
+            if idx in self.sample_gradient_dict:
                 instance_gradient = self.sample_gradient_dict[idx]
                 instance_gradient = (
                     instance_gradient.detach() * training_set_size / batch_size
