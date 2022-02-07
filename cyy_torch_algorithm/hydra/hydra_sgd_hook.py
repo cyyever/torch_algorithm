@@ -68,12 +68,12 @@ class HyDRASGDHook(HyDRAHook):
             self._do_computation_with_hessian()
 
     def get_hyper_gradient(self, index, use_approximation):
-        return self._get_hyper_gradient_and_momentum(index, use_approximation)[0]
+        return self._get_hyper_gradient_tensors(index, use_approximation)[0]
 
     def _decode_hyper_gradient_tensors(self, tensor):
         return torch.split(tensor, tensor.shape[0] // 2)
 
-    def _get_hyper_gradient_and_momentum(self, index, use_approximation):
+    def _get_hyper_gradient_tensors(self, index, use_approximation):
         data = self._get_hyper_gradient_dict(use_approximation)[index]
         if data is None:
             return None, None
@@ -124,7 +124,7 @@ class HyDRASGDHook(HyDRAHook):
                     (
                         hyper_gradient,
                         mom_gradient,
-                    ) = self._get_hyper_gradient_and_momentum(
+                    ) = self._get_hyper_gradient_tensors(
                         index, use_approximation=False
                     )
 
@@ -179,7 +179,7 @@ class HyDRASGDHook(HyDRAHook):
                     self._do_delayed_computation(k)
             return
 
-        hyper_gradient, mom_gradient = self._get_hyper_gradient_and_momentum(
+        hyper_gradient, mom_gradient = self._get_hyper_gradient_tensors(
             index, use_approximation=True
         )
         for arguments in self.delayed_approximation_computations[index]:
