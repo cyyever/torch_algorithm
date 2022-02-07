@@ -164,7 +164,7 @@ class HyDRAHook(Hook):
                     (
                         hyper_gradient,
                         mom_gradient,
-                    ) = self.__get_hyper_gradient_and_momentum(
+                    ) = self._get_hyper_gradient_and_momentum(
                         index, use_approximation=False
                     )
 
@@ -221,7 +221,7 @@ class HyDRAHook(Hook):
                     self._do_delayed_computation(k)
             return
 
-        hyper_gradient, mom_gradient = self.__get_hyper_gradient_and_momentum(
+        hyper_gradient, mom_gradient = self._get_hyper_gradient_and_momentum(
             index, use_approximation=True
         )
         for arguments in self.delayed_approximation_computations[index]:
@@ -359,20 +359,20 @@ class HyDRAHook(Hook):
         if self.use_hessian:
             self.__do_computation_with_hessian()
 
-    def __get_hyper_gradient_and_momentum(self, index, use_approximation):
+    def _get_hyper_gradient_and_momentum(self, index, use_approximation):
         data = self.get_hyper_gradient_dict(use_approximation)[index]
         if data is None:
             return None, None
-        return self.__decode_hyper_gradient_and_momentum(data)
+        return self._decode_hyper_gradient_tensors(data)
 
-    def __decode_hyper_gradient_and_momentum(self, tensor):
+    def _decode_hyper_gradient_tensors(self, tensor):
         return torch.split(tensor, tensor.shape[0] // 2)
 
     def _set_hyper_gradient_tensors(self, index, use_approximation, *tensors):
         self.get_hyper_gradient_dict(use_approximation)[index] = torch.cat(tensors)
 
     def get_hyper_gradient(self, index, use_approximation):
-        return self.__get_hyper_gradient_and_momentum(index, use_approximation)[0]
+        return self._get_hyper_gradient_and_momentum(index, use_approximation)[0]
 
     def get_hyper_gradient_dict(self, use_approximation):
         return (
@@ -390,7 +390,7 @@ class HyDRAHook(Hook):
         tensor_dict = self.get_hyper_gradient_dict(use_approximation)
         training_set_size = len(trainer.dataset)
         for (index, value) in tensor_dict.iterate():
-            hyper_gradient, _ = self.__decode_hyper_gradient_and_momentum(value)
+            hyper_gradient, _ = self._decode_hyper_gradient_tensors(value)
             contribution[index] = (
                 -(test_gradient @ hyper_gradient) / training_set_size
             ).data.item()
@@ -433,7 +433,7 @@ class HyDRAHook(Hook):
             self._do_delayed_computation()
         hyper_gradient_mom_dict = self.get_hyper_gradient_dict(use_approximation)
         for (index, _) in hyper_gradient_mom_dict.iterate():
-            hyper_gradient, _ = self.__get_hyper_gradient_and_momentum(
+            hyper_gradient, _ = self._get_hyper_gradient_and_momentum(
                 index, use_approximation
             )
             callback(index, hyper_gradient)
@@ -443,10 +443,10 @@ class HyDRAHook(Hook):
         self._do_delayed_computation()
         hyper_gradient_mom_dict = self.get_hyper_gradient_dict(True)
         for (index, _) in hyper_gradient_mom_dict.iterate():
-            approx_hyper_gradient, _ = self.__get_hyper_gradient_and_momentum(
+            approx_hyper_gradient, _ = self._get_hyper_gradient_and_momentum(
                 index, True
             )
-            hessian_hyper_gradient, _ = self.__get_hyper_gradient_and_momentum(
+            hessian_hyper_gradient, _ = self._get_hyper_gradient_and_momentum(
                 index, False
             )
             callback(index, approx_hyper_gradient, hessian_hyper_gradient)
