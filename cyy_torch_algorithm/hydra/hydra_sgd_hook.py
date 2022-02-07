@@ -20,4 +20,8 @@ from hydra.hydra_hook import HyDRAHook
 
 
 class HyDRASGDHook(HyDRAHook):
-    pass
+    def get_hyper_gradient(self, index, use_approximation):
+        return self._get_hyper_gradient_and_momentum(index, use_approximation)[0]
+
+    def _decode_hyper_gradient_tensors(self, tensor):
+        return torch.split(tensor, tensor.shape[0] // 2)
