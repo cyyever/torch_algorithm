@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
+import torch.optim
 import argparse
 
 from cyy_torch_toolbox.dataset import DatasetUtil
 from cyy_torch_toolbox.default_config import DefaultConfig
 
-from .hydra_hook import HyDRAHook
+from .hydra_sgd_hook import HyDRASGDHook
 
 
 class HyDRAConfig(DefaultConfig):
@@ -27,11 +28,18 @@ class HyDRAConfig(DefaultConfig):
     def create_trainer(self, return_hydra_hook=False, **kwargs):
         trainer = super().create_trainer(**kwargs)
 
-        hydra_hook = HyDRAHook(
-            cache_size=self.cache_size,
-            use_hessian=self.use_hessian,
-            use_approximation=self.use_approximation,
-        )
+        optimizer = trainer.get_optimizer()
+        if isinstance(optimizer, torch.optim.SGD):
+            hydra_hook = HyDRASGDHook(
+                cache_size=self.cache_size,
+                use_hessian=self.use_hessian,
+                use_approximation=self.use_approximation,
+            )
+        else:
+            raise NotImplementedError(
+                f"Unsupported optimizer {trainer.hyper_parameter.optimizer_name}"
+            )
+        trainer.remove_optimizer()
         trainer.append_hook(hydra_hook)
 
         if self.tracking_percentage is not None:
