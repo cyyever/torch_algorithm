@@ -29,7 +29,6 @@ class HyDRAHook(Hook):
         self.delayed_approximation_computations = None
 
         self.use_hessian = kwargs.get("use_hessian", False)
-        self.__hessian_hyper_gradient_and_momentum_dir = None
         self.__hvp_function = None
         self.__hessian_hyper_gradient_mom_dict = None
         self.use_approximation = kwargs.get("use_approximation", None)
@@ -37,7 +36,6 @@ class HyDRAHook(Hook):
         if self.use_approximation is None:
             self.use_approximation = not self.use_hessian
 
-        self.__approx_hyper_gradient_and_momentum_dir = None
         self.__approx_hyper_gradient_mom_dict = None
 
     @property
@@ -49,20 +47,6 @@ class HyDRAHook(Hook):
             self.__save_dir = os.path.join(trainer.save_dir, "HyDRA")
             os.makedirs(self.__save_dir, exist_ok=True)
         return self.__save_dir
-
-    def get_hessian_hydra_dir(self, trainer=None):
-        if self.__hessian_hyper_gradient_and_momentum_dir is None:
-            self.__hessian_hyper_gradient_and_momentum_dir = os.path.join(
-                self.__get_save_dir(trainer), "hessian_hyper_gradient_and_momentum_dir"
-            )
-        return self.__hessian_hyper_gradient_and_momentum_dir
-
-    def get_approx_hydra_dir(self, trainer=None):
-        if self.__approx_hyper_gradient_and_momentum_dir is None:
-            self.__approx_hyper_gradient_and_momentum_dir = os.path.join(
-                self.__get_save_dir(trainer), "approx_hyper_gradient_and_momentum_dir"
-            )
-        return self.__approx_hyper_gradient_and_momentum_dir
 
     def _before_execute(self, **kwargs):
         trainer = kwargs["model_executor"]
@@ -81,7 +65,10 @@ class HyDRAHook(Hook):
                 HyDRAHook.create_hypergradient_dict(
                     self.__cache_size,
                     trainer.model,
-                    storage_dir=self.get_hessian_hydra_dir(trainer),
+                    storage_dir=os.path.join(
+                        self.__get_save_dir(trainer),
+                        "hessian_hyper_gradient_and_momentum_dir",
+                    ),
                 )
             )
             get_logger().debug(
@@ -94,11 +81,16 @@ class HyDRAHook(Hook):
             self.__approx_hyper_gradient_mom_dict = HyDRAHook.create_hypergradient_dict(
                 self.__cache_size,
                 trainer.model,
-                storage_dir=self.get_approx_hydra_dir(trainer),
+                storage_dir=os.path.join(
+                    self.__get_save_dir(trainer),
+                    "approx_hyper_gradient_and_momentum_dir",
+                ),
             )
             get_logger().info(
                 "use hyper_gradient_mom_dir:%s",
-                os.path.abspath(self.get_approx_hydra_dir(trainer)),
+                os.path.abspath(
+                    self.__approx_hyper_gradient_mom_dict.get_storage_dir()
+                ),
             )
             self.delayed_approximation_computations = {}
             trainer.prepend_named_hook(
