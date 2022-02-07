@@ -159,16 +159,12 @@ class HyDRASGDHook(HyDRAHook):
 
     def _do_delayed_computation(self, index=None):
         if index is None:
-            unfinished_keys = []
+            self._get_hyper_gradient_dict(True).prefetch(
+                self.delayed_approximation_computations.keys()
+            )
             for k in self.delayed_approximation_computations:
-                unfinished_keys.append(k)
-
-            if unfinished_keys:
-                for (k, _) in self._approx_hyper_gradient_dict.iterate(unfinished_keys):
-                    get_logger().debug(
-                        "do delayed_approximation_computations for %s", k
-                    )
-                    self._do_delayed_computation(k)
+                get_logger().debug("do delayed_approximation_computations for %s", k)
+                self._do_delayed_computation(k)
             return
 
         hyper_gradient, mom_gradient = self._get_hyper_gradient_tensors(
