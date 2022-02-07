@@ -22,7 +22,6 @@ class HyDRAHook(Hook):
         self.__save_dir = None
 
         self._computed_indices = None
-        self.hessian_computation_arguments = None
         self.delayed_approximation_computations = None
 
         self.use_hessian = kwargs.get("use_hessian", False)

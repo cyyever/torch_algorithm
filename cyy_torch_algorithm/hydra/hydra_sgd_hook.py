@@ -8,6 +8,8 @@ from hydra.hydra_hook import HyDRAHook
 
 
 class HyDRASGDHook(HyDRAHook):
+    hessian_computation_arguments = None
+
     def _before_batch(self, **kwargs):
         trainer = kwargs["model_executor"]
         batch = kwargs["batch"]
@@ -17,8 +19,6 @@ class HyDRASGDHook(HyDRAHook):
                 trainer.copy_model_with_loss(deepcopy=True), batch
             )
             self.hessian_computation_arguments = {}
-        else:
-            self.hessian_computation_arguments = None
 
         optimizer = trainer.get_optimizer()
         if not isinstance(optimizer, torch.optim.SGD):
