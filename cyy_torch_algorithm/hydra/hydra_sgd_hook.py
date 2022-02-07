@@ -21,19 +21,13 @@ class HyDRASGDHook(HyDRAHook):
             self.hessian_computation_arguments = {}
 
         optimizer = trainer.get_optimizer()
+        assert len(optimizer.param_groups) == 1
         if not isinstance(optimizer, torch.optim.SGD):
             raise RuntimeError("optimizer is not SGD")
 
-        cur_learning_rates = trainer.get_data("cur_learning_rates")
-        assert len(cur_learning_rates) == 1
-        cur_learning_rate = cur_learning_rates[0]
+        cur_learning_rate = trainer.get_data("cur_learning_rates")[0]
         batch_size = kwargs["batch_size"]
-
-        momentums = [group["momentum"] for group in optimizer.param_groups]
-        if len(momentums) != 1:
-            raise RuntimeError("unsupported momentums")
-
-        momentum = momentums[0]
+        momentum = optimizer.param_groups[0]["momentum"]
         weight_decay = trainer.hyper_parameter.weight_decay
         training_set_size = len(trainer.dataset)
 
@@ -124,9 +118,7 @@ class HyDRASGDHook(HyDRAHook):
                     (
                         hyper_gradient,
                         mom_gradient,
-                    ) = self._get_hyper_gradient_tensors(
-                        index, use_approximation=False
-                    )
+                    ) = self._get_hyper_gradient_tensors(index, use_approximation=False)
 
                 if mom_gradient is not None:
                     mom_gradient *= momentum
