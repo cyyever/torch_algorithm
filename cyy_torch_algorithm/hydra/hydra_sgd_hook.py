@@ -153,8 +153,7 @@ class HyDRASGDHook(HyDRAHook):
             )
 
     def _do_delayed_computation(self, use_approximation: bool, index=None):
-        assert use_approximation
-        if index is None:
+        if index is None and use_approximation:
             for k in tuple(self.delayed_approximation_computations.keys()):
                 get_logger().debug("do delayed_approximation_computations for %s", k)
                 self._do_delayed_computation(use_approximation, k)
@@ -189,4 +188,6 @@ class HyDRASGDHook(HyDRAHook):
 
         assert hyper_gradient is not None
         assert mom_gradient is not None
-        self._set_hyper_gradient_tensors(index, True, hyper_gradient, mom_gradient)
+        self._set_hyper_gradient_tensors(
+            index, use_approximation, hyper_gradient, mom_gradient
+        )
