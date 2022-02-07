@@ -269,8 +269,9 @@ class HyDRAHook(Hook):
             index, hyper_gradient, mom_gradient, use_approximation=True
         )
 
-    @staticmethod
+    @classmethod
     def create_hypergradient_dict(
+        cls,
         cache_size,
         model=None,
         storage_dir=None,
