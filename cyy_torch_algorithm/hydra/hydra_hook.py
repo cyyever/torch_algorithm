@@ -42,7 +42,7 @@ class HyDRAHook(Hook):
     def sample_gradient_dict(self):
         return self.sample_gradient_hook.sample_gradient_dict
 
-    def __get_save_dir(self, trainer):
+    def _get_save_dir(self, trainer):
         if self.__save_dir is None:
             self.__save_dir = os.path.join(trainer.save_dir, "HyDRA")
             os.makedirs(self.__save_dir, exist_ok=True)
@@ -55,7 +55,7 @@ class HyDRAHook(Hook):
         else:
             get_logger().info("only compute %s indices", len(self.__computed_indices))
         with open(
-            os.path.join(self.__get_save_dir(trainer), "tracking_indices.json"),
+            os.path.join(self._get_save_dir(trainer), "tracking_indices.json"),
             mode="wb",
         ) as f:
             pickle.dump(self.__computed_indices, f)
@@ -66,7 +66,7 @@ class HyDRAHook(Hook):
                     self.__cache_size,
                     trainer.model,
                     storage_dir=os.path.join(
-                        self.__get_save_dir(trainer),
+                        self._get_save_dir(trainer),
                         "hessian_hyper_gradient_and_momentum_dir",
                     ),
                 )
@@ -82,7 +82,7 @@ class HyDRAHook(Hook):
                 self.__cache_size,
                 trainer.model,
                 storage_dir=os.path.join(
-                    self.__get_save_dir(trainer),
+                    self._get_save_dir(trainer),
                     "approx_hyper_gradient_and_momentum_dir",
                 ),
             )
@@ -211,7 +211,7 @@ class HyDRAHook(Hook):
                 counter.elapsed_milliseconds(),
             )
 
-    def do_delayed_computation(self, index=None):
+    def _do_delayed_computation(self, index=None):
         if index is None:
             unfinished_keys = []
             for k in self.delayed_approximation_computations:
@@ -224,7 +224,7 @@ class HyDRAHook(Hook):
                     get_logger().debug(
                         "do delayed_approximation_computations for %s", k
                     )
-                    self.do_delayed_computation(k)
+                    self._do_delayed_computation(k)
             return
 
         hyper_gradient, mom_gradient = self.__get_hyper_gradient_and_momentum(
@@ -298,7 +298,7 @@ class HyDRAHook(Hook):
         trainer = kwargs["model_executor"]
         batch = kwargs["batch"]
         self.sample_gradient_hook.set_storage_dir(
-            os.path.join(self.__get_save_dir(trainer), "tmp_sample_gradient")
+            os.path.join(self._get_save_dir(trainer), "tmp_sample_gradient")
         )
         if self.use_approximation:
             instance_indices = {idx.data.item() for idx in batch[2]["index"]}
@@ -359,7 +359,7 @@ class HyDRAHook(Hook):
                     (momentum, weight_decay, cur_learning_rate, instance_gradient)
                 )
                 if instance_gradient is not None:
-                    self.do_delayed_computation(idx)
+                    self._do_delayed_computation(idx)
         get_logger().debug(
             "use_approximation use time %s ms",
             counter.elapsed_milliseconds(),
@@ -396,9 +396,9 @@ class HyDRAHook(Hook):
     def __save_hyper_gradients(self, trainer, test_gradient, use_approximation):
         contribution = {}
         if use_approximation:
-            get_logger().info("begin do do_delayed_computation")
-            self.do_delayed_computation()
-            get_logger().info("end do do_delayed_computation")
+            get_logger().info("begin do _do_delayed_computation")
+            self._do_delayed_computation()
+            get_logger().info("end do _do_delayed_computation")
         tensor_dict = self.__get_hyper_gradient_mom_dict(use_approximation)
         training_set_size = len(trainer.dataset)
         for (index, value) in tensor_dict.iterate():
@@ -411,38 +411,38 @@ class HyDRAHook(Hook):
         if use_approximation:
             with open(
                 os.path.join(
-                    self.__get_save_dir(trainer), "approx_hydra_contribution.json"
+                    self._get_save_dir(trainer), "approx_hydra_contribution.json"
                 ),
                 mode="wt",
                 encoding="utf-8",
             ) as f:
                 json.dump(contribution, f)
             hyper_gradient_dir = os.path.join(
-                self.__get_save_dir(trainer), "approximation_hyper_gradient_dir"
+                self._get_save_dir(trainer), "approximation_hyper_gradient_dir"
             )
             shutil.move(tensor_dict.get_storage_dir(), hyper_gradient_dir)
         else:
             with open(
                 os.path.join(
-                    self.__get_save_dir(trainer), "hessian_hydra_contribution.json"
+                    self._get_save_dir(trainer), "hessian_hydra_contribution.json"
                 ),
                 mode="wt",
                 encoding="utf-8",
             ) as f:
                 json.dump(contribution, f)
             hyper_gradient_dir = os.path.join(
-                self.__get_save_dir(trainer), "hessian_hyper_gradient_dir"
+                self._get_save_dir(trainer), "hessian_hyper_gradient_dir"
             )
             shutil.move(tensor_dict.get_storage_dir(), hyper_gradient_dir)
         tensor_dict.release()
         with open(
-            os.path.join(self.__get_save_dir(trainer), "training_set_size"), "wb"
+            os.path.join(self._get_save_dir(trainer), "training_set_size"), "wb"
         ) as f:
             pickle.dump(training_set_size, f)
 
     def foreach_hyper_gradient(self, use_approximation: bool, callback):
         if use_approximation:
-            self.do_delayed_computation()
+            self._do_delayed_computation()
         hyper_gradient_mom_dict = self.__get_hyper_gradient_mom_dict(use_approximation)
         for (index, _) in hyper_gradient_mom_dict.iterate():
             hyper_gradient, _ = self.__get_hyper_gradient_and_momentum(
@@ -452,7 +452,7 @@ class HyDRAHook(Hook):
 
     def foreach_approx_and_hessian_hyper_gradient(self, callback):
         assert self.use_approximation and self.use_hessian
-        self.do_delayed_computation()
+        self._do_delayed_computation()
         hyper_gradient_mom_dict = self.__get_hyper_gradient_mom_dict(True)
         for (index, _) in hyper_gradient_mom_dict.iterate():
             approx_hyper_gradient, _ = self.__get_hyper_gradient_and_momentum(
