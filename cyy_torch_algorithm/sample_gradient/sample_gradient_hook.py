@@ -41,7 +41,7 @@ class SampleGradientHook(Hook):
                 gradient_list += gradient_dict[idx]
             assert len(gradient_list) == len(self.__sample_gradient_indices)
             self.__sample_gradient_dict = dict(
-                enumerate(zip(self.__sample_gradient_indices, gradient_list))
+                zip(self.__sample_gradient_indices, gradient_list)
             )
         return self.__sample_gradient_dict
 
