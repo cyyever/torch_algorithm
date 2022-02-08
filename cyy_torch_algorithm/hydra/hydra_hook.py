@@ -149,11 +149,7 @@ class HyDRAHook(Hook):
         return tensor_dict
 
     def __prepare_hook(self, **kwargs):
-        trainer = kwargs["model_executor"]
         batch = kwargs["batch"]
-        self.sample_gradient_hook.set_storage_dir(
-            os.path.join(self._get_save_dir(trainer), "tmp_sample_gradient")
-        )
         if self.use_approximation:
             instance_indices = {idx.data.item() for idx in batch[2]["index"]}
             batch_gradient_indices: set = instance_indices & self._computed_indices
@@ -179,10 +175,11 @@ class HyDRAHook(Hook):
         get_logger().info("end do _do_all_delayed_computation")
         tensor_dict = self._get_hyper_gradient_dict(use_approximation)
         training_set_size = len(trainer.dataset)
+        test_gradient = test_gradient.cpu()
         for (index, value) in tensor_dict.iterate():
             hyper_gradient, _ = self._decode_hyper_gradient_tensors(value)
             contribution[index] = (
-                -(test_gradient @ hyper_gradient) / training_set_size
+                -(test_gradient @ hyper_gradient.cpu()) / training_set_size
             ).data.item()
             tensor_dict[index] = hyper_gradient
         tensor_dict.tensor_dict.flush_all(True)

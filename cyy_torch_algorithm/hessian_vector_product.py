@@ -7,6 +7,8 @@ import torch
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
 from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
     TorchProcessTaskQueue
+from cyy_torch_toolbox.data_structure.torch_thread_task_queue import \
+    TorchThreadTaskQueue
 from cyy_torch_toolbox.device import get_devices
 from cyy_torch_toolbox.model_util import ModelUtil
 from cyy_torch_toolbox.model_with_loss import ModelWithLoss
@@ -70,20 +72,20 @@ atexit.register(stop_task_queue)
 def get_hessian_vector_product_func(
     model_with_loss: ModelWithLoss, batch, main_device=None
 ):
-    devices = get_devices()
 
     model = model_with_loss.model
     model_util = ModelUtil(model)
-    if model_util.is_pruned:
-        model_util.merge_and_remove_masks()
-    model.zero_grad()
+    model.zero_grad(set_to_none=True)
     model.share_memory()
 
     parameter_list = model_util.get_parameter_list(detach=True)
 
+    devices = get_devices()
+
     def vhp_func(v):
         global __task_queue
         nonlocal main_device
+        nonlocal devices
         v_is_tensor = False
         if isinstance(v, collections.abc.Sequence):
             vectors = v
@@ -99,7 +101,10 @@ def get_hessian_vector_product_func(
         assert len(vector_chunks) <= len(devices)
 
         if __task_queue is None:
-            __task_queue = TorchProcessTaskQueue(worker_fun)
+            if len(devices) > 0:
+                __task_queue = TorchProcessTaskQueue(worker_fun)
+            else:
+                __task_queue = TorchThreadTaskQueue(worker_fun)
             __task_queue.start()
         for idx, vector_chunk in enumerate(vector_chunks):
             __task_queue.add_task(
@@ -115,9 +120,8 @@ def get_hessian_vector_product_func(
         for idx in sorted(total_products.keys()):
             products += total_products[idx]
         assert len(products) == len(vectors)
-        if main_device is None:
-            main_device = devices[0]
-        products = [p.to(main_device) for p in products]
+        if main_device is not None:
+            products = [p.to(main_device) for p in products]
         if v_is_tensor:
             return products[0]
         return products

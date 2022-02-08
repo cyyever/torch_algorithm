@@ -9,6 +9,7 @@ from sample_gradient.sample_gradient_hook import SampleGradientHook
 def test_get_sample_gradient():
     config = DefaultConfig("MNIST", "lenet5")
     config.hyper_parameter_config.epoch = 1
+    config.hyper_parameter_config.batch_size = 8
     config.hyper_parameter_config.learning_rate = 0.01
     config.hyper_parameter_config.find_learning_rate = False
     trainer = config.create_trainer()
