@@ -84,10 +84,9 @@ class HyDRASGDHook(HyDRAHook):
             hyper_gradient_indices = []
             hessian_vector_product_dict = {}
             for index in chunk:
-                if index in self._hessian_hyper_gradient_dict:
-                    hyper_gradients.append(
-                        self.get_hyper_gradient(index, use_approximation=False)
-                    )
+                hyper_gradient = self.get_hyper_gradient(index, use_approximation=False)
+                if hyper_gradient is not None:
+                    hyper_gradients.append(hyper_gradient)
                     hyper_gradient_indices.append(index)
             if hyper_gradients:
                 counter2 = TimeCounter()
@@ -99,10 +98,9 @@ class HyDRASGDHook(HyDRAHook):
                 )
 
                 assert len(hyper_gradients) == len(hessian_vector_products)
-                for idx, hessian_vector_product in zip(
-                    hyper_gradient_indices, hessian_vector_products
-                ):
-                    hessian_vector_product_dict[idx] = hessian_vector_product
+                hessian_vector_product_dict = dict(
+                    zip(hyper_gradient_indices, hessian_vector_products)
+                )
 
             for index in chunk:
                 self._do_delayed_computation(
@@ -141,7 +139,7 @@ class HyDRASGDHook(HyDRAHook):
             if hyper_gradient is not None:
                 res = weight_decay * hyper_gradient
                 if hessian_vector_product is not None:
-                    res += hessian_vector_product
+                    res += hessian_vector_product.to(res.device)
                 if mom_gradient is not None:
                     mom_gradient += res
                 else:

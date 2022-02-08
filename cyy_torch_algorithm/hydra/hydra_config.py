@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-import torch.optim
 import argparse
 
+import torch.optim
 from cyy_torch_toolbox.dataset import DatasetUtil
 from cyy_torch_toolbox.default_config import DefaultConfig
 
@@ -12,7 +12,7 @@ from .hydra_sgd_hook import HyDRASGDHook
 class HyDRAConfig(DefaultConfig):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.cache_size: int = None
+        self.cache_size: int = 128
         self.tracking_percentage: float = None
         self.__tracking_indices = None
         self.use_hessian: bool = False
