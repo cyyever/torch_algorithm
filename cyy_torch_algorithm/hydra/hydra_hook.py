@@ -174,10 +174,9 @@ class HyDRAHook(Hook):
 
     def __save_hyper_gradients(self, trainer, test_gradient, use_approximation):
         contribution = {}
-        if use_approximation:
-            get_logger().info("begin do _do_delayed_computation")
-            self._do_delayed_computation(use_approximation=True)
-            get_logger().info("end do _do_delayed_computation")
+        get_logger().info("begin do _do_all_delayed_computation")
+        self._do_all_delayed_computation()
+        get_logger().info("end do _do_all_delayed_computation")
         tensor_dict = self._get_hyper_gradient_dict(use_approximation)
         training_set_size = len(trainer.dataset)
         for (index, value) in tensor_dict.iterate():
@@ -220,8 +219,7 @@ class HyDRAHook(Hook):
             pickle.dump(training_set_size, f)
 
     def foreach_hyper_gradient(self, use_approximation: bool, callback):
-        if use_approximation:
-            self._do_delayed_computation(use_approximation=True)
+        self._do_all_delayed_computation()
         hyper_gradient_mom_dict = self._get_hyper_gradient_dict(use_approximation)
         for (index, _) in hyper_gradient_mom_dict.iterate():
             hyper_gradient, _ = self._get_hyper_gradient_tensors(
@@ -231,7 +229,7 @@ class HyDRAHook(Hook):
 
     def foreach_approx_and_hessian_hyper_gradient(self, callback):
         assert self.use_approximation and self.use_hessian
-        self._do_delayed_computation(use_approximation=True)
+        self._do_all_delayed_computation()
         hyper_gradient_mom_dict = self._get_hyper_gradient_dict(True)
         for (index, _) in hyper_gradient_mom_dict.iterate():
             approx_hyper_gradient, _ = self._get_hyper_gradient_tensors(index, True)
