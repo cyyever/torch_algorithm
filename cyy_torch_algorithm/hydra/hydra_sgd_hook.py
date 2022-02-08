@@ -9,10 +9,13 @@ from hydra.hydra_hook import HyDRAHook
 
 class HyDRASGDHook(HyDRAHook):
     hessian_computation_arguments = None
+    device = None
 
     def _before_batch(self, **kwargs):
         trainer = kwargs["model_executor"]
         batch = kwargs["batch"]
+        if self.device is None:
+            self.device = trainer.device
 
         if self.use_hessian:
             self._hvp_function = get_hessian_vector_product_func(
@@ -35,9 +38,10 @@ class HyDRASGDHook(HyDRAHook):
         for idx in self._computed_indices:
             instance_gradient = None
             if idx in self.sample_gradient_dict:
-                instance_gradient = self.sample_gradient_dict[idx]
                 instance_gradient = (
-                    instance_gradient.detach() * training_set_size / batch_size
+                    self.sample_gradient_dict[idx].to(self.device)
+                    * training_set_size
+                    / batch_size
                 )
             if self.use_hessian:
                 self.hessian_computation_arguments[idx] = [
@@ -141,7 +145,7 @@ class HyDRASGDHook(HyDRAHook):
             if hyper_gradient is not None:
                 res = weight_decay * hyper_gradient
                 if hessian_vector_product is not None:
-                    res += hessian_vector_product.to(res.device)
+                    res += hessian_vector_product.to(self.device)
                 if mom_gradient is not None:
                     mom_gradient += res
                 else:
