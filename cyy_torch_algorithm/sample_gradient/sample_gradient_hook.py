@@ -1,5 +1,7 @@
 # from cyy_torch_toolbox.data_structure.synced_tensor_dict import \
 #     SyncedTensorDict
+import copy
+
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
 from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
     TorchProcessTaskQueue
@@ -15,19 +17,30 @@ from .sample_gradient import sample_gradient_worker_fun
 
 class SampleGradientHook(Hook):
     def __init__(self, **kwargs):
-        storage_dir = kwargs.pop("storage_dir", None)
+        # storage_dir = kwargs.pop("storage_dir", None)
         super().__init__(**kwargs)
         self.dataset_index_hook = AddIndexToDataset()
         self.__computed_indices = None
         self.__sample_gradient_dict = None
-        self.__storage_dir = storage_dir
+        self.__sample_gradient_indices = None
         self.__task_queue = None
-
-    def set_storage_dir(self, storage_dir):
-        self.__storage_dir = storage_dir
+        self.__task_size = None
 
     @property
     def sample_gradient_dict(self):
+        if self.__sample_gradient_dict is None:
+            gradient_dict = {}
+            for _ in range(self.__task_size):
+                idx, gradient_list = self.__task_queue.get_result()
+                gradient_dict[idx] = gradient_list
+
+            gradient_list = []
+            for idx in range(self.__task_size):
+                gradient_list += gradient_dict[idx]
+            assert len(gradient_list) == len(self.__sample_gradient_indices)
+            self.__sample_gradient_dict = dict(
+                enumerate(zip(self.__sample_gradient_indices, gradient_list))
+            )
         return self.__sample_gradient_dict
 
     def set_computed_indices(self, computed_indices):
@@ -38,58 +51,40 @@ class SampleGradientHook(Hook):
         batch = kwargs["batch"]
 
         instance_inputs, instance_targets, instance_info = decode_batch(batch)
-        assert "index" in instance_info
         instance_indices = {idx.data.item() for idx in instance_info["index"]}
+        self.__sample_gradient_dict = None
 
-        if self.__sample_gradient_dict is None:
-            # self.__sample_gradient_dict = SyncedTensorDict.create(
-            #     cache_size=min(64, trainer.hyper_parameter.batch_size)
-            # )
-            # if self.__storage_dir is not None:
-            #     self.__sample_gradient_dict.set_storage_dir(self.__storage_dir)
-            self.__sample_gradient_dict = {}
-        else:
-            self.sample_gradient_dict.clear()
-
-        batch_gradient_indices: set = instance_indices
-        if self.__computed_indices is not None:
-            batch_gradient_indices &= self.__computed_indices
         sample_gradient_inputs = []
         sample_gradient_targets = []
-        sample_gradient_indices = []
+        self.__sample_gradient_indices = []
         for (instance_input, instance_target, instance_index) in zip(
             instance_inputs, instance_targets, instance_indices
         ):
-            if instance_index not in batch_gradient_indices:
+            if (
+                self.__computed_indices is not None
+                and instance_index not in self.__computed_indices
+            ):
                 continue
             sample_gradient_inputs.append(instance_input)
             sample_gradient_targets.append(instance_target)
-            sample_gradient_indices.append(instance_index)
-        if not sample_gradient_indices:
+            self.__sample_gradient_indices.append(instance_index)
+        if not self.__sample_gradient_indices:
             return
-        gradient_list = self.__get_sample_gradient(
+        self.__compute_sample_gradient(
             trainer.model_with_loss,
             sample_gradient_inputs,
             sample_gradient_targets,
         )
 
-        assert len(gradient_list) == len(sample_gradient_indices)
-        for (sample_gradient, index) in zip(gradient_list, sample_gradient_indices):
-            self.sample_gradient_dict[index] = sample_gradient
-
-    def _after_execute(self, **kwargs):
-        if not self.__storage_dir:
-            self.sample_gradient_dict.clear()
-
-        if not isinstance(self.__sample_gradient_dict, dict):
-            self.__sample_gradient_dict.release()
+    def _after_execute(self, **_):
         self.__sample_gradient_dict = None
         if self.__task_queue is not None:
             self.__task_queue.release()
             self.__task_queue = None
 
-    def __get_sample_gradient(self, model_with_loss, inputs, targets) -> list:
+    def __compute_sample_gradient(self, model_with_loss, inputs, targets):
         model_with_loss.model.zero_grad(set_to_none=True)
+        model_with_loss = copy.deepcopy(model_with_loss)
         if self.__task_queue is None:
             devices = get_devices()
             if len(devices) > 1:
@@ -112,11 +107,11 @@ class SampleGradientHook(Hook):
             (len(targets) + self.__task_queue.worker_num - 1)
             // self.__task_queue.worker_num,
         )
-        chunks = 0
+        self.__task_size = 0
         for idx, (input_chunk, target_chunk) in enumerate(
             zip(input_chunks, target_chunks)
         ):
-            chunks += 1
+            self.__task_size += 1
             self.__task_queue.add_task(
                 (
                     idx,
@@ -125,14 +120,3 @@ class SampleGradientHook(Hook):
                     model_with_loss,
                 )
             )
-
-        gradient_dict = {}
-        for _ in range(chunks):
-            idx, gradient_list = self.__task_queue.get_result()
-            gradient_dict[idx] = gradient_list
-
-        gradient_lists = []
-        for idx in sorted(gradient_dict.keys()):
-            gradient_lists += gradient_dict[idx]
-        assert len(gradient_lists) == len(inputs)
-        return gradient_lists
