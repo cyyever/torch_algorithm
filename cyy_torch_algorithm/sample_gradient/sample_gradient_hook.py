@@ -1,6 +1,5 @@
 # from cyy_torch_toolbox.data_structure.synced_tensor_dict import \
 #     SyncedTensorDict
-import copy
 
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
 from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
@@ -87,17 +86,10 @@ class SampleGradientHook(Hook):
 
     def __compute_sample_gradient(self, model_with_loss, inputs, targets):
         model_with_loss.model.zero_grad(set_to_none=True)
-        model_with_loss = copy.deepcopy(model_with_loss)
         if self.__task_queue is None:
-            devices = get_devices()
-            if len(devices) > 1:
-                self.__task_queue = TorchProcessTaskQueue(
-                    worker_fun=sample_gradient_worker_fun, move_data_in_cpu=False
-                )
-            else:
-                self.__task_queue = TorchThreadTaskQueue(
-                    worker_fun=sample_gradient_worker_fun
-                )
+            self.__task_queue = TorchProcessTaskQueue(
+                worker_fun=sample_gradient_worker_fun, move_data_in_cpu=False
+            )
             self.__task_queue.start()
         input_chunks = split_list_to_chunks(
             inputs,
