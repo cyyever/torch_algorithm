@@ -37,13 +37,14 @@ def worker_fun(task, args):
     worker_device = args["device"]
     if worker_device.index is not None:
         torch.cuda.set_device(worker_device)
-    (idx, vector_chunk, model_with_loss, parameter_list, inputs, targets) = task
+    (idx, vector_chunk, model_with_loss, inputs, targets) = task
     for index, vector in enumerate(vector_chunk):
         vector_chunk[index] = vector.to(worker_device)
     inputs = inputs.to(worker_device)
     targets = targets.to(worker_device)
-    parameter_list = parameter_list.to(worker_device)
     vector_chunk = tuple(vector_chunk)
+    model_util = ModelUtil(model_with_loss.model)
+    parameter_list = model_util.get_parameter_list(detach=True).to(worker_device)
     products = autograd.functional.vhp(
         __get_f(
             worker_device,
@@ -74,11 +75,8 @@ def get_hessian_vector_product_func(
 ):
 
     model = model_with_loss.model
-    model_util = ModelUtil(model)
     model.zero_grad(set_to_none=True)
     model.share_memory()
-
-    parameter_list = model_util.get_parameter_list(detach=True)
 
     devices = get_devices()
 
@@ -108,7 +106,7 @@ def get_hessian_vector_product_func(
             __task_queue.start()
         for idx, vector_chunk in enumerate(vector_chunks):
             __task_queue.add_task(
-                (idx, vector_chunk, model_with_loss, parameter_list, batch[0], batch[1])
+                (idx, vector_chunk, model_with_loss, batch[0], batch[1])
             )
 
         total_products = {}
