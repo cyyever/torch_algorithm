@@ -176,10 +176,11 @@ class HyDRAHook(Hook):
             get_logger().info("end do _do_delayed_computation")
         tensor_dict = self._get_hyper_gradient_dict(use_approximation)
         training_set_size = len(trainer.dataset)
+        test_gradient = test_gradient.cpu()
         for (index, value) in tensor_dict.iterate():
             hyper_gradient, _ = self._decode_hyper_gradient_tensors(value)
             contribution[index] = (
-                -(test_gradient @ hyper_gradient) / training_set_size
+                -(test_gradient @ hyper_gradient.cpu()) / training_set_size
             ).data.item()
             tensor_dict[index] = hyper_gradient
         tensor_dict.tensor_dict.flush_all(True)
