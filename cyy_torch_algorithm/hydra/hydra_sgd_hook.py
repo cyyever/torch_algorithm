@@ -105,70 +105,43 @@ class HyDRASGDHook(HyDRAHook):
                     hessian_vector_product_dict[idx] = hessian_vector_product
 
             for index in chunk:
-                (
-                    momentum,
-                    weight_decay,
-                    learning_rate,
-                    instance_gradient,
-                ) = self.hessian_computation_arguments.pop(index)
-
-                hyper_gradient, mom_gradient = self._get_hyper_gradient_tensors(
-                    index, use_approximation=False
+                self._do_delayed_computation(
+                    False, index, hessian_vector_product_dict[index]
                 )
-
-                if mom_gradient is not None:
-                    mom_gradient *= momentum
-
-                if hyper_gradient is not None:
-                    res = weight_decay * hyper_gradient
-                    res += hessian_vector_product_dict[index]
-                    if mom_gradient is not None:
-                        mom_gradient += res
-                    else:
-                        mom_gradient = res
-
-                if instance_gradient is not None:
-                    if mom_gradient is not None:
-                        mom_gradient += instance_gradient
-                    else:
-                        mom_gradient = instance_gradient
-
-                if mom_gradient is not None:
-                    if hyper_gradient is not None:
-                        hyper_gradient -= learning_rate * mom_gradient
-                    else:
-                        hyper_gradient = -learning_rate * mom_gradient
-
-                assert (hyper_gradient is not None and mom_gradient is not None) or (
-                    hyper_gradient is None and mom_gradient is None
-                )
-                if hyper_gradient is not None:
-                    self._set_hyper_gradient_tensors(
-                        index, False, hyper_gradient, mom_gradient
-                    )
             get_logger().debug(
                 "_do_computation_with_hessian chunk size %s use time %s ms",
                 len(chunk),
                 counter.elapsed_milliseconds(),
             )
 
-    def _do_delayed_computation(self, use_approximation: bool, index=None):
-        if index is None and use_approximation:
+    def _do_all_delayed_computation(self):
+        if self.use_approximation:
             for k in tuple(self.delayed_approximation_computations.keys()):
                 get_logger().debug("do delayed_approximation_computations for %s", k)
-                self._do_delayed_computation(use_approximation, k)
+                self._do_delayed_computation(True, k)
             return
 
+    def _do_delayed_computation(
+        self, use_approximation: bool, index, hessian_vector_product=None
+    ):
+
         hyper_gradient, mom_gradient = self._get_hyper_gradient_tensors(
-            index, use_approximation=True
+            index, use_approximation
         )
-        for arguments in self.delayed_approximation_computations.pop(index):
+
+        if use_approximation:
+            argument_dict = self.delayed_approximation_computations
+        else:
+            argument_dict = self.hessian_computation_arguments
+        for arguments in argument_dict.pop(index):
             (momentum, weight_decay, learning_rate, instance_gradient) = arguments
             if mom_gradient is not None:
                 mom_gradient *= momentum
 
             if hyper_gradient is not None:
                 res = weight_decay * hyper_gradient
+                if hessian_vector_product is not None:
+                    res += hessian_vector_product
                 if mom_gradient is not None:
                     mom_gradient += res
                 else:
