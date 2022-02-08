@@ -2,6 +2,7 @@
 
 import atexit
 import collections
+import threading
 
 import torch
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
@@ -22,8 +23,17 @@ def __get_f(device, inputs, targets, model_with_loss: ModelWithLoss):
         nonlocal inputs, targets, model_with_loss, device, model_util
         total_loss = None
         for parameter_list in args:
-            model_util.load_parameter_list(parameter_list, as_parameter=False)
-            loss = model_with_loss(inputs, targets, device=device)["loss"]
+            model_util.load_parameter_list(
+                parameter_list,
+                check_parameter=False,
+                as_parameter=False,
+            )
+            loss = model_with_loss(
+                inputs,
+                targets,
+                device=device,
+                non_blocking=True,
+            )["loss"]
             if total_loss is None:
                 total_loss = loss
             else:
@@ -33,29 +43,38 @@ def __get_f(device, inputs, targets, model_with_loss: ModelWithLoss):
     return f
 
 
+local_data = threading.local()
+
+
 def worker_fun(task, args):
-    worker_device = args["device"]
-    if worker_device.index is not None:
-        torch.cuda.set_device(worker_device)
+    global local_data
+
+    worker_device = getattr(local_data, "worker_device", None)
+    if worker_device is None:
+        worker_device = args["device"]
+        local_data.worker_device = worker_device
+        if worker_device.index is not None:
+            local_data.worker_stream = torch.cuda.Stream(device=worker_device)
+    worker_stream = getattr(local_data, "worker_stream", None)
+
     (idx, vector_chunk, model_with_loss, inputs, targets) = task
     for index, vector in enumerate(vector_chunk):
         vector_chunk[index] = vector.to(worker_device)
-    inputs = inputs.to(worker_device)
-    targets = targets.to(worker_device)
     vector_chunk = tuple(vector_chunk)
     model_util = ModelUtil(model_with_loss.model)
     parameter_list = model_util.get_parameter_list(detach=True).to(worker_device)
-    products = autograd.functional.vhp(
-        __get_f(
-            worker_device,
-            inputs,
-            targets,
-            model_with_loss,
-        ),
-        tuple([parameter_list] * len(vector_chunk)),
-        vector_chunk,
-        strict=True,
-    )[1]
+    with torch.cuda.stream(worker_stream):
+        products = autograd.functional.vhp(
+            __get_f(
+                worker_device,
+                inputs,
+                targets,
+                model_with_loss,
+            ),
+            tuple([parameter_list] * len(vector_chunk)),
+            vector_chunk,
+            strict=True,
+        )[1]
     return (idx, products)
 
 
