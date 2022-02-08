@@ -38,7 +38,7 @@ class HyDRAHook(Hook):
     def sample_gradient_dict(self):
         return self.sample_gradient_hook.sample_gradient_dict
 
-    def _get_save_dir(self, trainer):
+    def get_save_dir(self, trainer=None):
         if self.__save_dir is None:
             self.__save_dir = os.path.join(trainer.save_dir, "HyDRA")
             os.makedirs(self.__save_dir, exist_ok=True)
@@ -51,7 +51,7 @@ class HyDRAHook(Hook):
         else:
             get_logger().info("only compute %s indices", len(self._computed_indices))
         with open(
-            os.path.join(self._get_save_dir(trainer), "tracking_indices.json"),
+            os.path.join(self.get_save_dir(trainer), "tracking_indices.json"),
             mode="wb",
         ) as f:
             pickle.dump(self._computed_indices, f)
@@ -61,7 +61,7 @@ class HyDRAHook(Hook):
                 self._cache_size,
                 trainer.model,
                 storage_dir=os.path.join(
-                    self._get_save_dir(trainer),
+                    self.get_save_dir(trainer),
                     "hessian_hyper_gradient_and_momentum_dir",
                 ),
             )
@@ -74,7 +74,7 @@ class HyDRAHook(Hook):
                 self._cache_size,
                 trainer.model,
                 storage_dir=os.path.join(
-                    self._get_save_dir(trainer),
+                    self.get_save_dir(trainer),
                     "approx_hyper_gradient_and_momentum_dir",
                 ),
             )
@@ -186,32 +186,32 @@ class HyDRAHook(Hook):
         if use_approximation:
             with open(
                 os.path.join(
-                    self._get_save_dir(trainer), "approx_hydra_contribution.json"
+                    self.get_save_dir(trainer), "approx_hydra_contribution.json"
                 ),
                 mode="wt",
                 encoding="utf-8",
             ) as f:
                 json.dump(contribution, f)
             hyper_gradient_dir = os.path.join(
-                self._get_save_dir(trainer), "approximation_hyper_gradient_dir"
+                self.get_save_dir(trainer), "approximation_hyper_gradient_dir"
             )
             shutil.move(tensor_dict.get_storage_dir(), hyper_gradient_dir)
         else:
             with open(
                 os.path.join(
-                    self._get_save_dir(trainer), "hessian_hydra_contribution.json"
+                    self.get_save_dir(trainer), "hessian_hydra_contribution.json"
                 ),
                 mode="wt",
                 encoding="utf-8",
             ) as f:
                 json.dump(contribution, f)
             hyper_gradient_dir = os.path.join(
-                self._get_save_dir(trainer), "hessian_hyper_gradient_dir"
+                self.get_save_dir(trainer), "hessian_hyper_gradient_dir"
             )
             shutil.move(tensor_dict.get_storage_dir(), hyper_gradient_dir)
         tensor_dict.release()
         with open(
-            os.path.join(self._get_save_dir(trainer), "training_set_size"), "wb"
+            os.path.join(self.get_save_dir(trainer), "training_set_size"), "wb"
         ) as f:
             pickle.dump(training_set_size, f)
 
