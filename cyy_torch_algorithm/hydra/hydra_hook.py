@@ -149,11 +149,7 @@ class HyDRAHook(Hook):
         return tensor_dict
 
     def __prepare_hook(self, **kwargs):
-        trainer = kwargs["model_executor"]
         batch = kwargs["batch"]
-        self.sample_gradient_hook.set_storage_dir(
-            os.path.join(self._get_save_dir(trainer), "tmp_sample_gradient")
-        )
         if self.use_approximation:
             instance_indices = {idx.data.item() for idx in batch[2]["index"]}
             batch_gradient_indices: set = instance_indices & self._computed_indices
