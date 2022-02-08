@@ -40,12 +40,14 @@ class HyDRASGDHook(HyDRAHook):
                     instance_gradient.detach() * training_set_size / batch_size
                 )
             if self.use_hessian:
-                self.hessian_computation_arguments[idx] = (
-                    momentum,
-                    weight_decay,
-                    cur_learning_rate,
-                    instance_gradient,
-                )
+                self.hessian_computation_arguments[idx] = [
+                    (
+                        momentum,
+                        weight_decay,
+                        cur_learning_rate,
+                        instance_gradient,
+                    )
+                ]
             if self.use_approximation:
                 if idx not in self.delayed_approximation_computations:
                     self.delayed_approximation_computations[idx] = []
@@ -104,7 +106,7 @@ class HyDRASGDHook(HyDRAHook):
 
             for index in chunk:
                 self._do_delayed_computation(
-                    False, index, hessian_vector_product_dict[index]
+                    False, index, hessian_vector_product_dict.get(index, None)
                 )
             get_logger().debug(
                 "_do_computation_with_hessian chunk size %s use time %s ms",
@@ -156,9 +158,9 @@ class HyDRASGDHook(HyDRAHook):
                     hyper_gradient -= learning_rate * mom_gradient
                 else:
                     hyper_gradient = -learning_rate * mom_gradient
-
-        assert hyper_gradient is not None
-        assert mom_gradient is not None
-        self._set_hyper_gradient_tensors(
-            index, use_approximation, hyper_gradient, mom_gradient
-        )
+        if hyper_gradient is not None:
+            assert hyper_gradient is not None
+            assert mom_gradient is not None
+            self._set_hyper_gradient_tensors(
+                index, use_approximation, hyper_gradient, mom_gradient
+            )
