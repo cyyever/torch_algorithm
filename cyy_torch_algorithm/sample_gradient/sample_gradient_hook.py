@@ -29,6 +29,8 @@ class SampleGradientHook(Hook):
     @property
     def sample_gradient_dict(self):
         if self.__sample_gradient_dict is None:
+            if self.__task_size is None:
+                return {}
             gradient_dict = {}
             for _ in range(self.__task_size):
                 idx, gradient_list = self.__task_queue.get_result()
@@ -53,6 +55,7 @@ class SampleGradientHook(Hook):
         instance_inputs, instance_targets, instance_info = decode_batch(batch)
         instance_indices = {idx.data.item() for idx in instance_info["index"]}
         self.__sample_gradient_dict = None
+        self.__task_size = None
 
         sample_gradient_inputs = []
         sample_gradient_targets = []
