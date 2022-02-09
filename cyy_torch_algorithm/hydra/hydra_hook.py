@@ -11,6 +11,7 @@ from cyy_torch_toolbox.hook import Hook
 from cyy_torch_toolbox.ml_type import (MachineLearningPhase,
                                        ModelExecutorHookPoint)
 from cyy_torch_toolbox.model_util import ModelUtil
+from hessian_vector_product import get_hessian_vector_product_func
 from sample_gradient.sample_gradient_hook import SampleGradientHook
 
 
@@ -20,19 +21,34 @@ class HyDRAHook(Hook):
         self.sample_gradient_hook = SampleGradientHook()
         self._cache_size = cache_size
         self.__save_dir = None
+        self._device = None
 
         self._computed_indices = None
-        self.delayed_approximation_computations = None
+        self._delayed_approximation_computations:dict = None
 
         self.use_hessian = kwargs.get("use_hessian", False)
         self._hvp_function = None
         self._hessian_hyper_gradient_dict = None
+        self._hessian_computation_arguments = None
         self.use_approximation = kwargs.get("use_approximation", None)
 
         if self.use_approximation is None:
             self.use_approximation = not self.use_hessian
 
         self._approx_hyper_gradient_dict = None
+
+    def _before_batch(self, **kwargs):
+        trainer = kwargs["model_executor"]
+        batch = kwargs["batch"]
+        if self._device is None:
+            self._device = trainer.device
+
+        if self.use_hessian:
+            self._hvp_function = get_hessian_vector_product_func(
+                trainer.copy_model_with_loss(deepcopy=True), batch
+            )
+            assert not self._hessian_computation_arguments
+            self._hessian_computation_arguments = {}
 
     @property
     def sample_gradient_dict(self):

@@ -2,26 +2,14 @@ import torch
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
 from cyy_naive_lib.log import get_logger
 from cyy_naive_lib.time_counter import TimeCounter
-from hessian_vector_product import get_hessian_vector_product_func
 
 from hydra.hydra_hook import HyDRAHook
 
 
 class HyDRASGDHook(HyDRAHook):
-    hessian_computation_arguments = None
-    device = None
-
     def _before_batch(self, **kwargs):
+        super()._before_batch(**kwargs)
         trainer = kwargs["model_executor"]
-        batch = kwargs["batch"]
-        if self.device is None:
-            self.device = trainer.device
-
-        if self.use_hessian:
-            self._hvp_function = get_hessian_vector_product_func(
-                trainer.copy_model_with_loss(deepcopy=True), batch
-            )
-            self.hessian_computation_arguments = {}
 
         optimizer = trainer.get_optimizer()
         assert len(optimizer.param_groups) == 1
@@ -38,12 +26,12 @@ class HyDRASGDHook(HyDRAHook):
             instance_gradient = None
             if idx in self.sample_gradient_dict:
                 instance_gradient = (
-                    self.sample_gradient_dict[idx].to(self.device)
+                    self.sample_gradient_dict[idx].to(self._device)
                     * training_set_size
                     / batch_size
                 )
             if self.use_hessian:
-                self.hessian_computation_arguments[idx] = [
+                self._hessian_computation_arguments[idx] = [
                     (
                         momentum,
                         weight_decay,
@@ -52,9 +40,9 @@ class HyDRASGDHook(HyDRAHook):
                     )
                 ]
             if self.use_approximation:
-                if idx not in self.delayed_approximation_computations:
-                    self.delayed_approximation_computations[idx] = []
-                self.delayed_approximation_computations[idx].append(
+                if idx not in self._delayed_approximation_computations:
+                    self._delayed_approximation_computations[idx] = []
+                self._delayed_approximation_computations[idx].append(
                     (momentum, weight_decay, cur_learning_rate, instance_gradient)
                 )
                 if instance_gradient is not None:
@@ -115,8 +103,8 @@ class HyDRASGDHook(HyDRAHook):
 
     def _do_all_delayed_computation(self):
         if self.use_approximation:
-            for k in tuple(self.delayed_approximation_computations.keys()):
-                get_logger().debug("do delayed_approximation_computations for %s", k)
+            for k in tuple(self._delayed_approximation_computations.keys()):
+                get_logger().debug("do _delayed_approximation_computations for %s", k)
                 self._do_delayed_computation(True, k)
             return
 
@@ -129,9 +117,9 @@ class HyDRASGDHook(HyDRAHook):
         )
 
         if use_approximation:
-            argument_dict = self.delayed_approximation_computations
+            argument_dict = self._delayed_approximation_computations
         else:
-            argument_dict = self.hessian_computation_arguments
+            argument_dict = self._hessian_computation_arguments
         for arguments in argument_dict.pop(index):
             (momentum, weight_decay, learning_rate, instance_gradient) = arguments
             if mom_gradient is not None:
@@ -140,7 +128,7 @@ class HyDRASGDHook(HyDRAHook):
             if hyper_gradient is not None:
                 res = weight_decay * hyper_gradient
                 if hessian_vector_product is not None:
-                    res += hessian_vector_product.to(self.device)
+                    res += hessian_vector_product.to(self._device)
                 if mom_gradient is not None:
                     mom_gradient += res
                 else:
