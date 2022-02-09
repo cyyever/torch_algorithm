@@ -34,7 +34,6 @@ class HyDRASGDHook(HyDRAHook):
         weight_decay = trainer.hyper_parameter.weight_decay
         training_set_size = len(trainer.dataset)
 
-        counter = TimeCounter()
         for idx in self._computed_indices:
             instance_gradient = None
             if idx in self.sample_gradient_dict:
@@ -60,10 +59,6 @@ class HyDRASGDHook(HyDRAHook):
                 )
                 if instance_gradient is not None:
                     self._do_delayed_computation(use_approximation=True, index=idx)
-        get_logger().debug(
-            "use_approximation use time %s ms",
-            counter.elapsed_milliseconds(),
-        )
         if self.use_hessian:
             self._do_computation_with_hessian()
 
