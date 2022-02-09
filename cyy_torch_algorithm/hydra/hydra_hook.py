@@ -24,7 +24,7 @@ class HyDRAHook(Hook):
         self._device = None
 
         self._computed_indices = None
-        self._delayed_approximation_computations:dict = None
+        self._delayed_approximation_computations: dict = None
 
         self.use_hessian = kwargs.get("use_hessian", False)
         self._hvp_function = None
@@ -98,7 +98,7 @@ class HyDRAHook(Hook):
                 "use approx dict:%s",
                 os.path.abspath(self._approx_hyper_gradient_dict.get_storage_dir()),
             )
-            self.delayed_approximation_computations = {}
+            self._delayed_approximation_computations = {}
             trainer.prepend_named_hook(
                 hook_point=ModelExecutorHookPoint.BEFORE_BATCH,
                 name="prepare_hook",
