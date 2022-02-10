@@ -114,29 +114,28 @@ class HyDRASGDHook(HyDRAHook):
             argument_dict = self._hessian_computation_arguments
         for arguments in argument_dict.pop(index):
             (momentum, weight_decay, learning_rate, instance_gradient) = arguments
+            gradient_gradient = None
+            if hyper_gradient is not None:
+                gradient_gradient = self._optional_addition(
+                    gradient_gradient, weight_decay * hyper_gradient
+                )
+            if instance_gradient is not None:
+                gradient_gradient = self._optional_addition(
+                    gradient_gradient, instance_gradient
+                )
+
+            if hessian_vector_product is not None:
+                gradient_gradient = self._optional_addition(
+                    gradient_gradient, hessian_vector_product.to(self._device)
+                )
+
             if mom_gradient is not None:
                 mom_gradient *= momentum
-
-            if hyper_gradient is not None:
-                res = weight_decay * hyper_gradient
-                if hessian_vector_product is not None:
-                    res += hessian_vector_product.to(self._device)
-                if mom_gradient is not None:
-                    mom_gradient += res
-                else:
-                    mom_gradient = res
-
-            if instance_gradient is not None:
-                if mom_gradient is not None:
-                    mom_gradient += instance_gradient
-                else:
-                    mom_gradient = instance_gradient
-
+            mom_gradient = self._optional_addition(mom_gradient, gradient_gradient)
             if mom_gradient is not None:
-                if hyper_gradient is not None:
-                    hyper_gradient -= learning_rate * mom_gradient
-                else:
-                    hyper_gradient = -learning_rate * mom_gradient
+                hyper_gradient = self._optional_addition(
+                    hyper_gradient, -learning_rate * mom_gradient
+                )
         if hyper_gradient is not None:
             assert hyper_gradient is not None
             assert mom_gradient is not None
