@@ -13,21 +13,20 @@ class HyDRAAdamHook(HyDRAHook):
 
         optimizer = trainer.get_optimizer()
         assert len(optimizer.param_groups) == 1
-        if not isinstance(optimizer, torch.optim.SGD):
-            raise RuntimeError("optimizer is not SGD")
+        if not isinstance(optimizer, torch.optim.Adam):
+            raise RuntimeError("optimizer is not Adam")
 
         cur_learning_rate = trainer.get_data("cur_learning_rates")[0]
         batch_size = kwargs["batch_size"]
         momentum = optimizer.param_groups[0]["momentum"]
         weight_decay = trainer.hyper_parameter.weight_decay
-        training_set_size = len(trainer.dataset)
 
         for idx in self._computed_indices:
             instance_gradient = None
             if idx in self.sample_gradient_dict:
                 instance_gradient = (
                     self.sample_gradient_dict[idx].to(self._device)
-                    * training_set_size
+                    * self._training_set_size
                     / batch_size
                 )
             if self.use_hessian:

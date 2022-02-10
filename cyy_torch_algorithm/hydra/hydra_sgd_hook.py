@@ -20,14 +20,13 @@ class HyDRASGDHook(HyDRAHook):
         batch_size = kwargs["batch_size"]
         momentum = optimizer.param_groups[0]["momentum"]
         weight_decay = trainer.hyper_parameter.weight_decay
-        training_set_size = len(trainer.dataset)
 
         for idx in self._computed_indices:
             instance_gradient = None
             if idx in self.sample_gradient_dict:
                 instance_gradient = (
                     self.sample_gradient_dict[idx].to(self._device)
-                    * training_set_size
+                    * self._training_set_size
                     / batch_size
                 )
             if self.use_hessian:

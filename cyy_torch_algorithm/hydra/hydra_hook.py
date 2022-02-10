@@ -25,6 +25,7 @@ class HyDRAHook(Hook):
 
         self._computed_indices = None
         self._delayed_approximation_computations: dict = None
+        self._training_set_size = None
 
         self.use_hessian = kwargs.get("use_hessian", False)
         self._hvp_function = None
@@ -42,6 +43,8 @@ class HyDRAHook(Hook):
         batch = kwargs["batch"]
         if self._device is None:
             self._device = trainer.device
+        if self._training_set_size is None:
+            self._training_set_size = len(trainer.dataset)
 
         if self.use_hessian:
             self._hvp_function = get_hessian_vector_product_func(
@@ -190,12 +193,11 @@ class HyDRAHook(Hook):
         self._do_all_delayed_computation()
         get_logger().info("end do _do_all_delayed_computation")
         tensor_dict = self._get_hyper_gradient_dict(use_approximation)
-        training_set_size = len(trainer.dataset)
         test_gradient = test_gradient.cpu()
         for (index, value) in tensor_dict.iterate():
             hyper_gradient, _ = self._decode_hyper_gradient_tensors(value)
             contribution[index] = (
-                -(test_gradient @ hyper_gradient.cpu()) / training_set_size
+                -(test_gradient @ hyper_gradient.cpu()) / self._training_set_size
             ).data.item()
             tensor_dict[index] = hyper_gradient
         tensor_dict.tensor_dict.flush_all(True)
@@ -229,7 +231,7 @@ class HyDRAHook(Hook):
         with open(
             os.path.join(self.get_save_dir(trainer), "training_set_size"), "wb"
         ) as f:
-            pickle.dump(training_set_size, f)
+            pickle.dump(self._training_set_size, f)
 
     def foreach_hyper_gradient(self, use_approximation: bool, callback):
         self._do_all_delayed_computation()
