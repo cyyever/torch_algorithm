@@ -137,7 +137,6 @@ class HyDRASGDHook(HyDRAHook):
                     hyper_gradient, -learning_rate * mom_gradient
                 )
         if hyper_gradient is not None:
-            assert hyper_gradient is not None
             assert mom_gradient is not None
             self._set_hyper_gradient_tensors(
                 index, use_approximation, hyper_gradient, mom_gradient
