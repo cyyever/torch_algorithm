@@ -7,6 +7,8 @@ from hydra.hydra_hook import HyDRAHook
 
 
 class HyDRAAdamHook(HyDRAHook):
+    __step = None
+
     def _before_batch(self, **kwargs):
         super()._before_batch(**kwargs)
         trainer = kwargs["model_executor"]
@@ -16,16 +18,20 @@ class HyDRAAdamHook(HyDRAHook):
         if not isinstance(optimizer, torch.optim.Adam):
             raise RuntimeError("optimizer is not Adam")
 
+        if self.__step is None:
+            self.__step = 0
+        self.__step += 1
+
         cur_learning_rate = trainer.get_data("cur_learning_rates")[0]
         batch_size = kwargs["batch_size"]
         momentum = optimizer.param_groups[0]["momentum"]
         weight_decay = trainer.hyper_parameter.weight_decay
 
         for idx in self._computed_indices:
-            instance_gradient = None
-            if idx in self.sample_gradient_dict:
+            instance_gradient = self.sample_gradient_dict.get(idx, None)
+            if instance_gradient is not None:
                 instance_gradient = (
-                    self.sample_gradient_dict[idx].to(self._device)
+                    instance_gradient.to(self._device)
                     * self._training_set_size
                     / batch_size
                 )
@@ -150,3 +156,7 @@ class HyDRAAdamHook(HyDRAHook):
             self._set_hyper_gradient_tensors(
                 index, use_approximation, hyper_gradient, mom_gradient
             )
+
+    def _after_execute(self, **kwargs):
+        self.__step = None
+        super()._after_execute(**kwargs)

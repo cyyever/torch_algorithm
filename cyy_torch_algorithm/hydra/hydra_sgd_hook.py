@@ -22,10 +22,10 @@ class HyDRASGDHook(HyDRAHook):
         weight_decay = trainer.hyper_parameter.weight_decay
 
         for idx in self._computed_indices:
-            instance_gradient = None
-            if idx in self.sample_gradient_dict:
+            instance_gradient = self.sample_gradient_dict.get(idx, None)
+            if instance_gradient is not None:
                 instance_gradient = (
-                    self.sample_gradient_dict[idx].to(self._device)
+                    instance_gradient.to(self._device)
                     * self._training_set_size
                     / batch_size
                 )
