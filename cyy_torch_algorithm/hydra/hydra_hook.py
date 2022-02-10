@@ -187,6 +187,13 @@ class HyDRAHook(Hook):
             else self._hessian_hyper_gradient_dict
         )
 
+    def _do_all_delayed_computation(self):
+        if self.use_approximation:
+            for k in tuple(self._delayed_approximation_computations.keys()):
+                get_logger().debug("do _delayed_approximation_computations for %s", k)
+                self._do_delayed_computation(True, k)
+            return
+
     def __save_hyper_gradients(self, trainer, test_gradient, use_approximation):
         contribution = {}
         get_logger().info("begin do _do_all_delayed_computation")

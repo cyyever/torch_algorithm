@@ -100,13 +100,6 @@ class HyDRASGDHook(HyDRAHook):
                 counter.elapsed_milliseconds(),
             )
 
-    def _do_all_delayed_computation(self):
-        if self.use_approximation:
-            for k in tuple(self._delayed_approximation_computations.keys()):
-                get_logger().debug("do _delayed_approximation_computations for %s", k)
-                self._do_delayed_computation(True, k)
-            return
-
     def _do_delayed_computation(
         self, use_approximation: bool, index, hessian_vector_product=None
     ):
