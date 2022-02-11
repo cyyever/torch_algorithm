@@ -194,7 +194,7 @@ class HyDRAHook(Hook):
             delayed_keys = list(self._delayed_approximation_computations.keys())
             for chunk in split_list_to_chunks(delayed_keys, self._cache_size):
 
-                self._delayed_approximation_computations.prefetch(chunk)
+                self._get_hyper_gradient_dict(True).prefetch(chunk)
                 for k in chunk:
                     get_logger().debug(
                         "do _delayed_approximation_computations for %s", k
