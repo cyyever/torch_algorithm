@@ -189,7 +189,7 @@ class HyDRAHook(Hook):
 
     def _do_all_delayed_computation(self):
         if self.use_approximation:
-            for k in self._delayed_approximation_computations:
+            for k in tuple(self._delayed_approximation_computations.keys()):
                 get_logger().debug("do _delayed_approximation_computations for %s", k)
                 self._do_delayed_computation(True, k)
             return
