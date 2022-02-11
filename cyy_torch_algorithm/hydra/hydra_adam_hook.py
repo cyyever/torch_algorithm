@@ -1,4 +1,5 @@
 import torch
+from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
 from cyy_torch_toolbox.tensor import cat_tensors_to_vector
 
 from hydra.hydra_hook import HyDRAHook
@@ -63,8 +64,14 @@ class HyDRAAdamHook(HyDRAHook):
             .sqrt()
         )
 
-        for idx in self._computed_indices:
-            self._do_delayed_computation(use_approximation=True, index=idx)
+        for chunk in split_list_to_chunks(
+            list(self._computed_indices),
+            self._cache_size // 2,
+        ):
+            if self.use_approximation:
+                self._get_hyper_gradient_dict(use_approximation=True).prefetch(chunk)
+            for idx in chunk:
+                self._do_delayed_computation(use_approximation=True, index=idx)
 
     def get_hyper_gradient(self, index, use_approximation):
         return self._get_hyper_gradient_tensors(index, use_approximation)[0]
