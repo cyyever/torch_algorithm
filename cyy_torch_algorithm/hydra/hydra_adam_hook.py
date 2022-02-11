@@ -54,10 +54,14 @@ class HyDRAAdamHook(HyDRAHook):
         self.__step = optimizer.state[parameter_seq[0]]["step"]
         self.__exp_avgs = cat_tensors_to_vector(
             (optimizer.state[p]["exp_avg"] for p in parameter_seq)
+        ).detach()
+        self.__exp_avg_sqs = (
+            cat_tensors_to_vector(
+                (optimizer.state[p]["exp_avg_sq"] for p in parameter_seq)
+            )
+            .detach()
+            .sqrt()
         )
-        self.__exp_avg_sqs = cat_tensors_to_vector(
-            (optimizer.state[p]["exp_avg_sq"] for p in parameter_seq)
-        ).sqrt()
 
         for idx in self._computed_indices:
             self._do_delayed_computation(use_approximation=True, index=idx)
