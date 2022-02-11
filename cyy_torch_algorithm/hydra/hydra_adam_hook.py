@@ -1,7 +1,4 @@
 import torch
-from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
-from cyy_naive_lib.log import get_logger
-from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_toolbox.tensor import cat_tensors_to_vector
 
 from hydra.hydra_hook import HyDRAHook
@@ -21,10 +18,6 @@ class HyDRAAdamHook(HyDRAHook):
         assert len(optimizer.param_groups) == 1
         if not isinstance(optimizer, torch.optim.Adam):
             raise RuntimeError("optimizer is not Adam")
-
-        if self.__step is None:
-            self.__step = 0
-        self.__step += 1
 
         cur_learning_rate = trainer.get_data("cur_learning_rates")[0]
         batch_size = kwargs["batch_size"]
@@ -54,14 +47,16 @@ class HyDRAAdamHook(HyDRAHook):
     def _after_optimizer_step(self, **kwargs):
         trainer = kwargs["model_executor"]
         optimizer = trainer.get_optimizer()
-        parameter_seq = trainer.model_with_loss.model_util.get_parameter_seq()
-        step = optimizer.state[parameter_seq[0]]["step"]
-        assert self.__step == step
+        parameter_seq = tuple(
+            trainer.model_with_loss.model_util.get_parameter_seq(detach=False)
+        )
+        assert parameter_seq[0] in optimizer.state
+        self.__step = optimizer.state[parameter_seq[0]]["step"]
         self.__exp_avgs = cat_tensors_to_vector(
-            [optimizer.state[p]["exp_avg"] for p in parameter_seq]
+            (optimizer.state[p]["exp_avg"] for p in parameter_seq)
         )
         self.__exp_avg_sqs = cat_tensors_to_vector(
-            [optimizer.state[p]["exp_avg_sq"] for p in parameter_seq]
+            (optimizer.state[p]["exp_avg_sq"] for p in parameter_seq)
         ).sqrt()
 
         for idx in self._computed_indices:
@@ -104,17 +99,17 @@ class HyDRAAdamHook(HyDRAHook):
 
             first_average_gradient = self._optional_addition(
                 self._optional_multiplication(first_average_gradient, beta1),
-                (1 - beta1) * gradient_gradient,
+                self._optional_multiplication(1 - beta1, gradient_gradient),
             )
             second_average_gradient = self._optional_addition(
                 self._optional_multiplication(second_average_gradient, beta2),
-                2 * (1 - beta2) * gradient_gradient,
+                self._optional_multiplication(2 - 2 * beta2, gradient_gradient),
             )
-            corrected_first_average_gradient = first_average_gradient / (
-                1 - beta1 ** self.__step
+            corrected_first_average_gradient = self._optional_division(
+                first_average_gradient, 1 - beta1 ** self.__step
             )
-            corrected_second_average_gradient = second_average_gradient / (
-                1 - beta2 ** self.__step
+            corrected_second_average_gradient = self._optional_division(
+                second_average_gradient, 1 - beta2 ** self.__step
             )
             tmp = self._optional_division(
                 self._optional_addition(
@@ -133,7 +128,7 @@ class HyDRAAdamHook(HyDRAHook):
                 (self.__exp_avg_sqs + eps).square(),
             )
             hyper_gradient = self._optional_addition(
-                hyper_gradient, self._optional_multiplication(-cur_learning_rate, tmp)
+                hyper_gradient, self._optional_multiplication(-learning_rate, tmp)
             )
 
         if hyper_gradient is not None:
