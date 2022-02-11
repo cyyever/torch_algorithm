@@ -2,6 +2,7 @@ import torch
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
 from cyy_naive_lib.log import get_logger
 from cyy_naive_lib.time_counter import TimeCounter
+from cyy_torch_toolbox.tensor import cat_tensors_to_vector
 
 from hydra.hydra_hook import HyDRAHook
 
@@ -25,7 +26,6 @@ class HyDRAAdamHook(HyDRAHook):
 
         cur_learning_rate = trainer.get_data("cur_learning_rates")[0]
         batch_size = kwargs["batch_size"]
-        betas = optimizer.param_groups[0]["betas"]
         weight_decay = trainer.hyper_parameter.weight_decay
 
         for idx in self._computed_indices:
@@ -40,10 +40,34 @@ class HyDRAAdamHook(HyDRAHook):
                 if idx not in self._delayed_approximation_computations:
                     self._delayed_approximation_computations[idx] = []
                 self._delayed_approximation_computations[idx].append(
-                    (betas, weight_decay, cur_learning_rate, instance_gradient)
+                    [
+                        instance_gradient,
+                        weight_decay,
+                        cur_learning_rate,
+                        optimizer.param_groups[0]["betas"],
+                        optimizer.param_groups[0]["eps"],
+                    ]
                 )
-                if instance_gradient is not None:
-                    self._do_delayed_computation(use_approximation=True, index=idx)
+
+    def _after_optimizer_step(self, **kwargs):
+        trainer = kwargs["model_executor"]
+        optimizer = trainer.get_optimizer()
+        parameter_seq = trainer.model_with_loss.model_util.get_parameter_seq()
+        exp_avgs = cat_tensors_to_vector(
+            [optimizer.state[p]["exp_avg"] for p in parameter_seq]
+        )
+        exp_avg_sqs = cat_tensors_to_vector(
+            [optimizer.state[p]["exp_avg_sq"] for p in parameter_seq]
+        )
+        step = optimizer.state[parameter_seq[0]]["step"]
+        assert self.__step == step
+        for idx in self._computed_indices:
+            self._delayed_approximation_computations[idx][-1] += [
+                step,
+                exp_avgs,
+                exp_avg_sqs,
+            ]
+            self._do_delayed_computation(use_approximation=True, index=idx)
 
     def get_hyper_gradient(self, index, use_approximation):
         return self._get_hyper_gradient_tensors(index, use_approximation)[0]
@@ -60,7 +84,6 @@ class HyDRAAdamHook(HyDRAHook):
     def _do_delayed_computation(
         self, use_approximation: bool, index, hessian_vector_product=None
     ):
-
         (
             hyper_gradient,
             first_average_gradient,
@@ -72,7 +95,7 @@ class HyDRAAdamHook(HyDRAHook):
         else:
             argument_dict = self._hessian_computation_arguments
         for arguments in argument_dict.pop(index):
-            (betas, weight_decay, learning_rate, instance_gradient) = arguments
+            (instance_gradient, betas, weight_decay, learning_rate) = arguments
             beta1, beta2 = betas
 
             gradient_gradient = self._optional_addition(
