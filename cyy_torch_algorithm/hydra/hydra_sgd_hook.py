@@ -63,8 +63,7 @@ class HyDRASGDHook(HyDRAHook):
 
     def _do_computation_with_hessian(self):
         for chunk in split_list_to_chunks(
-            list(self._computed_indices),
-            self._cache_size // 2,
+            list(self._computed_indices), self._cache_size
         ):
             counter = TimeCounter()
             self._hessian_hyper_gradient_dict.prefetch(chunk)

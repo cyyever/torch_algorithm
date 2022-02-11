@@ -65,8 +65,7 @@ class HyDRAAdamHook(HyDRAHook):
         )
 
         for chunk in split_list_to_chunks(
-            list(self._computed_indices),
-            self._cache_size // 2,
+            list(self._computed_indices), self._cache_size
         ):
             if self.use_approximation:
                 self._get_hyper_gradient_dict(use_approximation=True).prefetch(chunk)
