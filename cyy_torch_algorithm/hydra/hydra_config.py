@@ -44,7 +44,7 @@ class HyDRAConfig(DefaultConfig):
             )
         else:
             raise NotImplementedError(
-                f"Unsupported optimizer {trainer.hyper_parameter.optimizer_name}"
+                f"Unsupported optimizer {type(optimizer)}"
             )
         trainer.remove_optimizer()
         trainer.append_hook(hydra_hook)
