@@ -25,7 +25,7 @@ class HyDRASGDHook(HyDRAHook):
             instance_gradient = self.sample_gradient_dict.get(idx, None)
             if instance_gradient is not None:
                 instance_gradient = (
-                    instance_gradient.to(self._device)
+                    instance_gradient.to(self._trainer.device)
                     * self._training_set_size
                     / batch_size
                 )
@@ -104,7 +104,7 @@ class HyDRASGDHook(HyDRAHook):
     ):
 
         if hessian_vector_product is not None:
-            hessian_vector_product.to_(self._device)
+            hessian_vector_product.to_(self._trainer.device)
         hyper_gradient, mom_gradient = self._get_hyper_gradient_tensors(
             index, use_approximation
         )

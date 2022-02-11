@@ -21,7 +21,7 @@ class HyDRAHook(Hook):
         self.sample_gradient_hook = SampleGradientHook()
         self._cache_size = cache_size
         self.__save_dir = None
-        self._device = None
+        self._trainer = None
 
         self._computed_indices = None
         self._delayed_approximation_computations: dict = None
@@ -41,8 +41,8 @@ class HyDRAHook(Hook):
     def _before_batch(self, **kwargs):
         trainer = kwargs["model_executor"]
         batch = kwargs["batch"]
-        if self._device is None:
-            self._device = trainer.device
+        if self._trainer is None:
+            self._trainer = trainer
         if self._training_set_size is None:
             self._training_set_size = len(trainer.dataset)
 
@@ -216,10 +216,11 @@ class HyDRAHook(Hook):
                 res *= a
         return res
 
-    def _optional_division(self, a,b):
+    def _optional_division(self, a, b):
         if a is None:
             return None
-        return a/b
+        return a / b
+
     def __save_hyper_gradients(self, trainer, test_gradient, use_approximation):
         contribution = {}
         get_logger().info("begin do _do_all_delayed_computation")
