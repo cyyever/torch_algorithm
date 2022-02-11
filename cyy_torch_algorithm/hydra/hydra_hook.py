@@ -198,7 +198,7 @@ class HyDRAHook(Hook):
         res = None
         for a in args:
             if a is None:
-                return None
+                continue
             if res is None:
                 res = a
             else:

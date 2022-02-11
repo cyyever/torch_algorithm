@@ -92,7 +92,9 @@ class HyDRASGDHook(HyDRAHook):
 
             for index in chunk:
                 self._do_delayed_computation(
-                    False, index, hessian_vector_product_dict.get(index, None)
+                    False,
+                    index,
+                    hessian_vector_product_dict.get(index, None).to(self._device),
                 )
             get_logger().debug(
                 "_do_computation_with_hessian chunk size %s use time %s ms",
@@ -114,8 +116,6 @@ class HyDRASGDHook(HyDRAHook):
             argument_dict = self._hessian_computation_arguments
         for arguments in argument_dict.pop(index):
             (momentum, weight_decay, learning_rate, instance_gradient) = arguments
-            if hessian_vector_product is not None:
-                hessian_vector_product = hessian_vector_product.to(self._device)
             gradient_gradient = self._optional_addition(
                 self._optional_multiplication(weight_decay, hyper_gradient),
                 instance_gradient,
