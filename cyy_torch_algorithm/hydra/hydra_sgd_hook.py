@@ -114,28 +114,21 @@ class HyDRASGDHook(HyDRAHook):
             argument_dict = self._hessian_computation_arguments
         for arguments in argument_dict.pop(index):
             (momentum, weight_decay, learning_rate, instance_gradient) = arguments
-            gradient_gradient = None
-            if hyper_gradient is not None:
-                gradient_gradient = self._optional_addition(
-                    gradient_gradient, weight_decay * hyper_gradient
-                )
-            if instance_gradient is not None:
-                gradient_gradient = self._optional_addition(
-                    gradient_gradient, instance_gradient
-                )
-
             if hessian_vector_product is not None:
-                gradient_gradient = self._optional_addition(
-                    gradient_gradient, hessian_vector_product.to(self._device)
-                )
+                hessian_vector_product = hessian_vector_product.to(self._device)
+            gradient_gradient = self._optional_addition(
+                self._optional_multiplication(weight_decay, hyper_gradient),
+                instance_gradient,
+                hessian_vector_product,
+            )
 
-            if mom_gradient is not None:
-                mom_gradient *= momentum
-            mom_gradient = self._optional_addition(mom_gradient, gradient_gradient)
-            if mom_gradient is not None:
-                hyper_gradient = self._optional_addition(
-                    hyper_gradient, -learning_rate * mom_gradient
-                )
+            mom_gradient = self._optional_addition(
+                self._optional_multiplication(mom_gradient, momentum), gradient_gradient
+            )
+            hyper_gradient = self._optional_addition(
+                hyper_gradient,
+                self._optional_multiplication(-learning_rate, mom_gradient),
+            )
         if hyper_gradient is not None:
             assert mom_gradient is not None
             self._set_hyper_gradient_tensors(

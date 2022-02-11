@@ -189,15 +189,32 @@ class HyDRAHook(Hook):
 
     def _do_all_delayed_computation(self):
         if self.use_approximation:
-            for k in tuple(self._delayed_approximation_computations.keys()):
+            for k in self._delayed_approximation_computations:
                 get_logger().debug("do _delayed_approximation_computations for %s", k)
                 self._do_delayed_computation(True, k)
             return
 
-    def _optional_addition(self, res, item):
-        if res is None:
-            return item
-        return res + item
+    def _optional_addition(self, *args):
+        res = None
+        for a in args:
+            if a is None:
+                return None
+            if res is None:
+                res = a
+            else:
+                res += a
+        return res
+
+    def _optional_multiplication(self, *args):
+        res = None
+        for a in args:
+            if a is None:
+                return None
+            if res is None:
+                res = a
+            else:
+                res *= a
+        return res
 
     def __save_hyper_gradients(self, trainer, test_gradient, use_approximation):
         contribution = {}
