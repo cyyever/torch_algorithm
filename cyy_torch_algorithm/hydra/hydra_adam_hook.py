@@ -75,32 +75,20 @@ class HyDRAAdamHook(HyDRAHook):
             (betas, weight_decay, learning_rate, instance_gradient) = arguments
             beta1, beta2 = betas
 
-            gradient_gradient = None
-            if hyper_gradient is not None:
-                gradient_gradient = self._optional_addition(
-                    gradient_gradient, weight_decay * hyper_gradient
-                )
-            if instance_gradient is not None:
-                gradient_gradient = self._optional_addition(
-                    gradient_gradient, instance_gradient
-                )
+            gradient_gradient = self._optional_addition(
+                self._optional_multiplication(weight_decay, hyper_gradient),
+                instance_gradient,
+                hessian_vector_product,
+            )
 
-            if hessian_vector_product is not None:
-                gradient_gradient = self._optional_addition(
-                    gradient_gradient, hessian_vector_product.to(self._device)
-                )
-
-            if first_average_gradient is not None:
-                first_average_gradient *= beta1
-            if second_average_gradient is not None:
-                second_average_gradient *= beta2
-            if gradient_gradient is not None:
-                first_average_gradient = self._optional_addition(
-                    first_average_gradient, (1 - beta1) * gradient_gradient
-                )
-                second_average_gradient = self._optional_addition(
-                    second_average_gradient, 2 * (1 - beta2) * gradient_gradient
-                )
+            first_average_gradient = self._optional_addition(
+                self._optional_multiplication(first_average_gradient, beta1),
+                (1 - beta1) * gradient_gradient,
+            )
+            second_average_gradient = self._optional_addition(
+                self._optional_multiplication(second_average_gradient, beta2),
+                2 * (1 - beta2) * gradient_gradient,
+            )
 
         if hyper_gradient is not None:
             assert first_average_gradient is not None
