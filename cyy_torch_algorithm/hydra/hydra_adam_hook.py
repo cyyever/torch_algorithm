@@ -45,6 +45,17 @@ class HyDRAAdamHook(HyDRAHook):
                         optimizer.param_groups[0]["betas"],
                     ]
                 )
+            if self.use_hessian:
+                if idx not in self._hessian_computation_arguments:
+                    self._hessian_computation_arguments[idx] = []
+                self._hessian_computation_arguments[idx].append(
+                    [
+                        instance_gradient,
+                        weight_decay,
+                        cur_learning_rate,
+                        optimizer.param_groups[0]["betas"],
+                    ]
+                )
 
     def _after_optimizer_step(self, **kwargs):
         trainer = kwargs["model_executor"]
@@ -76,6 +87,10 @@ class HyDRAAdamHook(HyDRAHook):
                 self._get_hyper_gradient_dict(use_approximation=True).prefetch(chunk)
             for idx in chunk:
                 self._do_delayed_computation(use_approximation=True, index=idx)
+            if self.use_hessian:
+                self._get_hyper_gradient_dict(use_approximation=False).prefetch(chunk)
+            for idx in chunk:
+                self._do_delayed_computation(use_approximation=False, index=idx)
 
     def get_hyper_gradient(self, index, use_approximation):
         return self._get_hyper_gradient_tensors(index, use_approximation)[0]
@@ -122,10 +137,10 @@ class HyDRAAdamHook(HyDRAHook):
                     self._optional_multiplication(2 - 2 * beta2, gradient_gradient),
                 )
                 corrected_first_average_gradient = self._optional_division(
-                    first_average_gradient, 1 - beta1 ** self.__step
+                    first_average_gradient, 1 - (beta1**self.__step)
                 )
                 corrected_second_average_gradient = self._optional_division(
-                    second_average_gradient, 1 - beta2 ** self.__step
+                    second_average_gradient, 1 - (beta2**self.__step)
                 )
                 tmp = self._optional_division(
                     self._optional_addition(

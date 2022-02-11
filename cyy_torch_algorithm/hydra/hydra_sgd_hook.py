@@ -65,39 +65,11 @@ class HyDRASGDHook(HyDRAHook):
         for chunk in split_list_to_chunks(
             list(self._computed_indices), self._cache_size
         ):
-            counter = TimeCounter()
-            self._hessian_hyper_gradient_dict.prefetch(chunk)
-            hyper_gradients = []
-            hyper_gradient_indices = []
-            hessian_vector_product_dict = {}
-            for index in chunk:
-                hyper_gradient = self.get_hyper_gradient(index, use_approximation=False)
-                if hyper_gradient is not None:
-                    hyper_gradients.append(hyper_gradient)
-                    hyper_gradient_indices.append(index)
-            if hyper_gradients:
-                counter2 = TimeCounter()
-                hessian_vector_products = self._hvp_function(hyper_gradients)
-                get_logger().debug(
-                    "hvp chunk size %s use time %s ms",
-                    len(hyper_gradients),
-                    counter2.elapsed_milliseconds(),
-                )
-
-                assert len(hyper_gradients) == len(hessian_vector_products)
-                hessian_vector_product_dict = dict(
-                    zip(hyper_gradient_indices, hessian_vector_products)
-                )
-
+            hessian_vector_product_dict = self._get_hvp(chunk)
             for index in chunk:
                 self._do_delayed_computation(
                     False, index, hessian_vector_product_dict.get(index, None)
                 )
-            get_logger().debug(
-                "_do_computation_with_hessian chunk size %s use time %s ms",
-                len(chunk),
-                counter.elapsed_milliseconds(),
-            )
 
     def _do_delayed_computation(
         self, use_approximation: bool, index, hessian_vector_product=None

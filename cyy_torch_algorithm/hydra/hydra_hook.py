@@ -4,7 +4,9 @@ import pickle
 import shutil
 
 import torch
+from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
 from cyy_naive_lib.log import get_logger
+from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_toolbox.data_structure.synced_tensor_dict import \
     SyncedTensorDict
 from cyy_torch_toolbox.hook import Hook
@@ -266,6 +268,39 @@ class HyDRAHook(Hook):
             os.path.join(self.get_save_dir(trainer), "training_set_size"), "wb"
         ) as f:
             pickle.dump(self._training_set_size, f)
+
+    def _get_hvp(self, chunk):
+        counter = TimeCounter()
+        self._hessian_hyper_gradient_dict.prefetch(chunk)
+        hyper_gradients = []
+        hyper_gradient_indices = []
+        hessian_vector_product_dict = {}
+        for index in chunk:
+            hyper_gradient = self.get_hyper_gradient(index, use_approximation=False)
+            if hyper_gradient is not None:
+                hyper_gradients.append(hyper_gradient)
+                hyper_gradient_indices.append(index)
+        if not hyper_gradients:
+            return hessian_vector_product_dict
+        counter2 = TimeCounter()
+        hessian_vector_products = self._hvp_function(hyper_gradients)
+        get_logger().debug(
+            "hvp chunk size %s use time %s ms",
+            len(hyper_gradients),
+            counter2.elapsed_milliseconds(),
+        )
+
+        assert len(hyper_gradients) == len(hessian_vector_products)
+        hessian_vector_product_dict = dict(
+            zip(hyper_gradient_indices, hessian_vector_products)
+        )
+
+        get_logger().debug(
+            "_do_computation_with_hessian chunk size %s use time %s ms",
+            len(chunk),
+            counter.elapsed_milliseconds(),
+        )
+        return hessian_vector_product_dict
 
     def foreach_hyper_gradient(self, use_approximation: bool, callback):
         self._do_all_delayed_computation()
