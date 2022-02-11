@@ -6,6 +6,7 @@ import torch.optim
 from cyy_torch_toolbox.dataset import DatasetUtil
 from cyy_torch_toolbox.default_config import DefaultConfig
 
+from .hydra_adam_hook import HyDRAAdamHook
 from .hydra_sgd_hook import HyDRASGDHook
 
 
@@ -31,6 +32,12 @@ class HyDRAConfig(DefaultConfig):
         optimizer = trainer.get_optimizer()
         if isinstance(optimizer, torch.optim.SGD):
             hydra_hook = HyDRASGDHook(
+                cache_size=self.cache_size,
+                use_hessian=self.use_hessian,
+                use_approximation=self.use_approximation,
+            )
+        elif isinstance(optimizer, torch.optim.Adam):
+            hydra_hook = HyDRAAdamHook(
                 cache_size=self.cache_size,
                 use_hessian=self.use_hessian,
                 use_approximation=self.use_approximation,
