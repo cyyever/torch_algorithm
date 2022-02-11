@@ -61,15 +61,6 @@ class HyDRASGDHook(HyDRAHook):
             return None, None
         return self._decode_hyper_gradient_tensors(data)
 
-    def _do_computation_with_hessian(self):
-        for chunk in split_list_to_chunks(
-            list(self._computed_indices), self._cache_size
-        ):
-            hessian_vector_product_dict = self._get_hvp(chunk)
-            for index in chunk:
-                self._do_delayed_computation(
-                    False, index, hessian_vector_product_dict.get(index, None)
-                )
 
     def _do_delayed_computation(
         self, use_approximation: bool, index, hessian_vector_product=None

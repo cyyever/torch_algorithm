@@ -191,10 +191,26 @@ class HyDRAHook(Hook):
 
     def _do_all_delayed_computation(self):
         if self.use_approximation:
-            for k in tuple(self._delayed_approximation_computations.keys()):
-                get_logger().debug("do _delayed_approximation_computations for %s", k)
-                self._do_delayed_computation(True, k)
+            delayed_keys = list(self._delayed_approximation_computations.keys())
+            for chunk in split_list_to_chunks(delayed_keys, self._cache_size):
+
+                self._delayed_approximation_computations.prefetch(chunk)
+                for k in chunk:
+                    get_logger().debug(
+                        "do _delayed_approximation_computations for %s", k
+                    )
+                    self._do_delayed_computation(True, k)
             return
+
+    def _do_computation_with_hessian(self):
+        for chunk in split_list_to_chunks(
+            list(self._computed_indices), self._cache_size
+        ):
+            hessian_vector_product_dict = self._get_hvp(chunk)
+            for index in chunk:
+                self._do_delayed_computation(
+                    False, index, hessian_vector_product_dict.get(index, None)
+                )
 
     def _optional_addition(self, *args):
         res = None

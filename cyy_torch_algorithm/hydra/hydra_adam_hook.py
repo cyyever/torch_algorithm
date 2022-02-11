@@ -80,17 +80,11 @@ class HyDRAAdamHook(HyDRAHook):
         )
         self.__exp_avg_sqs_eps_sum_square = self.__exp_avg_sqs_eps_sum.square()
 
-        for chunk in split_list_to_chunks(
-            list(self._computed_indices), self._cache_size
-        ):
-            if self.use_approximation:
-                self._get_hyper_gradient_dict(use_approximation=True).prefetch(chunk)
-            for idx in chunk:
-                self._do_delayed_computation(use_approximation=True, index=idx)
-            if self.use_hessian:
-                self._get_hyper_gradient_dict(use_approximation=False).prefetch(chunk)
-            for idx in chunk:
-                self._do_delayed_computation(use_approximation=False, index=idx)
+        if self.use_approximation:
+            self._do_delayed_computation(use_approximation=True)
+
+        if self.use_hessian:
+            self._do_computation_with_hessian()
 
     def get_hyper_gradient(self, index, use_approximation):
         return self._get_hyper_gradient_tensors(index, use_approximation)[0]
