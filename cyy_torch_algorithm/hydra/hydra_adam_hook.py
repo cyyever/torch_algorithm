@@ -9,6 +9,8 @@ from hydra.hydra_hook import HyDRAHook
 
 class HyDRAAdamHook(HyDRAHook):
     __step = None
+    __exp_avgs = None
+    __exp_avg_sqs = None
 
     def _before_batch(self, **kwargs):
         super()._before_batch(**kwargs)
@@ -53,20 +55,16 @@ class HyDRAAdamHook(HyDRAHook):
         trainer = kwargs["model_executor"]
         optimizer = trainer.get_optimizer()
         parameter_seq = trainer.model_with_loss.model_util.get_parameter_seq()
-        exp_avgs = cat_tensors_to_vector(
-            [optimizer.state[p]["exp_avg"] for p in parameter_seq]
-        )
-        exp_avg_sqs = cat_tensors_to_vector(
-            [optimizer.state[p]["exp_avg_sq"] for p in parameter_seq]
-        )
         step = optimizer.state[parameter_seq[0]]["step"]
         assert self.__step == step
+        self.__exp_avgs = cat_tensors_to_vector(
+            [optimizer.state[p]["exp_avg"] for p in parameter_seq]
+        )
+        self.__exp_avg_sqs = cat_tensors_to_vector(
+            [optimizer.state[p]["exp_avg_sq"] for p in parameter_seq]
+        ).sqrt()
+
         for idx in self._computed_indices:
-            self._delayed_approximation_computations[idx][-1] += [
-                step,
-                exp_avgs,
-                exp_avg_sqs,
-            ]
             self._do_delayed_computation(use_approximation=True, index=idx)
 
     def get_hyper_gradient(self, index, use_approximation):
@@ -95,7 +93,7 @@ class HyDRAAdamHook(HyDRAHook):
         else:
             argument_dict = self._hessian_computation_arguments
         for arguments in argument_dict.pop(index):
-            (instance_gradient, betas, weight_decay, learning_rate) = arguments
+            (instance_gradient, weight_decay, learning_rate, betas, eps) = arguments
             beta1, beta2 = betas
 
             gradient_gradient = self._optional_addition(
@@ -111,6 +109,31 @@ class HyDRAAdamHook(HyDRAHook):
             second_average_gradient = self._optional_addition(
                 self._optional_multiplication(second_average_gradient, beta2),
                 2 * (1 - beta2) * gradient_gradient,
+            )
+            corrected_first_average_gradient = first_average_gradient / (
+                1 - beta1 ** self.__step
+            )
+            corrected_second_average_gradient = second_average_gradient / (
+                1 - beta2 ** self.__step
+            )
+            tmp = self._optional_division(
+                self._optional_addition(
+                    self._optional_multiplication(
+                        corrected_first_average_gradient,
+                        self.__exp_avg_sqs + eps,
+                    ),
+                    self._optional_division(
+                        self._optional_multiplication(
+                            self.__exp_avgs,
+                            corrected_second_average_gradient,
+                        ),
+                        2 * self.__exp_avg_sqs,
+                    ),
+                ),
+                (self.__exp_avg_sqs + eps).square(),
+            )
+            hyper_gradient = self._optional_addition(
+                hyper_gradient, self._optional_multiplication(-cur_learning_rate, tmp)
             )
 
         if hyper_gradient is not None:

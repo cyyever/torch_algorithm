@@ -216,6 +216,10 @@ class HyDRAHook(Hook):
                 res *= a
         return res
 
+    def _optional_division(self, a,b):
+        if a is None:
+            return None
+        return a/b
     def __save_hyper_gradients(self, trainer, test_gradient, use_approximation):
         contribution = {}
         get_logger().info("begin do _do_all_delayed_computation")
