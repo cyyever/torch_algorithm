@@ -335,6 +335,6 @@ class HyDRAHook(Hook):
         self._do_all_delayed_computation()
         hyper_gradient_mom_dict = self._get_hyper_gradient_dict(True)
         for (index, _) in hyper_gradient_mom_dict.iterate():
-            approx_hyper_gradient, _ = self._get_hyper_gradient_tensors(index, True)
-            hessian_hyper_gradient, _ = self._get_hyper_gradient_tensors(index, False)
+            approx_hyper_gradient = self._get_hyper_gradient_tensors(index, True)[0]
+            hessian_hyper_gradient = self._get_hyper_gradient_tensors(index, False)[0]
             callback(index, approx_hyper_gradient, hessian_hyper_gradient)
