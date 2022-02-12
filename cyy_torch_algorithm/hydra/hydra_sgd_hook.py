@@ -66,8 +66,6 @@ class HyDRASGDHook(HyDRAHook):
         self, use_approximation: bool, index, hessian_vector_product=None
     ):
 
-        if hessian_vector_product is not None:
-            hessian_vector_product = hessian_vector_product.to(self._trainer.device)
         hyper_gradient, mom_gradient = self._get_hyper_gradient_tensors(
             index, use_approximation
         )

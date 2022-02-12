@@ -208,9 +208,12 @@ class HyDRAHook(Hook):
         ):
             hessian_vector_product_dict = self._get_hvp(chunk)
             for index in chunk:
-                self._do_delayed_computation(
-                    False, index, hessian_vector_product_dict.get(index, None)
-                )
+                hessian_vector_product = hessian_vector_product_dict.get(index, None)
+                if hessian_vector_product is not None:
+                    hessian_vector_product = hessian_vector_product.to(
+                        self._trainer.device
+                    )
+                self._do_delayed_computation(False, index, hessian_vector_product)
 
     def _optional_addition(self, *args):
         res = None
