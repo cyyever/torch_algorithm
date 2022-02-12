@@ -1,5 +1,4 @@
 import torch
-from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
 from cyy_torch_toolbox.tensor import cat_tensors_to_vector
 
 from hydra.hydra_hook import HyDRAHook
@@ -15,7 +14,6 @@ class HyDRAAdamHook(HyDRAHook):
     def _before_batch(self, **kwargs):
         super()._before_batch(**kwargs)
         trainer = kwargs["model_executor"]
-        assert not self.use_hessian
 
         optimizer = trainer.get_optimizer()
         assert len(optimizer.param_groups) == 1
@@ -81,7 +79,7 @@ class HyDRAAdamHook(HyDRAHook):
         self.__exp_avg_sqs_eps_sum_square = self.__exp_avg_sqs_eps_sum.square()
 
         if self.use_approximation:
-            self._do_delayed_computation(use_approximation=True)
+            self._do_all_delayed_computation()
 
         if self.use_hessian:
             self._do_computation_with_hessian()
