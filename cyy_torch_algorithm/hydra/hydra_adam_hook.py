@@ -10,6 +10,7 @@ class HyDRAAdamHook(HyDRAHook):
     __exp_avg_sqs_sqrt = None
     __exp_avg_sqs_eps_sum = None
     __exp_avg_sqs_eps_sum_square = None
+    __eps = None
 
     def _before_batch(self, **kwargs):
         super()._before_batch(**kwargs)
@@ -73,9 +74,8 @@ class HyDRAAdamHook(HyDRAHook):
             .detach()
             .sqrt()
         )
-        self.__exp_avg_sqs_eps_sum = (
-            self.__exp_avg_sqs_sqrt + optimizer.param_groups[0]["eps"]
-        )
+        self.__eps = optimizer.param_groups[0]["eps"]
+        self.__exp_avg_sqs_eps_sum = self.__exp_avg_sqs_sqrt + self.__eps
         self.__exp_avg_sqs_eps_sum_square = self.__exp_avg_sqs_eps_sum.square()
 
         if self.use_approximation:
@@ -129,10 +129,10 @@ class HyDRAAdamHook(HyDRAHook):
                     self._optional_multiplication(2 - 2 * beta2, gradient_gradient),
                 )
                 corrected_first_average_gradient = self._optional_division(
-                    first_average_gradient, 1 - (beta1**self.__step)
+                    first_average_gradient, 1 - (beta1 ** self.__step)
                 )
                 corrected_second_average_gradient = self._optional_division(
-                    second_average_gradient, 1 - (beta2**self.__step)
+                    second_average_gradient, 1 - (beta2 ** self.__step)
                 )
                 tmp = self._optional_division(
                     self._optional_addition(
@@ -144,7 +144,10 @@ class HyDRAAdamHook(HyDRAHook):
                                 self.__exp_avgs,
                                 corrected_second_average_gradient,
                             ),
-                            self.__exp_avg_sqs_sqrt * 2,
+                            # We add eps to avoid 0
+                            self._optional_addition(
+                                self.__exp_avg_sqs_sqrt * 2, self.__eps
+                            ),
                         ),
                     ),
                     self.__exp_avg_sqs_eps_sum_square,
