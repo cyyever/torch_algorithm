@@ -250,7 +250,7 @@ class HyDRAHook(Hook):
         tensor_dict = self._get_hyper_gradient_dict(use_approximation)
         test_gradient = test_gradient.cpu()
         for (index, value) in tensor_dict.iterate():
-            hyper_gradient, _ = self._decode_hyper_gradient_tensors(value)
+            hyper_gradient = self._decode_hyper_gradient_tensors(value)[0]
             contribution[index] = (
                 -(test_gradient @ hyper_gradient.cpu()) / self._training_set_size
             ).data.item()
