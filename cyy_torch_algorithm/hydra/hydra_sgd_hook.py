@@ -60,7 +60,7 @@ class HyDRASGDHook(HyDRAHook):
     ):
 
         hyper_gradient, mom_gradient = self._get_hyper_gradient_tensors(
-            index, use_approximation
+            index, use_approximation, none_num=2
         )
 
         if use_approximation:

@@ -98,7 +98,7 @@ class HyDRAAdamHook(HyDRAHook):
             hyper_gradient,
             first_average_gradient,
             second_average_gradient,
-        ) = self._get_hyper_gradient_tensors(index, use_approximation)
+        ) = self._get_hyper_gradient_tensors(index, use_approximation, none_num=3)
 
         if use_approximation:
             argument_dict = self._delayed_approximation_computations
