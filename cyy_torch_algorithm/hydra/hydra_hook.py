@@ -202,12 +202,17 @@ class HyDRAHook(Hook):
                     hessian_vector_product = hessian_vector_product.to(
                         self._trainer.device
                     )
-                    self._check_nan(hessian_vector_product)
+                    self._check_overflow_and_underflow(hessian_vector_product)
                 self._do_delayed_computation(False, index, hessian_vector_product)
 
-    def _check_nan(self, tensor):
-        if tensor is not None and torch.any(torch.isnan(tensor)):
+    def _check_overflow_and_underflow(self, tensor):
+        if tensor is None:
+            return
+        if torch.any(torch.isnan(tensor)):
             get_logger().error("find nan tensor %s", tensor.cpu())
+            assert False
+        if torch.any(torch.isinf(tensor)):
+            get_logger().error("find inf tensor %s", tensor.cpu())
             assert False
 
     def _optional_addition(self, *args):

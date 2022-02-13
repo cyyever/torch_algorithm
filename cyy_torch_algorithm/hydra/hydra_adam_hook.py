@@ -104,13 +104,13 @@ class HyDRAAdamHook(HyDRAHook):
                     instance_gradient,
                     hessian_vector_product,
                 )
-                self._check_nan(gradient_gradient)
+                self._check_overflow_and_underflow(gradient_gradient)
 
                 first_average_gradient = self._optional_addition(
                     self._optional_multiplication(first_average_gradient, self.__beta1),
                     self._optional_multiplication(gradient_gradient, 1 - self.__beta1),
                 )
-                self._check_nan(first_average_gradient)
+                self._check_overflow_and_underflow(first_average_gradient)
                 second_average_gradient = self._optional_addition(
                     self._optional_multiplication(
                         second_average_gradient, self.__beta2
@@ -119,15 +119,15 @@ class HyDRAAdamHook(HyDRAHook):
                         gradient_gradient, 2 - 2 * self.__beta2
                     ),
                 )
-                self._check_nan(second_average_gradient)
+                self._check_overflow_and_underflow(second_average_gradient)
                 corrected_first_average_gradient = self._optional_division(
                     first_average_gradient, 1 - (self.__beta1**self.__step)
                 )
-                self._check_nan(corrected_first_average_gradient)
+                self._check_overflow_and_underflow(corrected_first_average_gradient)
                 corrected_second_average_gradient = self._optional_division(
                     second_average_gradient, 1 - (self.__beta2**self.__step)
                 )
-                self._check_nan(corrected_second_average_gradient)
+                self._check_overflow_and_underflow(corrected_second_average_gradient)
                 tmp = self._optional_division(
                     self._optional_addition(
                         self._optional_multiplication(
@@ -145,11 +145,11 @@ class HyDRAAdamHook(HyDRAHook):
                     ),
                     self.__corrected_second_average_sqrt_with_epsilon_square,
                 )
-                self._check_nan(tmp)
+                self._check_overflow_and_underflow(tmp)
                 hyper_gradient = self._optional_addition(
                     hyper_gradient, self._optional_multiplication(tmp, -learning_rate)
                 )
-                self._check_nan(hyper_gradient)
+                self._check_overflow_and_underflow(hyper_gradient)
 
         if hyper_gradient is not None:
             assert first_average_gradient is not None

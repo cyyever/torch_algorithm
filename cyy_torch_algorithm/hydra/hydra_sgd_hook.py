@@ -57,14 +57,17 @@ class HyDRASGDHook(HyDRAHook):
                 instance_gradient,
                 hessian_vector_product,
             )
+            self._check_overflow_and_underflow(gradient_gradient)
 
             mom_gradient = self._optional_addition(
                 self._optional_multiplication(mom_gradient, momentum), gradient_gradient
             )
+            self._check_overflow_and_underflow(mom_gradient)
             hyper_gradient = self._optional_addition(
                 hyper_gradient,
                 self._optional_multiplication(mom_gradient, -learning_rate),
             )
+            self._check_overflow_and_underflow(hyper_gradient)
         if instance_gradient is not None:
             assert mom_gradient is not None
             assert hyper_gradient is not None
