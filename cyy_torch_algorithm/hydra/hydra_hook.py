@@ -294,7 +294,6 @@ class HyDRAHook(Hook):
             pickle.dump(self._training_set_size, f)
 
     def _get_hvp(self, chunk):
-        counter = TimeCounter()
         self._hessian_hyper_gradient_dict.prefetch(chunk)
         hyper_gradients = []
         hyper_gradient_indices = []
@@ -306,25 +305,13 @@ class HyDRAHook(Hook):
                 hyper_gradient_indices.append(index)
         if not hyper_gradients:
             return hessian_vector_product_dict
-        counter2 = TimeCounter()
-        hessian_vector_products = self._hvp_function(hyper_gradients)
-        get_logger().debug(
-            "hvp chunk size %s use time %s ms",
-            len(hyper_gradients),
-            counter2.elapsed_milliseconds(),
-        )
-
-        assert len(hyper_gradients) == len(hessian_vector_products)
-        hessian_vector_product_dict = dict(
-            zip(hyper_gradient_indices, hessian_vector_products)
-        )
-
-        get_logger().debug(
-            "_do_computation_with_hessian chunk size %s use time %s ms",
-            len(chunk),
-            counter.elapsed_milliseconds(),
-        )
-        return hessian_vector_product_dict
+        with TimeCounter(log_prefix=f"hvp chunk size {len(hyper_gradients)}"):
+            hessian_vector_products = self._hvp_function(hyper_gradients)
+            assert len(hyper_gradients) == len(hessian_vector_products)
+            hessian_vector_product_dict = dict(
+                zip(hyper_gradient_indices, hessian_vector_products)
+            )
+            return hessian_vector_product_dict
 
     def get_hyper_gradient(self, index, use_approximation):
         return self._get_hyper_gradient_tensors(index, use_approximation)[0]
