@@ -26,21 +26,13 @@ class HyDRASGDHook(HyDRAHook):
                     * self._training_set_size
                     / batch_size
                 )
+            arguments = tuple(momentum, weight_decay, lr, instance_gradient)
             if self.use_hessian:
-                self._hessian_computation_arguments[idx] = [
-                    (
-                        momentum,
-                        weight_decay,
-                        lr,
-                        instance_gradient,
-                    )
-                ]
+                self._hessian_computation_arguments[idx] = [arguments]
             if self.use_approximation:
                 if idx not in self._delayed_approximation_computations:
                     self._delayed_approximation_computations[idx] = []
-                self._delayed_approximation_computations[idx].append(
-                    (momentum, weight_decay, lr, instance_gradient)
-                )
+                self._delayed_approximation_computations[idx].append(arguments)
                 if instance_gradient is not None:
                     self._do_delayed_computation(use_approximation=True, index=idx)
         if self.use_hessian:

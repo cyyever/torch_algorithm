@@ -6,10 +6,12 @@ from hydra.hydra_hook import HyDRAHook
 
 class HyDRAAdamHook(HyDRAHook):
     __step = None
-    __exp_avgs = None
-    __exp_avg_sqs_sqrt = None
-    __exp_avg_sqs_eps_sum = None
-    __exp_avg_sqs_eps_sum_square = None
+    __beta1 = None
+    __beta2 = None
+    __corrected_first_average = None
+    __corrected_second_average_sqrt = None
+    __corrected_second_average_sqrt_with_epsilon = None
+    __corrected_second_average_sqrt_with_epsilon_square = None
     __eps = None
 
     def _before_batch(self, **kwargs):
@@ -23,6 +25,7 @@ class HyDRAAdamHook(HyDRAHook):
 
         batch_size = kwargs["batch_size"]
 
+        self.__beta1, self.__beta2 = optimizer.param_groups[0]["betas"]
         for idx in self._computed_indices:
             instance_gradient = self.sample_gradient_dict.get(idx, None)
             if instance_gradient is not None:
@@ -31,28 +34,19 @@ class HyDRAAdamHook(HyDRAHook):
                     * self._training_set_size
                     / batch_size
                 )
+            arguments = tuple(
+                instance_gradient,
+                optimizer.param_groups[0]["weight_decay"],
+                optimizer.param_groups[0]["lr"],
+            )
             if self.use_approximation:
                 if idx not in self._delayed_approximation_computations:
                     self._delayed_approximation_computations[idx] = []
-                self._delayed_approximation_computations[idx].append(
-                    [
-                        instance_gradient,
-                        optimizer.param_groups[0]["weight_decay"],
-                        optimizer.param_groups[0]["lr"],
-                        optimizer.param_groups[0]["betas"],
-                    ]
-                )
+                self._delayed_approximation_computations[idx].append(arguments)
             if self.use_hessian:
                 if idx not in self._hessian_computation_arguments:
                     self._hessian_computation_arguments[idx] = []
-                self._hessian_computation_arguments[idx].append(
-                    [
-                        instance_gradient,
-                        optimizer.param_groups[0]["weight_decay"],
-                        optimizer.param_groups[0]["lr"],
-                        optimizer.param_groups[0]["betas"],
-                    ]
-                )
+                self._hessian_computation_arguments[idx].append(arguments)
 
     def _after_optimizer_step(self, **kwargs):
         trainer = kwargs["model_executor"]
@@ -62,19 +56,25 @@ class HyDRAAdamHook(HyDRAHook):
         )
         assert parameter_seq[0] in optimizer.state
         self.__step = optimizer.state[parameter_seq[0]]["step"]
-        self.__exp_avgs = cat_tensors_to_vector(
-            (optimizer.state[p]["exp_avg"] for p in parameter_seq)
-        ).detach()
-        self.__exp_avg_sqs_sqrt = (
-            cat_tensors_to_vector(
-                (optimizer.state[p]["exp_avg_sq"] for p in parameter_seq)
-            )
-            .detach()
-            .sqrt()
+        first_average = cat_tensors_to_vector(
+            (optimizer.state[p]["exp_avg"].detach() for p in parameter_seq)
         )
+        self.__corrected_first_average = first_average / (
+            1 - (self.__beta1**self.__step)
+        )
+        second_average = cat_tensors_to_vector(
+            (optimizer.state[p]["exp_avg_sq"].detach() for p in parameter_seq)
+        )
+        self.__corrected_second_average_sqrt = (
+            second_average / (1 - (self.__beta2**self.__step))
+        ).sqrt()
         self.__eps = optimizer.param_groups[0]["eps"]
-        self.__exp_avg_sqs_eps_sum = self.__exp_avg_sqs_sqrt + self.__eps
-        self.__exp_avg_sqs_eps_sum_square = self.__exp_avg_sqs_eps_sum.square()
+        self.__corrected_second_average_sqrt_with_epsilon = (
+            self.__corrected_second_average_sqrt + self.__eps
+        )
+        self.__corrected_second_average_sqrt_with_epsilon_square = (
+            self.__corrected_second_average_sqrt_with_epsilon.square()
+        )
 
         if self.use_approximation:
             self._do_all_delayed_computation()
@@ -97,55 +97,57 @@ class HyDRAAdamHook(HyDRAHook):
             argument_dict = self._hessian_computation_arguments
         with torch.cuda.stream(self._trainer.cuda_stream):
             for arguments in argument_dict.pop(index):
-                (instance_gradient, weight_decay, learning_rate, betas) = arguments
-                beta1, beta2 = betas
+                (instance_gradient, weight_decay, learning_rate) = arguments
 
                 gradient_gradient = self._optional_addition(
-                    self._optional_multiplication(weight_decay, hyper_gradient),
+                    self._optional_multiplication(hyper_gradient, weight_decay),
                     instance_gradient,
                     hessian_vector_product,
                 )
                 self._check_nan(gradient_gradient)
 
                 first_average_gradient = self._optional_addition(
-                    self._optional_multiplication(first_average_gradient, beta1),
-                    self._optional_multiplication(1 - beta1, gradient_gradient),
+                    self._optional_multiplication(first_average_gradient, self.__beta1),
+                    self._optional_multiplication(gradient_gradient, 1 - self.__beta1),
                 )
                 self._check_nan(first_average_gradient)
                 second_average_gradient = self._optional_addition(
-                    self._optional_multiplication(second_average_gradient, beta2),
-                    self._optional_multiplication(2 - 2 * beta2, gradient_gradient),
+                    self._optional_multiplication(
+                        second_average_gradient, self.__beta2
+                    ),
+                    self._optional_multiplication(
+                        gradient_gradient, 2 - 2 * self.__beta2
+                    ),
                 )
                 self._check_nan(second_average_gradient)
                 corrected_first_average_gradient = self._optional_division(
-                    first_average_gradient, 1 - (beta1**self.__step)
+                    first_average_gradient, 1 - (self.__beta1**self.__step)
                 )
                 self._check_nan(corrected_first_average_gradient)
                 corrected_second_average_gradient = self._optional_division(
-                    second_average_gradient, 1 - (beta2**self.__step)
+                    second_average_gradient, 1 - (self.__beta2**self.__step)
                 )
                 self._check_nan(corrected_second_average_gradient)
                 tmp = self._optional_division(
                     self._optional_addition(
                         self._optional_multiplication(
-                            corrected_first_average_gradient, self.__exp_avg_sqs_eps_sum
+                            corrected_first_average_gradient,
+                            self.__corrected_second_average_sqrt_with_epsilon,
                         ),
                         self._optional_division(
                             self._optional_multiplication(
-                                self.__exp_avgs,
+                                self.__corrected_first_average,
                                 corrected_second_average_gradient,
                             ),
                             # We add eps to avoid division by 0
-                            self._optional_addition(
-                                self.__exp_avg_sqs_sqrt * 2, self.__eps
-                            ),
+                            self.__corrected_second_average_sqrt * 2,
                         ),
                     ),
-                    self.__exp_avg_sqs_eps_sum_square,
+                    self.__corrected_second_average_sqrt_with_epsilon_square,
                 )
                 self._check_nan(tmp)
                 hyper_gradient = self._optional_addition(
-                    hyper_gradient, self._optional_multiplication(-learning_rate, tmp)
+                    hyper_gradient, self._optional_multiplication(tmp, -learning_rate)
                 )
                 self._check_nan(hyper_gradient)
 
