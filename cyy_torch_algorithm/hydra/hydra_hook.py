@@ -210,10 +210,10 @@ class HyDRAHook(Hook):
             for index in chunk:
                 hessian_vector_product = hessian_vector_product_dict.get(index, None)
                 if hessian_vector_product is not None:
-                    self._check_nan(hessian_vector_product)
                     hessian_vector_product = hessian_vector_product.to(
                         self._trainer.device
                     )
+                    self._check_nan(hessian_vector_product)
                 self._do_delayed_computation(False, index, hessian_vector_product)
 
     def _check_nan(self, tensor):

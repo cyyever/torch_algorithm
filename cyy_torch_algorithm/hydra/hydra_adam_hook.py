@@ -21,9 +21,7 @@ class HyDRAAdamHook(HyDRAHook):
         if not isinstance(optimizer, torch.optim.Adam):
             raise RuntimeError("optimizer is not Adam")
 
-        cur_learning_rate = trainer.get_data("cur_learning_rates")[0]
         batch_size = kwargs["batch_size"]
-        weight_decay = trainer.hyper_parameter.weight_decay
 
         for idx in self._computed_indices:
             instance_gradient = self.sample_gradient_dict.get(idx, None)
@@ -39,8 +37,8 @@ class HyDRAAdamHook(HyDRAHook):
                 self._delayed_approximation_computations[idx].append(
                     [
                         instance_gradient,
-                        weight_decay,
-                        cur_learning_rate,
+                        optimizer.param_groups[0]["weight_decay"],
+                        optimizer.param_groups[0]["lr"],
                         optimizer.param_groups[0]["betas"],
                     ]
                 )
@@ -50,8 +48,8 @@ class HyDRAAdamHook(HyDRAHook):
                 self._hessian_computation_arguments[idx].append(
                     [
                         instance_gradient,
-                        weight_decay,
-                        cur_learning_rate,
+                        optimizer.param_groups[0]["weight_decay"],
+                        optimizer.param_groups[0]["lr"],
                         optimizer.param_groups[0]["betas"],
                     ]
                 )
@@ -96,10 +94,6 @@ class HyDRAAdamHook(HyDRAHook):
             return None, None, None
         return self._decode_hyper_gradient_tensors(data)
 
-    def __check_nan(self, tensor):
-        if tensor is not None:
-            assert not torch.any(torch.isnan(tensor))
-
     def _do_delayed_computation(
         self, use_approximation: bool, index, hessian_vector_product=None
     ):
@@ -123,26 +117,26 @@ class HyDRAAdamHook(HyDRAHook):
                     instance_gradient,
                     hessian_vector_product,
                 )
-                self.__check_nan(gradient_gradient)
+                self._check_nan(gradient_gradient)
 
                 first_average_gradient = self._optional_addition(
                     self._optional_multiplication(first_average_gradient, beta1),
                     self._optional_multiplication(1 - beta1, gradient_gradient),
                 )
-                self.__check_nan(first_average_gradient)
+                self._check_nan(first_average_gradient)
                 second_average_gradient = self._optional_addition(
                     self._optional_multiplication(second_average_gradient, beta2),
                     self._optional_multiplication(2 - 2 * beta2, gradient_gradient),
                 )
-                self.__check_nan(second_average_gradient)
+                self._check_nan(second_average_gradient)
                 corrected_first_average_gradient = self._optional_division(
                     first_average_gradient, 1 - (beta1**self.__step)
                 )
-                self.__check_nan(corrected_first_average_gradient)
+                self._check_nan(corrected_first_average_gradient)
                 corrected_second_average_gradient = self._optional_division(
                     second_average_gradient, 1 - (beta2**self.__step)
                 )
-                self.__check_nan(corrected_second_average_gradient)
+                self._check_nan(corrected_second_average_gradient)
                 tmp = self._optional_division(
                     self._optional_addition(
                         self._optional_multiplication(
@@ -161,11 +155,11 @@ class HyDRAAdamHook(HyDRAHook):
                     ),
                     self.__exp_avg_sqs_eps_sum_square,
                 )
-                self.__check_nan(tmp)
+                self._check_nan(tmp)
                 hyper_gradient = self._optional_addition(
                     hyper_gradient, self._optional_multiplication(-learning_rate, tmp)
                 )
-                self.__check_nan(hyper_gradient)
+                self._check_nan(hyper_gradient)
 
         if hyper_gradient is not None:
             assert first_average_gradient is not None
