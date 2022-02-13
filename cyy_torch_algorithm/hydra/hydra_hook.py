@@ -83,7 +83,7 @@ class HyDRAHook(Hook):
                 trainer.model,
                 storage_dir=os.path.join(
                     self.get_save_dir(trainer),
-                    "hessian_hyper_gradient_and_momentum_dir",
+                    "hessian_hyper_gradient_computation_dir",
                 ),
             )
             get_logger().debug(
@@ -96,7 +96,7 @@ class HyDRAHook(Hook):
                 trainer.model,
                 storage_dir=os.path.join(
                     self.get_save_dir(trainer),
-                    "approx_hyper_gradient_and_momentum_dir",
+                    "approx_hyper_gradient_computation_dir",
                 ),
             )
             get_logger().info(
