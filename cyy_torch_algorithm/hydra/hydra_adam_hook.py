@@ -96,6 +96,10 @@ class HyDRAAdamHook(HyDRAHook):
             return None, None, None
         return self._decode_hyper_gradient_tensors(data)
 
+    def __check_nan(self, tensor):
+        if tensor is not None:
+            assert not torch.any(torch.isnan(tensor))
+
     def _do_delayed_computation(
         self, use_approximation: bool, index, hessian_vector_product=None
     ):
@@ -119,21 +123,26 @@ class HyDRAAdamHook(HyDRAHook):
                     instance_gradient,
                     hessian_vector_product,
                 )
+                self.__check_nan(gradient_gradient)
 
                 first_average_gradient = self._optional_addition(
                     self._optional_multiplication(first_average_gradient, beta1),
                     self._optional_multiplication(1 - beta1, gradient_gradient),
                 )
+                self.__check_nan(first_average_gradient)
                 second_average_gradient = self._optional_addition(
                     self._optional_multiplication(second_average_gradient, beta2),
                     self._optional_multiplication(2 - 2 * beta2, gradient_gradient),
                 )
+                self.__check_nan(second_average_gradient)
                 corrected_first_average_gradient = self._optional_division(
-                    first_average_gradient, 1 - (beta1 ** self.__step)
+                    first_average_gradient, 1 - (beta1**self.__step)
                 )
+                self.__check_nan(corrected_first_average_gradient)
                 corrected_second_average_gradient = self._optional_division(
-                    second_average_gradient, 1 - (beta2 ** self.__step)
+                    second_average_gradient, 1 - (beta2**self.__step)
                 )
+                self.__check_nan(corrected_second_average_gradient)
                 tmp = self._optional_division(
                     self._optional_addition(
                         self._optional_multiplication(
@@ -144,7 +153,7 @@ class HyDRAAdamHook(HyDRAHook):
                                 self.__exp_avgs,
                                 corrected_second_average_gradient,
                             ),
-                            # We add eps to avoid 0
+                            # We add eps to avoid division by 0
                             self._optional_addition(
                                 self.__exp_avg_sqs_sqrt * 2, self.__eps
                             ),
@@ -152,9 +161,11 @@ class HyDRAAdamHook(HyDRAHook):
                     ),
                     self.__exp_avg_sqs_eps_sum_square,
                 )
+                self.__check_nan(tmp)
                 hyper_gradient = self._optional_addition(
                     hyper_gradient, self._optional_multiplication(-learning_rate, tmp)
                 )
+                self.__check_nan(hyper_gradient)
 
         if hyper_gradient is not None:
             assert first_average_gradient is not None
