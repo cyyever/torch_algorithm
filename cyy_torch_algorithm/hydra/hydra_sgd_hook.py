@@ -16,7 +16,7 @@ class HyDRASGDHook(HyDRAHook):
         batch_size = kwargs["batch_size"]
         momentum = optimizer.param_groups[0]["momentum"]
         lr = optimizer.param_groups[0]["lr"]
-        weight_decay = trainer.hyper_parameter.weight_decay
+        weight_decay = optimizer.param_groups[0]["weight_decay"]
 
         for idx in self._computed_indices:
             instance_gradient = self.sample_gradient_dict.get(idx, None)
