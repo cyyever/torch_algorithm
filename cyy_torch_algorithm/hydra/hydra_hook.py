@@ -206,8 +206,9 @@ class HyDRAHook(Hook):
                 self._do_delayed_computation(False, index, hessian_vector_product)
 
     def _check_nan(self, tensor):
-        if tensor is not None:
-            assert not torch.any(torch.isnan(tensor))
+        if tensor is not None and torch.any(torch.isnan(tensor)):
+            get_logger().error("find nan tensor %s", tensor.cpu())
+            assert False
 
     def _optional_addition(self, *args):
         res = None
