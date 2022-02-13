@@ -12,7 +12,6 @@ from cyy_torch_toolbox.data_structure.synced_tensor_dict import \
 from cyy_torch_toolbox.hook import Hook
 from cyy_torch_toolbox.ml_type import (MachineLearningPhase,
                                        ModelExecutorHookPoint)
-from cyy_torch_toolbox.model_util import ModelUtil
 from hessian_vector_product import get_hessian_vector_product_func
 from sample_gradient.sample_gradient_hook import SampleGradientHook
 
@@ -20,7 +19,7 @@ from sample_gradient.sample_gradient_hook import SampleGradientHook
 class HyDRAHook(Hook):
     def __init__(self, cache_size, **kwargs):
         super().__init__(stripable=True)
-        self.sample_gradient_hook = SampleGradientHook()
+        self.__sample_gradient_hook = SampleGradientHook()
         self._cache_size = cache_size
         self.__save_dir = None
         self._trainer = None
@@ -28,6 +27,7 @@ class HyDRAHook(Hook):
         self._computed_indices = None
         self._delayed_approximation_computations: dict = None
         self._training_set_size = None
+        self.__hyper_parameter_size = None
 
         self.use_hessian = kwargs.get("use_hessian", False)
         self._hvp_function = None
@@ -57,7 +57,7 @@ class HyDRAHook(Hook):
 
     @property
     def sample_gradient_dict(self):
-        return self.sample_gradient_hook.sample_gradient_dict
+        return self.__sample_gradient_hook.sample_gradient_dict
 
     def get_save_dir(self, trainer=None):
         if self.__save_dir is None:
@@ -79,8 +79,7 @@ class HyDRAHook(Hook):
         if self.use_hessian:
             get_logger().info("use hessian to compute hyper-gradients")
             self._hessian_hyper_gradient_dict = HyDRAHook.create_hypergradient_dict(
-                self._cache_size,
-                trainer.model,
+                cache_size=self._cache_size,
                 storage_dir=os.path.join(
                     self.get_save_dir(trainer),
                     "hessian_hyper_gradient_computation_dir",
@@ -92,8 +91,7 @@ class HyDRAHook(Hook):
             )
         if self.use_approximation:
             self._approx_hyper_gradient_dict = HyDRAHook.create_hypergradient_dict(
-                self._cache_size,
-                trainer.model,
+                cache_size=self._cache_size,
                 storage_dir=os.path.join(
                     self.get_save_dir(trainer),
                     "approx_hyper_gradient_computation_dir",
@@ -113,7 +111,7 @@ class HyDRAHook(Hook):
 
     def set_computed_indices(self, computed_indices):
         self._computed_indices = set(computed_indices)
-        self.sample_gradient_hook.set_computed_indices(computed_indices)
+        self.__sample_gradient_hook.set_computed_indices(computed_indices)
 
     def _after_execute(self, **kwargs):
         get_logger().info("end hyper-gradient tracking")
@@ -140,32 +138,12 @@ class HyDRAHook(Hook):
     def create_hypergradient_dict(
         cls,
         cache_size,
-        model=None,
-        storage_dir=None,
-        concat_momentum=True,
+        storage_dir,
     ):
-        mask = None
-        gradient_shape = None
-        if model is not None:
-            model_util = ModelUtil(model)
-            if model_util.is_pruned:
-                get_logger().info(
-                    "use pruned model, sparsity is %s", model_util.get_sparsity()[0]
-                )
-                parameters = model_util.get_parameter_list()
-                gradient_shape = parameters.shape
-                mask = model_util.get_pruning_mask_list()
-                assert len(mask) == len(parameters)
-        if mask is not None:
-            if concat_momentum:
-                mask = torch.cat((mask, mask))
-                gradient_shape[1] *= 2
         tensor_dict = SyncedTensorDict.create(
             key_type=int,
             cache_size=cache_size,
             storage_dir=storage_dir,
-            mask=mask,
-            tensor_shape=gradient_shape,
         )
         return tensor_dict
 
@@ -180,7 +158,18 @@ class HyDRAHook(Hook):
                 )
 
     def _set_hyper_gradient_tensors(self, index, use_approximation, *tensors):
+        if self.__hyper_parameter_size is None:
+            self.__hyper_parameter_size = tensors[0].shape[0]
         self._get_hyper_gradient_dict(use_approximation)[index] = torch.cat(tensors)
+
+    def _decode_hyper_gradient_tensors(self, tensor):
+        return torch.split(tensor, self.__hyper_parameter_size)
+
+    def _get_hyper_gradient_tensors(self, index, use_approximation, none_num=1):
+        data = self._get_hyper_gradient_dict(use_approximation)[index]
+        if data is None:
+            return (None,) * none_num
+        return self._decode_hyper_gradient_tensors(data)
 
     def _get_hyper_gradient_dict(self, use_approximation):
         return (
@@ -320,16 +309,15 @@ class HyDRAHook(Hook):
         self._do_all_delayed_computation()
         hyper_gradient_mom_dict = self._get_hyper_gradient_dict(use_approximation)
         for (index, _) in hyper_gradient_mom_dict.iterate():
-            hyper_gradient = self._get_hyper_gradient_tensors(index, use_approximation)[
-                0
-            ]
-            callback(index, hyper_gradient)
+            hyper_gradient = self.get_hyper_gradient(index, use_approximation).callback(
+                index, hyper_gradient
+            )
 
     def foreach_approx_and_hessian_hyper_gradient(self, callback):
         assert self.use_approximation and self.use_hessian
         self._do_all_delayed_computation()
         hyper_gradient_mom_dict = self._get_hyper_gradient_dict(True)
         for (index, _) in hyper_gradient_mom_dict.iterate():
-            approx_hyper_gradient = self._get_hyper_gradient_tensors(index, True)[0]
-            hessian_hyper_gradient = self._get_hyper_gradient_tensors(index, False)[0]
+            approx_hyper_gradient = self.get_hyper_gradient(index, True)
+            hessian_hyper_gradient = self.get_hyper_gradient(index, False)
             callback(index, approx_hyper_gradient, hessian_hyper_gradient)

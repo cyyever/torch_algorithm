@@ -82,14 +82,14 @@ class HyDRAAdamHook(HyDRAHook):
         if self.use_hessian:
             self._do_computation_with_hessian()
 
-    def _decode_hyper_gradient_tensors(self, tensor):
-        return torch.split(tensor, tensor.shape[0] // 3)
+    # def _decode_hyper_gradient_tensors(self, tensor):
+    #     return torch.split(tensor, tensor.shape[0] // 3)
 
-    def _get_hyper_gradient_tensors(self, index, use_approximation):
-        data = self._get_hyper_gradient_dict(use_approximation)[index]
-        if data is None:
-            return None, None, None
-        return self._decode_hyper_gradient_tensors(data)
+    # def _get_hyper_gradient_tensors(self, index, use_approximation):
+    #     data = self._get_hyper_gradient_dict(use_approximation)[index]
+    #     if data is None:
+    #         return None, None, None
+    #     return self._decode_hyper_gradient_tensors(data)
 
     def _do_delayed_computation(
         self, use_approximation: bool, index, hessian_vector_product=None
