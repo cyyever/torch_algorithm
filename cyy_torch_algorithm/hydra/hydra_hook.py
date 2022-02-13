@@ -218,7 +218,7 @@ class HyDRAHook(Hook):
             if res is None:
                 res = a
             else:
-                res += a
+                res = res + a
         return res
 
     def _optional_multiplication(self, *args):
@@ -229,7 +229,7 @@ class HyDRAHook(Hook):
             if res is None:
                 res = a
             else:
-                res *= a
+                res = res * a
         return res
 
     def _optional_division(self, a, b):

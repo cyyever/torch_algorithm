@@ -61,7 +61,7 @@ class HyDRASGDHook(HyDRAHook):
         for arguments in argument_dict.pop(index):
             (momentum, weight_decay, learning_rate, instance_gradient) = arguments
             gradient_gradient = self._optional_addition(
-                self._optional_multiplication(weight_decay, hyper_gradient),
+                self._optional_multiplication(hyper_gradient, weight_decay),
                 instance_gradient,
                 hessian_vector_product,
             )
@@ -71,8 +71,12 @@ class HyDRASGDHook(HyDRAHook):
             )
             hyper_gradient = self._optional_addition(
                 hyper_gradient,
-                self._optional_multiplication(-learning_rate, mom_gradient),
+                self._optional_multiplication(mom_gradient, -learning_rate),
             )
+        if instance_gradient is not None:
+            assert mom_gradient is not None
+            assert hyper_gradient is not None
+
         if hyper_gradient is not None:
             assert mom_gradient is not None
             self._set_hyper_gradient_tensors(
