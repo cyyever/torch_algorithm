@@ -1,7 +1,4 @@
 import torch
-from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
-from cyy_naive_lib.log import get_logger
-from cyy_naive_lib.time_counter import TimeCounter
 
 from hydra.hydra_hook import HyDRAHook
 
@@ -16,9 +13,9 @@ class HyDRASGDHook(HyDRAHook):
         if not isinstance(optimizer, torch.optim.SGD):
             raise RuntimeError("optimizer is not SGD")
 
-        cur_learning_rate = trainer.get_data("cur_learning_rates")[0]
         batch_size = kwargs["batch_size"]
         momentum = optimizer.param_groups[0]["momentum"]
+        lr = optimizer.param_groups[0]["lr"]
         weight_decay = trainer.hyper_parameter.weight_decay
 
         for idx in self._computed_indices:
@@ -34,7 +31,7 @@ class HyDRASGDHook(HyDRAHook):
                     (
                         momentum,
                         weight_decay,
-                        cur_learning_rate,
+                        lr,
                         instance_gradient,
                     )
                 ]
@@ -42,7 +39,7 @@ class HyDRASGDHook(HyDRAHook):
                 if idx not in self._delayed_approximation_computations:
                     self._delayed_approximation_computations[idx] = []
                 self._delayed_approximation_computations[idx].append(
-                    (momentum, weight_decay, cur_learning_rate, instance_gradient)
+                    (momentum, weight_decay, lr, instance_gradient)
                 )
                 if instance_gradient is not None:
                     self._do_delayed_computation(use_approximation=True, index=idx)
@@ -60,7 +57,6 @@ class HyDRASGDHook(HyDRAHook):
         if data is None:
             return None, None
         return self._decode_hyper_gradient_tensors(data)
-
 
     def _do_delayed_computation(
         self, use_approximation: bool, index, hessian_vector_product=None
