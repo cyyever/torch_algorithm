@@ -82,9 +82,6 @@ class HyDRAAdamHook(HyDRAHook):
         if self.use_hessian:
             self._do_computation_with_hessian()
 
-    def get_hyper_gradient(self, index, use_approximation):
-        return self._get_hyper_gradient_tensors(index, use_approximation)[0]
-
     def _decode_hyper_gradient_tensors(self, tensor):
         return torch.split(tensor, tensor.shape[0] // 3)
 
@@ -171,7 +168,3 @@ class HyDRAAdamHook(HyDRAHook):
                 first_average_gradient,
                 second_average_gradient,
             )
-
-    def _after_execute(self, **kwargs):
-        self.__step = None
-        super()._after_execute(**kwargs)
