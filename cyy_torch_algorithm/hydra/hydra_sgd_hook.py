@@ -26,7 +26,7 @@ class HyDRASGDHook(HyDRAHook):
                     * self._training_set_size
                     / batch_size
                 )
-            arguments = tuple(momentum, weight_decay, lr, instance_gradient)
+            arguments = (momentum, weight_decay, lr, instance_gradient)
             if self.use_hessian:
                 self._hessian_computation_arguments[idx] = [arguments]
             if self.use_approximation:

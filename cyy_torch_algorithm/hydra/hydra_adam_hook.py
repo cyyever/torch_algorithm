@@ -34,7 +34,7 @@ class HyDRAAdamHook(HyDRAHook):
                     * self._training_set_size
                     / batch_size
                 )
-            arguments = tuple(
+            arguments = (
                 instance_gradient,
                 optimizer.param_groups[0]["weight_decay"],
                 optimizer.param_groups[0]["lr"],
