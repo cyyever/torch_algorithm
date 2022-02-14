@@ -313,16 +313,18 @@ class HyDRAHook(Hook):
 
     def foreach_hyper_gradient(self, use_approximation: bool, callback):
         self._do_all_delayed_computation()
-        hyper_gradient_mom_dict = self._get_hyper_gradient_dict(use_approximation)
-        for (index, _) in hyper_gradient_mom_dict.iterate():
+        approximation_hyper_gradient_dir = self._get_hyper_gradient_dict(
+            use_approximation
+        )
+        for (index, _) in approximation_hyper_gradient_dir.iterate():
             hyper_gradient = self.get_hyper_gradient(index, use_approximation)
             callback(index, hyper_gradient)
 
     def foreach_approx_and_hessian_hyper_gradient(self, callback):
         assert self.use_approximation and self.use_hessian
         self._do_all_delayed_computation()
-        hyper_gradient_mom_dict = self._get_hyper_gradient_dict(True)
-        for (index, _) in hyper_gradient_mom_dict.iterate():
+        approximation_hyper_gradient_dir = self._get_hyper_gradient_dict(True)
+        for (index, _) in approximation_hyper_gradient_dir.iterate():
             approx_hyper_gradient = self.get_hyper_gradient(index, True)
             hessian_hyper_gradient = self.get_hyper_gradient(index, False)
             callback(index, approx_hyper_gradient, hessian_hyper_gradient)
