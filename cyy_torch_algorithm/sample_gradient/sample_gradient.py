@@ -4,14 +4,11 @@ import threading
 
 import torch
 from cyy_torch_toolbox.ml_type import MachineLearningPhase
-from cyy_torch_toolbox.model_util import ModelUtil
 
 local_data = threading.local()
 
 
 def sample_gradient_worker_fun(task, args):
-    global local_data
-
     worker_device = getattr(local_data, "worker_device", None)
     if worker_device is None:
         worker_device = args["device"]
@@ -23,7 +20,6 @@ def sample_gradient_worker_fun(task, args):
     gradient_lists = []
     with torch.cuda.stream(worker_stream):
         loss = None
-        model_util = ModelUtil(model_with_loss.model)
         for (sample_input, sample_target) in zip(input_chunk, target_chunk):
             model_with_loss.model.zero_grad(set_to_none=True)
             sample_input.unsqueeze_(0)
@@ -37,6 +33,6 @@ def sample_gradient_worker_fun(task, args):
                 non_blocking=True,
             )["loss"]
             loss.backward()
-            gradient_lists.append(model_util.get_gradient_list())
+            gradient_lists.append(model_with_loss.model_util.get_gradient_list())
         assert len(gradient_lists) == len(input_chunk)
     return (index, gradient_lists)
