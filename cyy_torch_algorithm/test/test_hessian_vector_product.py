@@ -1,7 +1,6 @@
 import torch
 from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_toolbox.default_config import DefaultConfig
-from cyy_torch_toolbox.model_util import ModelUtil
 from hessian_vector_product import (get_hessian_vector_product_func,
                                     stop_task_queue)
 
@@ -16,7 +15,7 @@ def test_hessian_vector_product():
         batch_size=16,
         shuffle=True,
     )
-    parameter_vector = ModelUtil(trainer.model).get_parameter_list()
+    parameter_vector = trainer.model_util.get_parameter_list()
     parameter_vector = parameter_vector.ones()
 
     v = torch.ones_like(parameter_vector)

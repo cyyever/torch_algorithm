@@ -3,7 +3,6 @@ import atexit
 import collections
 import threading
 
-import torch
 from cyy_naive_lib.algorithm.mapping_op import get_mapping_values_by_key_order
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
 from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
@@ -11,7 +10,6 @@ from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
 from cyy_torch_toolbox.data_structure.torch_thread_task_queue import \
     TorchThreadTaskQueue
 from cyy_torch_toolbox.device import get_devices
-from cyy_torch_toolbox.model_util import ModelUtil
 from cyy_torch_toolbox.model_with_loss import ModelWithLoss
 from cyy_torch_toolbox.tensor import (cat_tensors_to_vector,
                                       split_tensor_to_list)
@@ -40,8 +38,6 @@ local_data = threading.local()
 
 
 def worker_fun(task, args):
-    global local_data
-
     worker_device = getattr(local_data, "worker_device", None)
     if worker_device is None:
         worker_device = args["device"]
@@ -53,7 +49,7 @@ def worker_fun(task, args):
     (idx, vector_chunk, model_with_loss, inputs, targets) = task
     vector_chunk = tuple(vector_chunk)
     model_with_loss.model.to(worker_device)
-    model_util = ModelUtil(model_with_loss.model)
+    model_util = model_with_loss.model_util
     parameter_list = tuple(
         get_mapping_values_by_key_order(model_util.get_parameter_dict(detach=True))
     )
@@ -142,7 +138,7 @@ def get_hessian_vector_product_func(
         assert len(products) == len(vectors)
         if main_device is not None:
             products = [p.to(main_device) for p in products]
-        print("products are ",products)
+        print("products are ", products)
         if v_is_tensor:
             return products[0]
         return products
