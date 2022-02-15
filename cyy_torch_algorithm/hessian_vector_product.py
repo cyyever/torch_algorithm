@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-
 import atexit
 import collections
 import threading
 
 import torch
+from cyy_naive_lib.algorithm.mapping_op import get_mapping_values_by_key_order
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
 from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
     TorchProcessTaskQueue
@@ -13,32 +13,25 @@ from cyy_torch_toolbox.data_structure.torch_thread_task_queue import \
 from cyy_torch_toolbox.device import get_devices
 from cyy_torch_toolbox.model_util import ModelUtil
 from cyy_torch_toolbox.model_with_loss import ModelWithLoss
+from cyy_torch_toolbox.tensor import (cat_tensors_to_vector,
+                                      split_tensor_to_list)
 from torch import autograd
 
 
-def __get_f(device, inputs, targets, model_with_loss: ModelWithLoss):
-    model_util = ModelUtil(model_with_loss.model)
-
+def __get_f(device, inputs, targets, model_with_loss, model_util):
     def f(*args):
-        nonlocal inputs, targets, model_with_loss, device, model_util
-        total_loss = None
-        for parameter_list in args:
-            model_util.load_parameter_list(
-                parameter_list,
-                check_parameter=False,
-                as_parameter=False,
-            )
-            loss = model_with_loss(
-                inputs,
-                targets,
-                device=device,
-                non_blocking=True,
-            )["loss"]
-            if total_loss is None:
-                total_loss = loss
-            else:
-                total_loss += loss
-        return total_loss
+        nonlocal inputs, targets, device, model_util
+        model_util.load_parameter_list(
+            list(args),
+            check_parameter=False,
+            as_parameter=False,
+        )
+        return model_with_loss(
+            inputs,
+            targets,
+            device=device,
+            non_blocking=True,
+        )["loss"]
 
     return f
 
@@ -53,28 +46,38 @@ def worker_fun(task, args):
     if worker_device is None:
         worker_device = args["device"]
         local_data.worker_device = worker_device
-        if worker_device.index is not None:
-            local_data.worker_stream = torch.cuda.Stream(device=worker_device)
-    worker_stream = getattr(local_data, "worker_stream", None)
+        # if worker_device.index is not None:
+        #     local_data.worker_stream = torch.cuda.Stream(device=worker_device)
+    # worker_stream = getattr(local_data, "worker_stream", None)
 
     (idx, vector_chunk, model_with_loss, inputs, targets) = task
-    for index, vector in enumerate(vector_chunk):
-        vector_chunk[index] = vector.to(worker_device)
     vector_chunk = tuple(vector_chunk)
+    model_with_loss.model.to(worker_device)
     model_util = ModelUtil(model_with_loss.model)
-    parameter_list = model_util.get_parameter_list(detach=True).to(worker_device)
-    with torch.cuda.stream(worker_stream):
-        products = autograd.functional.vhp(
-            __get_f(
-                worker_device,
-                inputs,
-                targets,
-                model_with_loss,
-            ),
-            tuple([parameter_list] * len(vector_chunk)),
-            vector_chunk,
-            strict=True,
-        )[1]
+    parameter_list = tuple(
+        get_mapping_values_by_key_order(model_util.get_parameter_dict(detach=True))
+    )
+    # with torch.cuda.stream(worker_stream):
+    products = []
+    shape_list = [p.shape for p in parameter_list]
+    for vector in vector_chunk:
+        vector = vector.to(worker_device)
+        products.append(
+            cat_tensors_to_vector(
+                autograd.functional.vhp(
+                    __get_f(
+                        worker_device,
+                        inputs,
+                        targets,
+                        model_with_loss,
+                        model_util,
+                    ),
+                    parameter_list,
+                    tuple(split_tensor_to_list(shape_list, vector)),
+                    strict=True,
+                )[1]
+            )
+        )
     return (idx, products)
 
 
@@ -139,6 +142,7 @@ def get_hessian_vector_product_func(
         assert len(products) == len(vectors)
         if main_device is not None:
             products = [p.to(main_device) for p in products]
+        print("products are ",products)
         if v_is_tensor:
             return products[0]
         return products
