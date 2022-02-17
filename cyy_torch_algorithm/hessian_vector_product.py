@@ -28,7 +28,7 @@ def __get_f(device, inputs, targets, model_with_loss, model_util):
             inputs,
             targets,
             device=device,
-            non_blocking=True,
+            non_blocking=False,
         )["loss"]
 
     return f
