@@ -1,9 +1,9 @@
 import torch
-from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_toolbox.default_config import DefaultConfig
 from hessian_vector_product import (get_hessian_vector_product_func,
                                     stop_task_queue)
 
+# from cyy_naive_lib.time_counter import TimeCounter
 # from cyy_naive_lib.profiling import Profile
 
 
@@ -13,10 +13,10 @@ def test_hessian_vector_product():
     training_data_loader = torch.utils.data.DataLoader(
         trainer.dataset,
         batch_size=16,
-        shuffle=True,
+        shuffle=False,
     )
     parameter_vector = trainer.model_util.get_parameter_list()
-    parameter_vector = parameter_vector.ones()
+    trainer.model_util.load_parameter_list(torch.ones_like(parameter_vector))
 
     v = torch.ones_like(parameter_vector)
     for batch in training_data_loader:
@@ -27,7 +27,7 @@ def test_hessian_vector_product():
         )
         a = hvp_function([v * (i + 1) for i in range(11)])
         assert len(a) == 11
-        print(a)
+        # print(a)
         assert torch.linalg.norm(a[1] - 2 * a[0], ord=2).data.item() < 0.0005
         assert torch.linalg.norm(a[2] - 3 * a[0], ord=2).data.item() < 0.0005
         assert torch.linalg.norm(a[10] - 11 * a[0], ord=2).data.item() < 0.0005

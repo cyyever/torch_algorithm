@@ -138,7 +138,6 @@ def get_hessian_vector_product_func(
         assert len(products) == len(vectors)
         if main_device is not None:
             products = [p.to(main_device) for p in products]
-        print("products are ", products)
         if v_is_tensor:
             return products[0]
         return products
