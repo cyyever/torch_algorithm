@@ -15,6 +15,7 @@ setuptools.setup(
         "cyy_torch_algorithm",
         "cyy_torch_algorithm/hydra",
         "cyy_torch_algorithm/video",
+        "cyy_torch_algorithm/data_structure",
         "cyy_torch_algorithm/quantization",
         "cyy_torch_algorithm/sample_gradient",
     ],
