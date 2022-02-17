@@ -1,13 +1,9 @@
-# from cyy_torch_toolbox.data_structure.synced_tensor_dict import \
-#     SyncedTensorDict
-
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
 from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
     TorchProcessTaskQueue
 from cyy_torch_toolbox.data_structure.torch_thread_task_queue import \
     TorchThreadTaskQueue
 from cyy_torch_toolbox.dataset import decode_batch
-from cyy_torch_toolbox.device import get_devices
 from cyy_torch_toolbox.hook import Hook
 from cyy_torch_toolbox.hooks.add_index_to_dataset import AddIndexToDataset
 

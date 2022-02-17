@@ -2,7 +2,7 @@ import shutil
 
 import torch
 
-from data_structure.synced_tensor_dict import SyncedTensorDict
+from cyy_torch_algorithm.data_structure.synced_tensor_dict import SyncedTensorDict
 
 tensor_dict = SyncedTensorDict.create(int, 10, storage_dir="tensor_dict_dir")
 
