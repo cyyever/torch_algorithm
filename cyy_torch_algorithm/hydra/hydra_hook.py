@@ -13,10 +13,9 @@ from cyy_torch_toolbox.ml_type import (MachineLearningPhase,
                                        ModelExecutorHookPoint)
 
 module_dir = os.path.realpath(
-    os.path.join(os.path.dirname(os.path.realpath(__file__))), ".."
+    os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
 )
-if module_dir not in sys.path:
-    sys.path.insert(0, module_dir)
+sys.path.insert(0, module_dir)
 from data_structure.synced_tensor_dict import SyncedTensorDict
 from hessian_vector_product import get_hessian_vector_product_func
 from sample_gradient.sample_gradient_hook import SampleGradientHook
