@@ -51,7 +51,7 @@ def worker_fun(task, args):
     model_with_loss.model.to(worker_device)
     model_util = model_with_loss.model_util
     parameter_list = tuple(
-        get_mapping_values_by_key_order(model_util.get_parameter_dict(detach=True))
+        get_mapping_values_by_key_order(model_util.get_parameter_dict(detach=False))
     )
     # with torch.cuda.stream(worker_stream):
     products = []
@@ -60,7 +60,7 @@ def worker_fun(task, args):
         vector = vector.to(worker_device)
         products.append(
             cat_tensors_to_vector(
-                autograd.functional.vhp(
+                autograd.functional.hvp(
                     __get_f(
                         worker_device,
                         inputs,
