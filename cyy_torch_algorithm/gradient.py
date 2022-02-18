@@ -1,9 +1,9 @@
 import copy
 import tempfile
 
-from cyy_torch_toolbox.data_structure.synced_tensor_dict import \
-    SyncedTensorDict
 from cyy_torch_toolbox.inference import Inferencer
+
+from .data_structure.synced_tensor_dict import SyncedTensorDict
 
 
 def get_dataset_gradients(dataset_dict: dict, inferencer: Inferencer, cache_size=512):
