@@ -8,6 +8,7 @@ from hessian_vector_product import (get_hessian_vector_product_func,
 
 
 def test_hessian_vector_product():
+    torch.set_default_dtype(torch.float64)
     torch.autograd.set_detect_anomaly(True)
     trainer = DefaultConfig("MNIST", "LeNet5").create_trainer()
     training_data_loader = torch.utils.data.DataLoader(
@@ -16,8 +17,8 @@ def test_hessian_vector_product():
         shuffle=False,
     )
     parameter_vector = trainer.model_util.get_parameter_list()
-    trainer.model_util.load_parameter_list(torch.ones_like(parameter_vector))
-
+    # parameter_vector.fill_(1)
+    trainer.model_util.load_parameter_list(parameter_vector)
     v = torch.ones_like(parameter_vector)
     for batch in training_data_loader:
         hvp_function = get_hessian_vector_product_func(
@@ -25,9 +26,9 @@ def test_hessian_vector_product():
             batch,
             main_device=trainer.device,
         )
-        a = hvp_function([v * (i + 1) for i in range(11)])
+        vector = [v * (i + 1) for i in range(11)]
+        a = hvp_function(vector)
         assert len(a) == 11
-        # print(a)
         assert torch.linalg.norm(a[1] - 2 * a[0], ord=2).data.item() < 0.0005
         assert torch.linalg.norm(a[2] - 3 * a[0], ord=2).data.item() < 0.0005
         assert torch.linalg.norm(a[10] - 11 * a[0], ord=2).data.item() < 0.0005
