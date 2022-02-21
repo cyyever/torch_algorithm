@@ -3,11 +3,10 @@
 import argparse
 
 import torch.optim
+from cyy_torch_algorithm.hydra.hydra_adam_hook import HyDRAAdamHook
+from cyy_torch_algorithm.hydra.hydra_sgd_hook import HyDRASGDHook
 from cyy_torch_toolbox.dataset import DatasetUtil
 from cyy_torch_toolbox.default_config import DefaultConfig
-
-from .hydra_adam_hook import HyDRAAdamHook
-from .hydra_sgd_hook import HyDRASGDHook
 
 
 class HyDRAConfig(DefaultConfig):
@@ -43,9 +42,7 @@ class HyDRAConfig(DefaultConfig):
                 use_approximation=self.use_approximation,
             )
         else:
-            raise NotImplementedError(
-                f"Unsupported optimizer {type(optimizer)}"
-            )
+            raise NotImplementedError(f"Unsupported optimizer {type(optimizer)}")
         trainer.remove_optimizer()
         trainer.append_hook(hydra_hook)
 

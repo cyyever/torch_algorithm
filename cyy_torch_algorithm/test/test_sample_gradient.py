@@ -3,7 +3,7 @@
 from cyy_torch_toolbox.default_config import DefaultConfig
 from cyy_torch_toolbox.ml_type import (ModelExecutorHookPoint,
                                        StopExecutingException)
-from sample_gradient.sample_gradient_hook import SampleGradientHook
+from cyy_torch_algorithm.sample_gradient.sample_gradient_hook import SampleGradientHook
 
 
 def test_get_sample_gradient():

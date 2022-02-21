@@ -1,9 +1,8 @@
 import math
 
 import torch
+from cyy_torch_algorithm.hydra.hydra_hook import HyDRAHook
 from cyy_torch_toolbox.tensor import cat_tensors_to_vector
-
-from hydra.hydra_hook import HyDRAHook
 
 
 class HyDRAAdamHook(HyDRAHook):
