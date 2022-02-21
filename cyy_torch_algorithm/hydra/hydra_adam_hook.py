@@ -1,3 +1,5 @@
+import math
+
 import torch
 from cyy_torch_toolbox.tensor import cat_tensors_to_vector
 
@@ -25,7 +27,10 @@ class HyDRAAdamHook(HyDRAHook):
 
         batch_size = kwargs["batch_size"]
 
-        self.__beta1, self.__beta2 = optimizer.param_groups[0]["betas"]
+        if self.__beta1 is None:
+            self.__beta1, self.__beta2 = optimizer.param_groups[0]["betas"]
+        else:
+            assert optimizer.param_groups[0]["betas"][0] == self.__beta1
         for idx in self._computed_indices:
             instance_gradient = self.sample_gradient_dict.get(idx, None)
             if instance_gradient is not None:
@@ -51,23 +56,21 @@ class HyDRAAdamHook(HyDRAHook):
     def _after_optimizer_step(self, **kwargs):
         trainer = kwargs["model_executor"]
         optimizer = trainer.get_optimizer()
-        parameter_seq = tuple(
-            trainer.model_with_loss.model_util.get_parameter_seq(detach=False)
-        )
+        parameter_seq = tuple(trainer.model_util.get_parameter_seq(detach=False))
         assert parameter_seq[0] in optimizer.state
         self.__step = optimizer.state[parameter_seq[0]]["step"]
         first_average = cat_tensors_to_vector(
             (optimizer.state[p]["exp_avg"].detach() for p in parameter_seq)
         )
-        self.__corrected_first_average = first_average / (
-            1 - (self.__beta1**self.__step)
-        )
         second_average = cat_tensors_to_vector(
             (optimizer.state[p]["exp_avg_sq"].detach() for p in parameter_seq)
         )
-        self.__corrected_second_average_sqrt = (
-            second_average / (1 - (self.__beta2**self.__step))
-        ).sqrt()
+        self.__corrected_first_average = first_average / (
+            1 - (self.__beta1**self.__step)
+        )
+        self.__corrected_second_average_sqrt = second_average.sqrt() / math.sqrt(
+            1 - (self.__beta2**self.__step)
+        )
         self.__eps = optimizer.param_groups[0]["eps"]
         self.__corrected_second_average_sqrt_with_epsilon = (
             self.__corrected_second_average_sqrt + self.__eps
@@ -140,7 +143,7 @@ class HyDRAAdamHook(HyDRAHook):
                                 corrected_second_average_gradient,
                             ),
                             # We add eps to avoid division by 0
-                            self.__corrected_second_average_sqrt * 2,
+                            self.__corrected_second_average_sqrt * 2 + self.__eps,
                         ),
                     ),
                     self.__corrected_second_average_sqrt_with_epsilon_square,
