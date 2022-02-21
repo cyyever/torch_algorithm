@@ -1,9 +1,10 @@
 import tempfile
 
-from cyy_torch_toolbox.data_structure.synced_tensor_dict import \
+from cyy_torch_algorithm.data_structure.synced_tensor_dict import \
     SyncedTensorDict
-from cyy_torch_toolbox.inference import Inferencer
-from sample_gradient.sample_gradient_util import get_sample_gradient_dict
+from cyy_torch_algorithm.sample_gradient.sample_gradient_util import \
+    get_sample_gradient_dict
+from cyy_torch_toolbox.inferencer import Inferencer
 
 from .hydra_hook import HyDRAHook
 
