@@ -65,10 +65,10 @@ class HyDRAAdamHook(HyDRAHook):
             (optimizer.state[p]["exp_avg_sq"].detach() for p in parameter_seq)
         )
         self.__corrected_first_average = first_average / (
-            1 - (self.__beta1**self.__step)
+            1 - (self.__beta1 ** self.__step)
         )
         self.__corrected_second_average_sqrt = second_average.sqrt() / math.sqrt(
-            1 - (self.__beta2**self.__step)
+            1 - (self.__beta2 ** self.__step)
         )
         self.__eps = optimizer.param_groups[0]["eps"]
         self.__corrected_second_average_sqrt_with_epsilon = (
@@ -123,11 +123,15 @@ class HyDRAAdamHook(HyDRAHook):
                 )
                 self._check_overflow_and_underflow(second_average_gradient)
                 corrected_first_average_gradient = self._optional_division(
-                    first_average_gradient, 1 - (self.__beta1**self.__step)
+                    first_average_gradient,
+                    1 - (self.__beta1 ** self.__step),
+                    epsilon=None,
                 )
                 self._check_overflow_and_underflow(corrected_first_average_gradient)
                 corrected_second_average_gradient = self._optional_division(
-                    second_average_gradient, 1 - (self.__beta2**self.__step)
+                    second_average_gradient,
+                    1 - (self.__beta2 ** self.__step),
+                    epsilon=None,
                 )
                 self._check_overflow_and_underflow(corrected_second_average_gradient)
                 tmp = self._optional_division(
@@ -142,10 +146,12 @@ class HyDRAAdamHook(HyDRAHook):
                                 corrected_second_average_gradient,
                             ),
                             # We add eps to avoid division by 0
-                            self.__corrected_second_average_sqrt * 2 + self.__eps,
+                            self.__corrected_second_average_sqrt * 2,
+                            epsilon=self.__eps,
                         ),
                     ),
                     self.__corrected_second_average_sqrt_with_epsilon_square,
+                    epsilon=self.__eps,
                 )
                 self._check_overflow_and_underflow(tmp)
                 hyper_gradient = self._optional_addition(

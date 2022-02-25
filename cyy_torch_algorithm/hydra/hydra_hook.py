@@ -239,10 +239,12 @@ class HyDRAHook(Hook):
                 res = res * a
         return res
 
-    def _optional_division(self, a, b):
+    def _optional_division(self, a, b, epsilon):
         if a is None:
             return None
-        return a / b
+        if epsilon is None:
+            return a / b
+        return a / (b + epsilon)
 
     def __save_hyper_gradients(self, trainer, test_gradient, use_approximation):
         contribution = {}
