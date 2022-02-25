@@ -2,6 +2,7 @@ import json
 import os
 import pickle
 import shutil
+import traceback
 
 import torch
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
@@ -212,9 +213,11 @@ class HyDRAHook(Hook):
             return
         if torch.any(torch.isnan(tensor)):
             get_logger().error("find nan tensor %s", tensor.cpu())
+            get_logger().error("traceback:%s", traceback.format_exc())
             assert False
         if torch.any(torch.isinf(tensor)):
             get_logger().error("find inf tensor %s", tensor.cpu())
+            get_logger().error("traceback:%s", traceback.format_exc())
             assert False
 
     def _optional_addition(self, *args):
