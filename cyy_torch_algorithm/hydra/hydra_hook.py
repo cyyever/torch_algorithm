@@ -213,11 +213,11 @@ class HyDRAHook(Hook):
             return
         if torch.any(torch.isnan(tensor)):
             get_logger().error("find nan tensor %s", tensor.cpu())
-            get_logger().error("traceback:%s", traceback.format_exc())
+            get_logger().error("traceback:%s", str(traceback.extract_stack(limit=10)))
             assert False
         if torch.any(torch.isinf(tensor)):
             get_logger().error("find inf tensor %s", tensor.cpu())
-            get_logger().error("traceback:%s", traceback.format_exc())
+            get_logger().error("traceback:%s", str(traceback.extract_stack(limit=10)))
             assert False
 
     def _optional_addition(self, *args):
