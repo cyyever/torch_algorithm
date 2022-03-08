@@ -24,11 +24,15 @@ def sample_gradient_worker_fun(task, args):
             model_with_loss.model.zero_grad(set_to_none=True)
             sample_input.unsqueeze_(0)
             sample_target.unsqueeze_(0)
-            # we should set phase to test so that BatchNorm would use running statistics
+            phase = MachineLearningPhase.Training
+            if model_with_loss.has_batch_norm:
+                # we should set phase to test so that BatchNorm would use running statistics
+                phase = MachineLearningPhase.Test
+
             loss = model_with_loss(
                 sample_input,
                 sample_target,
-                phase=MachineLearningPhase.Test,
+                phase=phase,
                 device=worker_device,
                 non_blocking=True,
             )["loss"]
