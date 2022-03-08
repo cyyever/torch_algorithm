@@ -1,3 +1,4 @@
+import torch
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
 from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
     TorchProcessTaskQueue
@@ -98,8 +99,15 @@ class SampleGradientHook(Hook):
     def __compute_sample_gradient(self, trainer, inputs, targets):
         trainer.model_with_loss.model.zero_grad(set_to_none=True)
         if self.__task_queue is None:
+            max_needed_cuda_bytes = None
+            stats = torch.cuda.memory_stats(device=trainer.device)
+            if stats:
+                max_needed_cuda_bytes = stats["allocated_bytes.all.peak"]
+
             self.__task_queue = TorchProcessTaskQueue(
-                worker_fun=sample_gradient_worker_fun, move_data_in_cpu=False
+                worker_fun=sample_gradient_worker_fun,
+                move_data_in_cpu=False,
+                max_needed_cuda_bytes=max_needed_cuda_bytes,
             )
             self.__task_queue.start()
         input_chunks = split_list_to_chunks(
