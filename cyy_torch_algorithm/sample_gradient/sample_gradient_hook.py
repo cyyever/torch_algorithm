@@ -6,6 +6,7 @@ from cyy_torch_toolbox.data_structure.torch_thread_task_queue import \
 from cyy_torch_toolbox.dataset import decode_batch
 from cyy_torch_toolbox.hook import Hook
 from cyy_torch_toolbox.hooks.add_index_to_dataset import AddIndexToDataset
+from cyy_torch_toolbox.ml_type import DatasetType
 
 from .sample_gradient import sample_gradient_worker_fun
 
@@ -55,6 +56,15 @@ class SampleGradientHook(Hook):
         sample_gradient_inputs = []
         sample_gradient_targets = []
         self.__sample_gradient_indices = []
+        dimension_permuted = False
+        if trainer.dataset_collection.dataset_type == DatasetType.Text:
+            if (
+                instance_inputs.shape[0] != instance_targets.shape[0]
+                and instance_inputs.shape[1] == instance_targets.shape[0]
+            ):
+                instance_inputs = instance_inputs.permute(1, 0)
+                dimension_permuted = True
+
         for (instance_input, instance_target, instance_index) in zip(
             instance_inputs, instance_targets, instance_indices
         ):
@@ -63,6 +73,12 @@ class SampleGradientHook(Hook):
                 and instance_index not in self.__computed_indices
             ):
                 continue
+            print("instance_input shape is", instance_input.shape)
+            if not dimension_permuted:
+                instance_input.unsqueeze_(0)
+            else:
+                instance_input.unsqueeze_(1)
+            instance_target.unsqueeze_(0)
             sample_gradient_inputs.append(instance_input)
             sample_gradient_targets.append(instance_target)
             self.__sample_gradient_indices.append(instance_index)
