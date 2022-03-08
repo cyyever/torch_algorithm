@@ -73,7 +73,6 @@ class SampleGradientHook(Hook):
                 and instance_index not in self.__computed_indices
             ):
                 continue
-            print("instance_input shape is", instance_input.shape)
             if not dimension_permuted:
                 instance_input.unsqueeze_(0)
             else:
@@ -99,8 +98,11 @@ class SampleGradientHook(Hook):
     def __compute_sample_gradient(self, model_with_loss, inputs, targets):
         model_with_loss.model.zero_grad(set_to_none=True)
         if self.__task_queue is None:
-            self.__task_queue = TorchProcessTaskQueue(
-                worker_fun=sample_gradient_worker_fun, move_data_in_cpu=False
+            # self.__task_queue = TorchProcessTaskQueue(
+            #     worker_fun=sample_gradient_worker_fun, move_data_in_cpu=False
+            # )
+            self.__task_queue = TorchThreadTaskQueue(
+                worker_fun=sample_gradient_worker_fun
             )
             self.__task_queue.start()
         input_chunks = split_list_to_chunks(
