@@ -98,11 +98,8 @@ class SampleGradientHook(Hook):
     def __compute_sample_gradient(self, trainer, inputs, targets):
         trainer.model_with_loss.model.zero_grad(set_to_none=True)
         if self.__task_queue is None:
-            # self.__task_queue = TorchProcessTaskQueue(
-            #     worker_fun=sample_gradient_worker_fun, move_data_in_cpu=False
-            # )
-            self.__task_queue = TorchThreadTaskQueue(
-                worker_fun=sample_gradient_worker_fun
+            self.__task_queue = TorchProcessTaskQueue(
+                worker_fun=sample_gradient_worker_fun, move_data_in_cpu=False
             )
             self.__task_queue.start()
         input_chunks = split_list_to_chunks(
@@ -122,5 +119,5 @@ class SampleGradientHook(Hook):
         ):
             self.__task_size += 1
             self.__task_queue.add_task(
-                (idx, input_chunk, target_chunk, trainer.copy_model_with_loss(True))
+                (idx, input_chunk, target_chunk, trainer.model_with_loss)
             )
