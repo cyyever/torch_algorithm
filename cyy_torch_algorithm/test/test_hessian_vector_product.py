@@ -8,7 +8,6 @@ from hessian_vector_product import (get_hessian_vector_product_func,
 
 
 def test_hessian_vector_product():
-    torch.set_default_dtype(torch.float64)
     torch.autograd.set_detect_anomaly(True)
     trainer = DefaultConfig("MNIST", "LeNet5").create_trainer()
     training_data_loader = torch.utils.data.DataLoader(
