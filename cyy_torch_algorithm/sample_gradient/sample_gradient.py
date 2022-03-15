@@ -35,6 +35,6 @@ def sample_gradient_worker_fun(task, args):
                 non_blocking=True,
             )["loss"]
             loss.backward()
-            gradient_lists.append(model_with_loss.model_util.get_gradient_list())
+            gradient_lists.append(model_with_loss.model_util.get_gradient_list().cpu())
         assert len(gradient_lists) == len(input_chunk)
     return (index, gradient_lists)
