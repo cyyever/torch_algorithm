@@ -10,6 +10,7 @@ from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
 from cyy_torch_toolbox.data_structure.torch_thread_task_queue import \
     TorchThreadTaskQueue
 from cyy_torch_toolbox.device import get_devices
+from cyy_torch_toolbox.ml_type import MachineLearningPhase
 from cyy_torch_toolbox.model_with_loss import ModelWithLoss
 from cyy_torch_toolbox.tensor import (cat_tensors_to_vector,
                                       split_tensor_to_list)
@@ -29,6 +30,7 @@ def __get_f(device, inputs, targets, model_with_loss, model_util):
             targets,
             device=device,
             non_blocking=False,
+            phase=MachineLearningPhase.Test,
         )["loss"]
 
     return f
