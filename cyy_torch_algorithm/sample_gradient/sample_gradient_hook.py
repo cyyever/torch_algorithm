@@ -4,7 +4,6 @@ from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
     TorchProcessTaskQueue
 from cyy_torch_toolbox.data_structure.torch_thread_task_queue import \
     TorchThreadTaskQueue
-from cyy_torch_toolbox.dataset import decode_batch
 from cyy_torch_toolbox.hook import Hook
 from cyy_torch_toolbox.hooks.add_index_to_dataset import AddIndexToDataset
 from cyy_torch_toolbox.ml_type import DatasetType
@@ -49,7 +48,7 @@ class SampleGradientHook(Hook):
         trainer = kwargs["model_executor"]
         batch = kwargs["batch"]
 
-        instance_inputs, instance_targets, instance_info = decode_batch(batch)
+        instance_inputs, instance_targets, instance_info = trainer.decode_batch(batch)
         instance_indices = {idx.data.item() for idx in instance_info["index"]}
         self.__sample_gradient_dict = None
         self.__task_size = None
