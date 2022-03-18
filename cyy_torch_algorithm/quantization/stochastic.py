@@ -44,7 +44,6 @@ class StochasticQuant:
         )
         if self.quantization_level <= 256:
             slot_tensor = slot_tensor.to(torch.uint8)
-        # slot_tensor = slot_tensor.to(old_device).reshape(old_tensor_shape)
         slot_tensor = slot_tensor.reshape(old_tensor_shape)
 
         return (
@@ -68,10 +67,14 @@ class StochasticDequant:
 
         quantized_tensor = quantized_tensor.float()
         quantized_tensor *= norm
-        sign_tensor = (
-            torch.from_numpy(numpy.unpackbits(sign_tensor)).float() * 2 - 1
-        ).reshape(quantized_tensor.shape)
-        res = quantized_tensor * sign_tensor / quantization_level
+        sign_tensor = (torch.from_numpy(numpy.unpackbits(sign_tensor)).float() * 2 - 1)[
+            : numpy.prod(quantized_tensor.shape)
+        ].reshape(quantized_tensor.shape)
+        res = (
+            quantized_tensor
+            * sign_tensor.to(quantized_tensor.device)
+            / quantization_level
+        )
 
         if name_and_shapes is not None:
             res = split_tensor_to_dict(name_and_shapes, res)
