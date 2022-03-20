@@ -120,7 +120,7 @@ def get_hessian_vector_product_func(
 
         if __task_queue is None:
             if len(devices) > 0:
-                __task_queue = TorchProcessTaskQueue(worker_fun, move_data_in_cpu=False)
+                __task_queue = TorchProcessTaskQueue(worker_fun, move_data_in_cpu=True)
             else:
                 __task_queue = TorchThreadTaskQueue(worker_fun)
             __task_queue.start()
