@@ -1,6 +1,5 @@
 import torch
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
-from cyy_naive_lib.log import get_logger
 from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
     TorchProcessTaskQueue
 # from cyy_torch_toolbox.data_structure.torch_thread_task_queue import \
@@ -9,8 +8,9 @@ from cyy_torch_toolbox.hook import Hook
 from cyy_torch_toolbox.hooks.add_index_to_dataset import AddIndexToDataset
 from cyy_torch_toolbox.ml_type import DatasetType
 
-from .sample_gradient import (sample_gradient_worker_fun,
-                              sample_gradient_worker_fun2)
+from .sample_gradient import sample_gradient_worker_fun2
+
+# sample_gradient_worker_fun,
 
 
 class SampleGradientHook(Hook):
