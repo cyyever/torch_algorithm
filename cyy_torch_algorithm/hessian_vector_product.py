@@ -2,8 +2,8 @@
 import atexit
 import collections
 import threading
+from typing import Callable
 
-from cyy_naive_lib.algorithm.mapping_op import get_mapping_values_by_key_order
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
 from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
     TorchProcessTaskQueue
@@ -12,17 +12,14 @@ from cyy_torch_toolbox.data_structure.torch_thread_task_queue import \
 from cyy_torch_toolbox.device import get_devices
 from cyy_torch_toolbox.ml_type import MachineLearningPhase
 from cyy_torch_toolbox.model_with_loss import ModelWithLoss
-from cyy_torch_toolbox.tensor import (cat_tensors_to_vector,
-                                      split_tensor_to_list)
 from functorch import grad, jvp, vjp
-from torch import autograd
 
 
 def __get_f(device, inputs, targets, model_with_loss, model_util):
-    def f(*args):
+    def f(parameter_list):
         nonlocal inputs, targets, device, model_util
         model_util.load_parameter_list(
-            list(args),
+            parameter_list[0],
             check_parameter=False,
             as_parameter=False,
         )
@@ -50,29 +47,44 @@ def worker_fun(task, args):
     vector_chunk = tuple(vector_chunk)
     model_with_loss.model.to(worker_device)
     model_util = model_with_loss.model_util
-    parameter_list = tuple(
-        get_mapping_values_by_key_order(model_util.get_parameter_dict(detach=False))
-    )
-    products = []
-    shape_list = [p.shape for p in parameter_list]
-    for vector in vector_chunk:
-        vector = vector.to(worker_device)
-        products.append(
-            cat_tensors_to_vector(
-                autograd.functional.hvp(
-                    __get_f(
-                        worker_device,
-                        inputs,
-                        targets,
-                        model_with_loss,
-                        model_util,
-                    ),
-                    parameter_list,
-                    tuple(split_tensor_to_list(shape_list, vector)),
-                    strict=True,
-                )[1]
+    parameter_list = model_util.get_parameter_list(detach=True)
+
+    _, vjp_fn = vjp(
+        grad(
+            __get_f(
+                worker_device,
+                inputs,
+                targets,
+                model_with_loss,
+                model_util,
             )
-        )
+        ),
+        (parameter_list,),
+    )
+    products = [
+        vjp_fn((v.to(worker_device),),)[
+            0
+        ][0]
+        for v in vector_chunk
+    ]
+
+    # products = [
+    #     jvp(
+    #         grad(
+    #             __get_f(
+    #                 worker_device,
+    #                 inputs,
+    #                 targets,
+    #                 model_with_loss,
+    #                 model_util,
+    #             )
+    #         ),
+    #         (parameter_list,),
+    #         (v.to(worker_device),),
+    #     )
+    #     for v in vector_chunk
+    # ]
+
     return (idx, products)
 
 
@@ -88,8 +100,8 @@ atexit.register(stop_task_queue)
 
 
 def get_hessian_vector_product_func(
-    model_with_loss: ModelWithLoss, batch, main_device=None
-):
+    model_with_loss: ModelWithLoss, batch: tuple, main_device=None
+) -> Callable:
 
     model = model_with_loss.model
     model.zero_grad(set_to_none=True)
