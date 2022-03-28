@@ -14,6 +14,7 @@ from cyy_torch_toolbox.ml_type import MachineLearningPhase
 from cyy_torch_toolbox.model_with_loss import ModelWithLoss
 from cyy_torch_toolbox.tensor import (cat_tensors_to_vector,
                                       split_tensor_to_list)
+from functorch import grad, jvp, vjp
 from torch import autograd
 
 
@@ -44,9 +45,6 @@ def worker_fun(task, args):
     if worker_device is None:
         worker_device = args["device"]
         local_data.worker_device = worker_device
-        # if worker_device.index is not None:
-        #     local_data.worker_stream = torch.cuda.Stream(device=worker_device)
-    # worker_stream = getattr(local_data, "worker_stream", None)
 
     (idx, vector_chunk, model_with_loss, inputs, targets) = task
     vector_chunk = tuple(vector_chunk)
@@ -55,7 +53,6 @@ def worker_fun(task, args):
     parameter_list = tuple(
         get_mapping_values_by_key_order(model_util.get_parameter_dict(detach=False))
     )
-    # with torch.cuda.stream(worker_stream):
     products = []
     shape_list = [p.shape for p in parameter_list]
     for vector in vector_chunk:
