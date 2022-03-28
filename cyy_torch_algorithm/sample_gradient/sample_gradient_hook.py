@@ -8,7 +8,8 @@ from cyy_torch_toolbox.hook import Hook
 from cyy_torch_toolbox.hooks.add_index_to_dataset import AddIndexToDataset
 from cyy_torch_toolbox.ml_type import DatasetType
 
-from .sample_gradient import sample_gradient_worker_fun2
+from .sample_gradient import (sample_gradient_worker_fun,
+                              sample_gradient_worker_fun2)
 
 # sample_gradient_worker_fun,
 
@@ -17,11 +18,12 @@ class SampleGradientHook(Hook):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.dataset_index_hook = AddIndexToDataset()
-        self.__computed_indices: set = None
+        self.__computed_indices: set | None = None
         self.__sample_gradient_dict = None
         self.__sample_gradient_indices = None
         self.__task_queue = None
         self.__task_size = None
+        self.use_new = True
 
     @property
     def sample_gradient_dict(self):
@@ -106,9 +108,12 @@ class SampleGradientHook(Hook):
             if stats:
                 max_needed_cuda_bytes = stats["allocated_bytes.all.peak"]
 
-                # worker_fun=sample_gradient_worker_fun,
+            if self.use_new:
+                worker_fun = sample_gradient_worker_fun2
+            else:
+                worker_fun = sample_gradient_worker_fun
             self.__task_queue = TorchProcessTaskQueue(
-                worker_fun=sample_gradient_worker_fun2,
+                worker_fun=worker_fun,
                 move_data_in_cpu=True,
                 max_needed_cuda_bytes=max_needed_cuda_bytes,
             )
