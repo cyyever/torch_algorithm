@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
+import functools
 import threading
 
-# import functorch
 import torch
 from cyy_torch_toolbox.ml_type import MachineLearningPhase
 from functorch import grad, vmap
@@ -38,7 +38,8 @@ def sample_gradient_worker_fun(task, args):
     return (index, gradient_lists)
 
 
-def __evaluation_wrapper(parameter_list, model_with_loss, inputs, targets, device):
+def __evaluation_wrapper(parameter_list, inputs, targets, device, model_with_loss):
+    parameter_list = parameter_list.to(device)
     model_util = model_with_loss.model_util
     model_util.load_parameter_list(
         parameter_list,
@@ -61,29 +62,18 @@ def sample_gradient_worker_fun2(task, args):
         local_data.worker_device = worker_device
     (index, input_chunk, target_chunk, model_with_loss) = task
     model_with_loss.model.zero_grad(set_to_none=True)
-    parameter_list = model_with_loss.model_util.get_model_list()
-    gradient_lists = vmap(grad(__evaluation_wrapper), in_dims=(None, 0, 0))(
-        parameter_list, model_with_loss, input_chunk, target_chunk, worker_device
-    )
+    parameter_list = model_with_loss.model_util.get_parameter_list(detach=True)
+    input_chunk = torch.stack(input_chunk)
+    target_chunk = torch.stack(target_chunk)
+    gradient_lists = vmap(
+        grad(
+            functools.partial(
+                __evaluation_wrapper,
+                device=worker_device,
+                model_with_loss=model_with_loss,
+            )
+        ),
+        in_dims=(None, 0, 0),
+        randomness="different",
+    )(parameter_list, input_chunk, target_chunk)
     return (index, gradient_lists)
-    # inputs = (weights, examples, targets)
-    # gradient_lists = []
-    # if worker_device.index is not None:
-    #     local_data.worker_stream = torch.cuda.Stream(device=worker_device)
-    # worker_stream = getattr(local_data, "worker_stream", None)
-    # phase = MachineLearningPhase.Training
-    # loss = model_with_loss(
-    #     sample_input,
-    #     sample_target,
-    #     phase=phase,
-    #     device=worker_device,
-    #     non_blocking=True,
-    # )["loss"]
-
-    # # with torch.cuda.stream(worker_stream):
-    # loss = None
-
-    # for (sample_input, sample_target) in zip(input_chunk, target_chunk):
-    #     loss.backward()
-    #     gradient_lists.append(model_with_loss.model_util.get_gradient_list().cpu())
-    #     # assert len(gradient_lists) == len(input_chunk)

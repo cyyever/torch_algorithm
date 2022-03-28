@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
+from cyy_torch_algorithm.sample_gradient.sample_gradient_hook import \
+    SampleGradientHook
 from cyy_torch_toolbox.default_config import DefaultConfig
 from cyy_torch_toolbox.ml_type import (ModelExecutorHookPoint,
                                        StopExecutingException)
-from cyy_torch_algorithm.sample_gradient.sample_gradient_hook import SampleGradientHook
 
 
 def test_get_sample_gradient():
@@ -14,11 +15,13 @@ def test_get_sample_gradient():
     config.hyper_parameter_config.find_learning_rate = False
     trainer = config.create_trainer()
     hook = SampleGradientHook()
+    hook.set_computed_indices([1, 2, 3])
     trainer.append_hook(hook)
 
     def print_sample_gradients(**kwargs):
-        print(hook.sample_gradient_dict)
-        raise StopExecutingException()
+        if hook.sample_gradient_dict:
+            print(hook.sample_gradient_dict)
+            raise StopExecutingException()
 
     trainer.append_named_hook(
         ModelExecutorHookPoint.AFTER_BATCH, "check gradients", print_sample_gradients

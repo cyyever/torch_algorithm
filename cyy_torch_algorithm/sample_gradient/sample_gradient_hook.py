@@ -1,5 +1,6 @@
 import torch
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
+from cyy_naive_lib.log import get_logger
 from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
     TorchProcessTaskQueue
 # from cyy_torch_toolbox.data_structure.torch_thread_task_queue import \
@@ -97,15 +98,18 @@ class SampleGradientHook(Hook):
 
     def __compute_sample_gradient(self, trainer, inputs, targets):
         trainer.model_with_loss.model.zero_grad(set_to_none=True)
+        model_with_loss = trainer.copy_model_with_loss(deepcopy=True)
+        model_with_loss.model.cpu()
         if self.__task_queue is None:
             max_needed_cuda_bytes = None
             stats = torch.cuda.memory_stats(device=trainer.device)
             if stats:
                 max_needed_cuda_bytes = stats["allocated_bytes.all.peak"]
 
+                # worker_fun=sample_gradient_worker_fun,
             self.__task_queue = TorchProcessTaskQueue(
-                worker_fun=sample_gradient_worker_fun,
-                move_data_in_cpu=False,
+                worker_fun=sample_gradient_worker_fun2,
+                move_data_in_cpu=True,
                 max_needed_cuda_bytes=max_needed_cuda_bytes,
             )
             self.__task_queue.start()
@@ -126,5 +130,5 @@ class SampleGradientHook(Hook):
         ):
             self.__task_size += 1
             self.__task_queue.add_task(
-                (idx, input_chunk, target_chunk, trainer.model_with_loss)
+                (idx, input_chunk, target_chunk, model_with_loss)
             )
