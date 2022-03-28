@@ -8,7 +8,8 @@ from cyy_torch_toolbox.hook import Hook
 from cyy_torch_toolbox.hooks.add_index_to_dataset import AddIndexToDataset
 from cyy_torch_toolbox.ml_type import DatasetType
 
-from .sample_gradient import sample_gradient_worker_fun
+from .sample_gradient import (sample_gradient_worker_fun,
+                              sample_gradient_worker_fun2)
 
 
 class SampleGradientHook(Hook):
