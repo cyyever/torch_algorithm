@@ -15,7 +15,7 @@ class SampleGradientHook(Hook):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.dataset_index_hook = AddIndexToDataset()
-        self.__computed_indices = None
+        self.__computed_indices: set = None
         self.__sample_gradient_dict = None
         self.__sample_gradient_indices = None
         self.__task_queue = None
