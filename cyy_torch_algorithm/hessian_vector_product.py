@@ -12,13 +12,15 @@ from cyy_torch_toolbox.data_structure.torch_thread_task_queue import \
 from cyy_torch_toolbox.device import get_devices
 from cyy_torch_toolbox.ml_type import MachineLearningPhase
 from cyy_torch_toolbox.model_with_loss import ModelWithLoss
-from functorch import grad, jvp, vjp
+from functorch import grad, vjp
+
+# jvp
 
 
-def __get_f(device, inputs, targets, model_with_loss, model_util):
+def __get_f(device, inputs, targets, model_with_loss):
     def f(parameter_list):
-        nonlocal inputs, targets, device, model_util
-        model_util.load_parameter_list(
+        nonlocal inputs, targets, device
+        model_with_loss.model_util.load_parameter_list(
             parameter_list[0],
             check_parameter=False,
             as_parameter=False,
@@ -46,8 +48,7 @@ def worker_fun(task, args):
     (idx, vector_chunk, model_with_loss, inputs, targets) = task
     vector_chunk = tuple(vector_chunk)
     model_with_loss.model.to(worker_device)
-    model_util = model_with_loss.model_util
-    parameter_list = model_util.get_parameter_list(detach=True)
+    parameter_list = model_with_loss.model_util.get_parameter_list(detach=True)
 
     _, vjp_fn = vjp(
         grad(
@@ -56,7 +57,6 @@ def worker_fun(task, args):
                 inputs,
                 targets,
                 model_with_loss,
-                model_util,
             )
         ),
         (parameter_list,),
@@ -100,7 +100,7 @@ atexit.register(stop_task_queue)
 
 
 def get_hessian_vector_product_func(
-    model_with_loss: ModelWithLoss, batch: tuple, main_device=None
+    model_with_loss: ModelWithLoss, batch: tuple
 ) -> Callable:
 
     model = model_with_loss.model
@@ -111,7 +111,6 @@ def get_hessian_vector_product_func(
 
     def vhp_func(v):
         global __task_queue
-        nonlocal main_device
         nonlocal devices
         v_is_tensor = False
         if isinstance(v, collections.abc.Sequence):
@@ -147,8 +146,6 @@ def get_hessian_vector_product_func(
         for idx in sorted(total_products.keys()):
             products += total_products[idx]
         assert len(products) == len(vectors)
-        if main_device is not None:
-            products = [p.to(main_device) for p in products]
         if v_is_tensor:
             return products[0]
         return products

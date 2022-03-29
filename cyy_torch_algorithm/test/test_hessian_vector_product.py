@@ -22,7 +22,6 @@ def test_hessian_vector_product():
         hvp_function = get_hessian_vector_product_func(
             trainer.copy_model_with_loss(deepcopy=False),
             batch,
-            main_device=trainer.device,
         )
         vector = [v * (i + 1) for i in range(11)]
         a = hvp_function(vector)
