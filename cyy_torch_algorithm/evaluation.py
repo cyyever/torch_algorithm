@@ -8,6 +8,7 @@ def eval_model_by_parameter(
     device,
     model_with_loss,
     phase=MachineLearningPhase.Training,
+    *args
 ):
     match parameter_list:
         case tuple() | list():
