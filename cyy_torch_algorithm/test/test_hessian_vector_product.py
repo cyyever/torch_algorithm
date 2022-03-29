@@ -17,6 +17,7 @@ def test_hessian_vector_product():
     )
     parameter_vector = trainer.model_util.get_parameter_list()
     trainer.model_util.load_parameter_list(parameter_vector)
+    trainer.model_with_loss.loss_fun
     v = torch.ones_like(parameter_vector)
     for batch in training_data_loader:
         hvp_function = get_hessian_vector_product_func(
