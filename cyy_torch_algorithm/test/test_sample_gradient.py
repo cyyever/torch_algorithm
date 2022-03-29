@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 
-import os
+# import os
 
 from cyy_torch_algorithm.sample_gradient.sample_gradient_hook import \
     SampleGradientHook
 from cyy_torch_toolbox.default_config import DefaultConfig
 from cyy_torch_toolbox.ml_type import (ModelExecutorHookPoint,
                                        StopExecutingException)
-from cyy_torch_toolbox.reproducible_env import global_reproducible_env
 
-global_reproducible_env.enable()
+# from cyy_torch_toolbox.reproducible_env import global_reproducible_env
+
+# global_reproducible_env.enable()
 
 
 def test_get_sample_gradient():
@@ -22,7 +23,7 @@ def test_get_sample_gradient():
     config.hyper_parameter_config.find_learning_rate = False
     trainer = config.create_trainer()
     hook = SampleGradientHook()
-    hook.set_computed_indices([1])
+    hook.set_computed_indices(set(range(100)))
     trainer.append_hook(hook)
 
     def print_sample_gradients(**kwargs):
