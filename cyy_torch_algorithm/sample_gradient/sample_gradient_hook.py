@@ -2,16 +2,11 @@ import torch
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
 from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
     TorchProcessTaskQueue
-# from cyy_torch_toolbox.data_structure.torch_thread_task_queue import \
-#     TorchThreadTaskQueue
 from cyy_torch_toolbox.hook import Hook
 from cyy_torch_toolbox.hooks.add_index_to_dataset import AddIndexToDataset
 from cyy_torch_toolbox.ml_type import DatasetType
 
-from .sample_gradient import (sample_gradient_worker_fun,
-                              sample_gradient_worker_fun2)
-
-# sample_gradient_worker_fun,
+from .sample_gradient import sample_gradient_worker_fun
 
 
 class SampleGradientHook(Hook):
@@ -108,10 +103,7 @@ class SampleGradientHook(Hook):
             if stats:
                 max_needed_cuda_bytes = stats["allocated_bytes.all.peak"]
 
-            if self.use_new:
-                worker_fun = sample_gradient_worker_fun2
-            else:
-                worker_fun = sample_gradient_worker_fun
+            worker_fun = sample_gradient_worker_fun
             self.__task_queue = TorchProcessTaskQueue(
                 worker_fun=worker_fun,
                 move_data_in_cpu=True,
