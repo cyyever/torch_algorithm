@@ -16,10 +16,6 @@ def sample_gradient_worker_fun(task, args):
         worker_device = args["device"]
         local_data.worker_device = worker_device
     (index, input_chunk, target_chunk, model_with_loss) = task
-    model_with_loss.model.zero_grad(set_to_none=True)
-    parameter_list = model_with_loss.model_util.get_parameter_list(detach=True)
-    input_chunk = torch.stack(input_chunk)
-    target_chunk = torch.stack(target_chunk)
     gradient_lists = vmap(
         grad(
             functools.partial(
@@ -30,5 +26,9 @@ def sample_gradient_worker_fun(task, args):
         ),
         in_dims=(None, 0, 0),
         randomness="different",
-    )(parameter_list, input_chunk, target_chunk)
+    )(
+        model_with_loss.model_util.get_parameter_list(detach=True),
+        torch.stack(input_chunk),
+        torch.stack(target_chunk),
+    )
     return (index, gradient_lists)
