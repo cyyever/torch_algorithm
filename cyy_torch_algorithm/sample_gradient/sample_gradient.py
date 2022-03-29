@@ -5,6 +5,7 @@ import threading
 
 import torch
 from cyy_torch_toolbox.ml_type import MachineLearningPhase
+from evaluation import eval_model_by_parameter
 from functorch import grad, vmap
 
 local_data = threading.local()
@@ -38,23 +39,6 @@ def sample_gradient_worker_fun(task, args):
     return (index, gradient_lists)
 
 
-def __evaluation_wrapper(parameter_list, inputs, targets, device, model_with_loss):
-    parameter_list = parameter_list.to(device)
-    model_util = model_with_loss.model_util
-    model_util.load_parameter_list(
-        parameter_list,
-        check_parameter=False,
-        as_parameter=False,
-    )
-    return model_with_loss(
-        inputs,
-        targets,
-        device=device,
-        non_blocking=True,
-        phase=MachineLearningPhase.Training,
-    )["loss"]
-
-
 def sample_gradient_worker_fun2(task, args):
     worker_device = getattr(local_data, "worker_device", None)
     if worker_device is None:
@@ -68,7 +52,7 @@ def sample_gradient_worker_fun2(task, args):
     gradient_lists = vmap(
         grad(
             functools.partial(
-                __evaluation_wrapper,
+                eval_model_by_parameter,
                 device=worker_device,
                 model_with_loss=model_with_loss,
             )

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import atexit
 import collections
+import functools
 import threading
 from typing import Callable
 
@@ -10,31 +11,10 @@ from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
 from cyy_torch_toolbox.data_structure.torch_thread_task_queue import \
     TorchThreadTaskQueue
 from cyy_torch_toolbox.device import get_devices
-from cyy_torch_toolbox.ml_type import MachineLearningPhase
 from cyy_torch_toolbox.model_with_loss import ModelWithLoss
 from functorch import grad, vjp
 
-# jvp
-
-
-def __get_f(device, inputs, targets, model_with_loss):
-    def f(parameter_list):
-        nonlocal inputs, targets, device
-        model_with_loss.model_util.load_parameter_list(
-            parameter_list[0],
-            check_parameter=False,
-            as_parameter=False,
-        )
-        return model_with_loss(
-            inputs,
-            targets,
-            device=device,
-            non_blocking=False,
-            phase=MachineLearningPhase.Test,
-        )["loss"]
-
-    return f
-
+from evaluation import eval_model_by_parameter
 
 local_data = threading.local()
 
@@ -52,11 +32,12 @@ def worker_fun(task, args):
 
     _, vjp_fn = vjp(
         grad(
-            __get_f(
-                worker_device,
-                inputs,
-                targets,
-                model_with_loss,
+            functools.partial(
+                eval_model_by_parameter,
+                inputs=inputs,
+                targets=targets,
+                device=worker_device,
+                model_with_loss=model_with_loss,
             )
         ),
         (parameter_list,),
