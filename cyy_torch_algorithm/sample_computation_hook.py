@@ -42,9 +42,9 @@ class SampleComputationHook(Hook):
         self.__sample_result_dict = None
         self.__task_size = None
 
+        sample_indices = []
         real_inputs = []
         real_targets = []
-        sample_indices = []
         dimension_permuted = False
         if trainer.dataset_collection.dataset_type == DatasetType.Text:
             if (
@@ -85,10 +85,12 @@ class SampleComputationHook(Hook):
             self.__task_queue.release()
             self.__task_queue = None
 
-    def _process_samples(self, sample_indices, inputs, targets):
+    def _process_samples(self, sample_indices: list, inputs: list, targets: list):
         raise NotImplementedError()
 
-    def __compute_sample_info(self, trainer, sample_indices, inputs, targets):
+    def __compute_sample_info(
+        self, trainer, sample_indices: list, inputs: list, targets: list
+    ):
         trainer.model_with_loss.model.zero_grad(set_to_none=True)
         model_with_loss = trainer.copy_model_with_loss(deepcopy=True)
         model_with_loss.model.cpu()
