@@ -18,7 +18,6 @@ class SampleGradientHook(Hook):
         self.__sample_gradient_indices = None
         self.__task_queue = None
         self.__task_size = None
-        self.use_new = True
 
     @property
     def sample_gradient_dict(self):
