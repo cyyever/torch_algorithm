@@ -30,7 +30,7 @@ def test_hessian_vector_product():
         print(a)
         assert torch.linalg.norm(a[1] - 2 * a[0], ord=2).data.item() < 0.05
         assert torch.linalg.norm(a[2] - 3 * a[0], ord=2).data.item() < 0.05
-        assert torch.linalg.norm(a[10] - 11 * a[0], ord=2).data.item() < 0.05
+        assert torch.linalg.norm(a[5] - 6 * a[0], ord=2).data.item() < 0.05
         del a
 
         with TimeCounter() as c:
