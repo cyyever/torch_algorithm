@@ -40,14 +40,9 @@ def worker_fun(task, args):
                 model_with_loss=model_with_loss,
             )
         ),
-        (parameter_list,),
+        parameter_list,
     )
-    products = [
-        vjp_fn((v.to(worker_device),),)[
-            0
-        ][0]
-        for v in vector_chunk
-    ]
+    products = [vjp_fn(v.to(worker_device))[0] for v in vector_chunk]
 
     # products = [
     #     jvp(
