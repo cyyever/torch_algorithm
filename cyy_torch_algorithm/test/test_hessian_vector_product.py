@@ -1,7 +1,7 @@
 import torch
 from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_toolbox.default_config import DefaultConfig
-from hessian_vector_product import (get_hessian_vector_product_func,
+from cyy_torch_algorithm.hessian_vector_product import (get_hessian_vector_product_func,
                                     stop_task_queue)
 
 # from cyy_naive_lib.profiling import Profile
