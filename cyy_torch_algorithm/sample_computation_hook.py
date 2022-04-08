@@ -37,7 +37,9 @@ class SampleComputationHook(Hook):
         trainer = kwargs["model_executor"]
         batch = kwargs["batch"]
 
-        instance_inputs, instance_targets, instance_info = trainer.decode_batch(batch)
+        _, instance_inputs, instance_targets, instance_info = trainer.decode_batch(
+            batch
+        )
         instance_indices = {idx.data.item() for idx in instance_info["index"]}
         self.__sample_result_dict = None
         self.__task_size = None
