@@ -1,25 +1,21 @@
 import torch
 from cyy_naive_lib.time_counter import TimeCounter
+from cyy_torch_algorithm.hessian_vector_product import (
+    get_hessian_vector_product_func, stop_task_queue)
 from cyy_torch_toolbox.default_config import DefaultConfig
-from cyy_torch_algorithm.hessian_vector_product import (get_hessian_vector_product_func,
-                                    stop_task_queue)
 
 # from cyy_naive_lib.profiling import Profile
 
 
 def test_hessian_vector_product():
     torch.autograd.set_detect_anomaly(True)
-    trainer = DefaultConfig("MNIST", "LeNet5").create_trainer()
-    training_data_loader = torch.utils.data.DataLoader(
-        trainer.dataset,
-        batch_size=16,
-        shuffle=False,
-    )
+    config = DefaultConfig("MNIST", "LeNet5")
+    config.debug = True
+    trainer = config.create_trainer()
     parameter_vector = trainer.model_util.get_parameter_list()
     trainer.model_util.load_parameter_list(parameter_vector)
-    trainer.model_with_loss.loss_fun
     v = torch.ones_like(parameter_vector)
-    for batch in training_data_loader:
+    for batch in trainer.dataloader:
         hvp_function = get_hessian_vector_product_func(
             trainer.copy_model_with_loss(deepcopy=False),
             batch,

@@ -11,6 +11,7 @@ from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
 from cyy_torch_toolbox.data_structure.torch_thread_task_queue import \
     TorchThreadTaskQueue
 from cyy_torch_toolbox.device import get_devices
+from cyy_torch_toolbox.model_executor import ModelExecutor
 from cyy_torch_toolbox.model_with_loss import ModelWithLoss
 from functorch import grad, vjp
 
@@ -108,10 +109,9 @@ def get_hessian_vector_product_func(
             else:
                 __task_queue = TorchThreadTaskQueue(worker_fun)
             __task_queue.start()
+        _, inputs, targets, *__ = ModelExecutor.decode_batch(batch)
         for idx, vector_chunk in enumerate(vector_chunks):
-            __task_queue.add_task(
-                (idx, vector_chunk, model_with_loss, batch[0], batch[1])
-            )
+            __task_queue.add_task((idx, vector_chunk, model_with_loss, inputs, targets))
 
         total_products = {}
         for _ in range(len(vector_chunks)):
