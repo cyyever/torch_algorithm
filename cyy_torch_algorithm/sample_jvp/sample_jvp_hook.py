@@ -9,21 +9,21 @@ from .sample_jvp import sample_jvp_worker_fun
 class SampleJVPHook(SampleComputationHook):
     def __init__(self, **kwargs):
         super().__init__(worker_fun=sample_jvp_worker_fun, **kwargs)
-        self.__sample_vector: dict = {}
+        self.__sample_vector_fun = None
 
     @property
     def sample_jvp_dict(self) -> dict:
         return super().sample_result_dict
 
-    def set_sample_vectors(self, sample_index: int, vectors: list) -> None:
-        self.__sample_vector[sample_index] = vectors
+    def set_sample_vector_fun(self, sample_vector_fun) -> None:
+        self.__sample_vector_fun = sample_vector_fun
 
     def _process_samples(
         self, sample_indices: list, inputs: list, targets: list
     ) -> Generator:
         vectors = []
         for idx in sample_indices:
-            vectors.append(self.__sample_vector[idx])
+            vectors.append(self.__sample_vector_fun(idx))
         return zip(
             *(
                 tuple(
