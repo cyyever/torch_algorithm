@@ -1,3 +1,5 @@
+from typing import Callable
+
 import torch
 from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
     TorchProcessTaskQueue
@@ -10,7 +12,7 @@ class SampleComputationHook(Hook):
     def __init__(self, worker_fun, **kwargs):
         super().__init__(**kwargs)
         self.dataset_index_hook = AddIndexToDataset()
-        self.__computed_indices: set | None = None
+        self.__sample_selector = None
         self.__sample_result_dict = None
         self.__task_queue = None
         self.__task_size = None
@@ -30,8 +32,11 @@ class SampleComputationHook(Hook):
                 self.__sample_result_dict |= self.__task_queue.get_result()
         return self.__sample_result_dict
 
-    def set_computed_indices(self, computed_indices):
-        self.__computed_indices = set(computed_indices)
+    def set_sample_selector(self, selector: Callable) -> None:
+        self.__sample_selector = selector
+
+    def set_computed_indices(self, indices):
+        self.set_sample_selector(lambda sample_index, *args: sample_index in indices)
 
     def _before_batch(self, **kwargs):
         trainer = kwargs["model_executor"]
@@ -59,9 +64,8 @@ class SampleComputationHook(Hook):
         for (instance_input, instance_target, instance_index) in zip(
             instance_inputs, instance_targets, instance_indices
         ):
-            if (
-                self.__computed_indices is not None
-                and instance_index not in self.__computed_indices
+            if (self.__sample_selector is not None) and not self.__sample_selector(
+                instance_index, instance_input
             ):
                 continue
             if not dimension_permuted:
@@ -92,7 +96,7 @@ class SampleComputationHook(Hook):
 
     def __compute_sample_info(
         self, trainer, sample_indices: list, inputs: list, targets: list
-    ):
+    ) -> None:
         trainer.model_with_loss.model.zero_grad(set_to_none=True)
         model_with_loss = trainer.copy_model_with_loss(deepcopy=True)
         model_with_loss.model.cpu()
