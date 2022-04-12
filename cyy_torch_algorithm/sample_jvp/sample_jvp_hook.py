@@ -1,3 +1,5 @@
+from typing import Generator
+
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
 from cyy_torch_algorithm.sample_computation_hook import SampleComputationHook
 
@@ -13,10 +15,12 @@ class SampleJVPHook(SampleComputationHook):
     def sample_jvp_dict(self) -> dict:
         return super().sample_result_dict
 
-    def set_sample_vectors(self, index: int, vectors: list) -> None:
-        self.__sample_vector[index] = vectors
+    def set_sample_vectors(self, sample_index: int, vectors: list) -> None:
+        self.__sample_vector[sample_index] = vectors
 
-    def _process_samples(self, sample_indices: list, inputs: list, targets: list):
+    def _process_samples(
+        self, sample_indices: list, inputs: list, targets: list
+    ) -> Generator:
         vectors = []
         for idx in sample_indices:
             vectors.append(self.__sample_vector[idx])
