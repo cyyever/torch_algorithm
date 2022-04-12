@@ -17,6 +17,7 @@ setuptools.setup(
         "cyy_torch_algorithm/quantization",
         "cyy_torch_algorithm/data_structure",
         "cyy_torch_algorithm/sample_gradient",
+        "cyy_torch_algorithm/sample_jvp",
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
