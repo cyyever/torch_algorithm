@@ -21,7 +21,7 @@ def test_get_sample_gradient():
     def print_sample_gradients(**kwargs):
         if hook.sample_jvp_dict:
             print(hook.sample_jvp_dict)
-            # raise StopExecutingException()
+            raise StopExecutingException()
 
     trainer.append_named_hook(
         ModelExecutorHookPoint.AFTER_BATCH, "check gradients", print_sample_gradients
