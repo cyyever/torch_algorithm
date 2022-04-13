@@ -23,8 +23,8 @@ class SampleJVPHook(SampleComputationHook):
     ) -> list:
         assert self.__sample_vector_fun is not None
         vectors = []
-        for idx in sample_indices:
-            vectors.append(self.__sample_vector_fun(idx))
+        for idx, sample_input in zip(sample_indices, inputs):
+            vectors.append(self.__sample_vector_fun(idx, sample_input))
         return list(
             zip(
                 *(
