@@ -19,10 +19,17 @@ class SampleJVPHook(SampleComputationHook):
         self.__sample_vector_fun = sample_vector_fun
 
     def _process_samples(
-        self, sample_indices: list, inputs: list, targets: list
+        self, model_with_loss, sample_indices: list, inputs: list, targets: list
     ) -> list:
         assert self.__sample_vector_fun is not None
         vectors = []
+
+        if hasattr(model_with_loss.model, "forward_embedding"):
+            inputs = [
+                model_with_loss.model.get_embedding(sample_input).detach()
+                for sample_input in inputs
+            ]
+
         for idx, sample_input in zip(sample_indices, inputs):
             vectors.append(self.__sample_vector_fun(idx, sample_input))
         return list(

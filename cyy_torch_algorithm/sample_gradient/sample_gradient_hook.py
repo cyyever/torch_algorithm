@@ -12,7 +12,7 @@ class SampleGradientHook(SampleComputationHook):
     def sample_gradient_dict(self):
         return super().sample_result_dict
 
-    def _process_samples(self, sample_indices, inputs, targets):
+    def _process_samples(self, model_with_loss, sample_indices, inputs, targets):
         return zip(
             *(
                 tuple(

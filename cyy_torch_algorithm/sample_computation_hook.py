@@ -115,6 +115,8 @@ class SampleComputationHook(Hook):
             )
             self.__task_queue.start()
         self.__task_size = 0
-        for task in self._process_samples(sample_indices, inputs, targets):
+        for task in self._process_samples(
+            model_with_loss, sample_indices, inputs, targets
+        ):
             self.__task_size += 1
             self.__task_queue.add_task((model_with_loss, task))
