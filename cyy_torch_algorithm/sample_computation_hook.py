@@ -91,7 +91,9 @@ class SampleComputationHook(Hook):
             self.__task_queue.release()
             self.__task_queue = None
 
-    def _process_samples(self, sample_indices: list, inputs: list, targets: list):
+    def _process_samples(
+        self, sample_indices: list, inputs: list, targets: list
+    ) -> list:
         raise NotImplementedError()
 
     def __compute_sample_info(
