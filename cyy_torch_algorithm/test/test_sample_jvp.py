@@ -6,7 +6,7 @@ from cyy_torch_toolbox.ml_type import (ModelExecutorHookPoint,
                                        StopExecutingException)
 
 
-def test_get_sample_gradient():
+def test_CV_jvp():
     config = DefaultConfig("MNIST", "lenet5")
     config.hyper_parameter_config.epoch = 1
     config.hyper_parameter_config.batch_size = 8
@@ -16,6 +16,31 @@ def test_get_sample_gradient():
     hook = SampleJVPHook()
     hook.set_computed_indices([1])
     hook.set_sample_vector_fun(lambda *_: [torch.zeros((32, 32)).reshape(-1)])
+    trainer.append_hook(hook)
+
+    def print_sample_gradients(**kwargs):
+        if hook.sample_jvp_dict:
+            print(hook.sample_jvp_dict)
+            raise StopExecutingException()
+
+    trainer.append_named_hook(
+        ModelExecutorHookPoint.AFTER_BATCH, "check gradients", print_sample_gradients
+    )
+    trainer.train()
+
+
+def test_NLP_jvp():
+    config = DefaultConfig("IMDB", "simplelstm")
+    config.hyper_parameter_config.epoch = 1
+    config.hyper_parameter_config.batch_size = 8
+    config.hyper_parameter_config.learning_rate = 0.01
+    config.hyper_parameter_config.find_learning_rate = False
+    trainer = config.create_trainer()
+    hook = SampleJVPHook()
+    hook.set_computed_indices([1])
+    hook.set_sample_vector_fun(
+        lambda idx, sample_input: [torch.zeros_like(sample_input).reshape(-1)]
+    )
     trainer.append_hook(hook)
 
     def print_sample_gradients(**kwargs):
