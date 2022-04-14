@@ -7,10 +7,13 @@ def eval_model_by_parameter(
     targets,
     device,
     model_with_loss,
+    model_util=None,
     phase=MachineLearningPhase.Training,
     forward_embedding=False,
 ):
-    model_with_loss.model_util.load_parameter_list(
+    if model_util is None:
+        model_util = model_with_loss.model_util
+    model_util.load_parameter_list(
         parameter_list.to(device),
         check_parameter=False,
         as_parameter=False,

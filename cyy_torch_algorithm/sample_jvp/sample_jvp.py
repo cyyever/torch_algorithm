@@ -20,6 +20,7 @@ def sample_jvp_worker_fun(task, args):
         eval_model_by_parameter,
         device=worker_device,
         model_with_loss=model_with_loss,
+        model_util=model_with_loss.model_util,
         forward_embedding=forward_embedding,
     )
     parameter_list = model_with_loss.model_util.get_parameter_list(detach=True)
@@ -39,6 +40,6 @@ def sample_jvp_worker_fun(task, args):
             result[index].append(
                 torch.autograd.functional.jvp(
                     func=grad_f, inputs=input_tensor.view(-1), v=vector
-                )
+                )[1]
             )
     return result

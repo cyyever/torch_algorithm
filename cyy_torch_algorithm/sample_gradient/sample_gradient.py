@@ -23,6 +23,7 @@ def sample_gradient_worker_fun(task, args):
                 eval_model_by_parameter,
                 device=worker_device,
                 model_with_loss=model_with_loss,
+                model_util=model_with_loss.model_util,
             )
         ),
         in_dims=(None, 0, 0),

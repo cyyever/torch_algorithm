@@ -30,16 +30,26 @@ def test_CV_jvp():
 
 
 def test_NLP_jvp():
-    config = DefaultConfig("IMDB", "simplelstm")
+    config = DefaultConfig("IMDB", "TransformerClassificationModel")
     config.hyper_parameter_config.epoch = 1
     config.hyper_parameter_config.batch_size = 8
     config.hyper_parameter_config.learning_rate = 0.01
     config.hyper_parameter_config.find_learning_rate = False
+    config.model_config.model_kwargs = {
+        "max_len": 500,
+        "word_vector_name": "glove.6B.200d",
+        "num_encoder_layer": 1,
+        "d_model": 200,
+    }
+
     trainer = config.create_trainer()
     hook = SampleJVPHook()
-    hook.set_computed_indices([1])
+    # hook.set_computed_indices([1])
     hook.set_sample_vector_fun(
-        lambda idx, sample_input: [torch.zeros_like(sample_input).reshape(-1)]
+        lambda idx, sample_input: [
+            torch.zeros_like(sample_input).reshape(-1),
+            torch.ones_like(sample_input).reshape(-1),
+        ]
     )
     trainer.append_hook(hook)
 
