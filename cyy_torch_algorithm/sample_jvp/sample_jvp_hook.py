@@ -25,13 +25,20 @@ class SampleJVPHook(SampleComputationHook):
         vectors = []
 
         if hasattr(model_with_loss.model, "forward_embedding"):
+            sample_inputs = inputs
             inputs = [
                 model_with_loss.model.get_embedding(sample_input).detach()
                 for sample_input in inputs
             ]
-
-        for idx, sample_input in zip(sample_indices, inputs):
-            vectors.append(self.__sample_vector_fun(idx, sample_input))
+            for idx, sample_input, sample_embedding in zip(
+                sample_indices, sample_inputs, inputs
+            ):
+                vectors.append(
+                    self.__sample_vector_fun(idx, sample_input, sample_embedding)
+                )
+        else:
+            for idx, sample_input in zip(sample_indices, inputs):
+                vectors.append(self.__sample_vector_fun(idx, sample_input, None))
         return list(
             zip(
                 *(

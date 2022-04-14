@@ -92,7 +92,7 @@ class SampleComputationHook(Hook):
             self.__task_queue = None
 
     def _process_samples(
-        self, sample_indices: list, inputs: list, targets: list
+        self, model_with_loss, sample_indices: list, inputs: list, targets: list
     ) -> list:
         raise NotImplementedError()
 

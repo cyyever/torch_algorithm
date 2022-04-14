@@ -15,7 +15,9 @@ def test_CV_jvp():
     trainer = config.create_trainer()
     hook = SampleJVPHook()
     hook.set_computed_indices([1])
-    hook.set_sample_vector_fun(lambda *_: [torch.zeros((32, 32)).reshape(-1)])
+    hook.set_sample_vector_fun(
+        lambda _, sample_input, __: [torch.zeros_like(sample_input).reshape(-1)]
+    )
     trainer.append_hook(hook)
 
     def print_sample_gradients(**kwargs):
@@ -46,9 +48,9 @@ def test_NLP_jvp():
     hook = SampleJVPHook()
     # hook.set_computed_indices([1])
     hook.set_sample_vector_fun(
-        lambda idx, sample_input: [
-            torch.zeros_like(sample_input).reshape(-1),
-            torch.ones_like(sample_input).reshape(-1),
+        lambda idx, sample_input, sample_embeddings: [
+            torch.zeros_like(sample_embeddings).reshape(-1),
+            torch.ones_like(sample_embeddings).reshape(-1),
         ]
     )
     trainer.append_hook(hook)
