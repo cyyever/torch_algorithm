@@ -7,8 +7,8 @@ from .sample_jvp import sample_jvp_worker_fun
 
 
 class SampleJVPHook(SampleComputationHook):
-    def __init__(self, **kwargs):
-        super().__init__(worker_fun=sample_jvp_worker_fun, **kwargs)
+    def __init__(self, worker_fun=sample_jvp_worker_fun, **kwargs):
+        super().__init__(worker_fun=worker_fun, **kwargs)
         self.__sample_vector_fun: None | Callable = None
 
     @property
