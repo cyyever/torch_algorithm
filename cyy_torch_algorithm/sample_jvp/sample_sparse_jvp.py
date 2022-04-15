@@ -15,7 +15,12 @@ def sample_sparse_jvp_worker_fun(task, args):
     if worker_device is None:
         worker_device = args["device"]
         local_data.worker_device = worker_device
-    model_with_loss, (sample_indices, input_chunk, target_chunk, vector_chunk) = task
+    (
+        model_with_loss,
+        (sample_indices, input_chunk, target_chunk, vector_chunk),
+        extra_args,
+    ) = task
+    dot_vector = extra_args.get("dot_vector", None)
     forward_embedding = hasattr(model_with_loss.model, "forward_embedding")
     f = functools.partial(
         eval_model_by_parameter,
@@ -49,15 +54,13 @@ def sample_sparse_jvp_worker_fun(task, args):
                     parameter_list, new_tensor.view(input_shape), target
                 ).view(-1)
 
-            result[index].append(
-                (
-                    part_id,
-                    torch.autograd.functional.jvp(
-                        func=grad_f,
-                        inputs=input_tensor.view(-1)[i:j],
-                        v=partial_vector,
-                        strict=True,
-                    )[1].detach(),
-                )
-            )
+            jvp_result = torch.autograd.functional.jvp(
+                func=grad_f,
+                inputs=input_tensor.view(-1)[i:j],
+                v=partial_vector,
+                strict=True,
+            )[1].detach()
+            if dot_vector is not None:
+                jvp_result = dot_vector.dot(jvp_result.to(device=dot_vector.device))
+            result[index].append((part_id, jvp_result))
     return result

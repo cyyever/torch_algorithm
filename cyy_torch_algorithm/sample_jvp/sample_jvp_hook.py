@@ -2,6 +2,7 @@ from typing import Callable
 
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
 from cyy_torch_algorithm.sample_computation_hook import SampleComputationHook
+from cyy_torch_toolbox.model_with_loss import ModelWithLoss
 
 from .sample_jvp import sample_jvp_worker_fun
 
@@ -15,7 +16,11 @@ class SampleJVPHook(SampleComputationHook):
         self.__sample_vector_fun = sample_vector_fun
 
     def _process_samples(
-        self, model_with_loss, sample_indices: list, inputs: list, targets: list
+        self,
+        model_with_loss: ModelWithLoss,
+        sample_indices: list,
+        inputs: list,
+        targets: list,
     ) -> list:
         assert self.__sample_vector_fun is not None
         vectors = []

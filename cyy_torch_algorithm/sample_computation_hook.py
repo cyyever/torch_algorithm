@@ -17,6 +17,7 @@ class SampleComputationHook(Hook):
         self.__task_queue = None
         self.__task_size = None
         self.__worker_fun = worker_fun
+        self.extra_args: dict = {}
 
     @property
     def task_queue(self):
@@ -127,4 +128,4 @@ class SampleComputationHook(Hook):
             model_with_loss, sample_indices, inputs, targets
         ):
             self.__task_size += 1
-            self.__task_queue.add_task((model_with_loss, task))
+            self.__task_queue.add_task((model_with_loss, task, self.extra_args))
