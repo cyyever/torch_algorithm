@@ -22,6 +22,14 @@ class SampleComputationHook(Hook):
     def task_queue(self):
         return self.__task_queue
 
+    def iterate_result(self):
+        if self.__task_size is None:
+            return
+        for _ in range(self.__task_size):
+            for sample_index, result in self.__task_queue.get_result().items():
+                yield (sample_index, result)
+        return
+
     @property
     def sample_result_dict(self):
         if self.__sample_result_dict is None:
