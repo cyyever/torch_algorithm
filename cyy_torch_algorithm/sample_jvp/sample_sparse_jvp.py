@@ -21,6 +21,7 @@ def sample_sparse_jvp_worker_fun(task, args):
         extra_args,
     ) = task
     dot_vector = extra_args.get("dot_vector", None)
+    model_with_loss.model.to(worker_device)
     forward_embedding = hasattr(model_with_loss.model, "forward_embedding")
     f = functools.partial(
         eval_model_by_parameter,
@@ -34,6 +35,8 @@ def sample_sparse_jvp_worker_fun(task, args):
     for index, input_tensor, target, vectors in zip(
         sample_indices, input_chunk, target_chunk, vector_chunk
     ):
+        input_tensor = input_tensor.to(worker_device)
+        target = target.to(worker_device)
         input_shape = input_tensor.shape
 
         result[index] = []
@@ -57,7 +60,7 @@ def sample_sparse_jvp_worker_fun(task, args):
             jvp_result = torch.autograd.functional.jvp(
                 func=grad_f,
                 inputs=input_tensor.view(-1)[i:j],
-                v=partial_vector,
+                v=partial_vector.to(worker_device),
                 strict=True,
             )[1].detach()
             if dot_vector is not None:
