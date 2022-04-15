@@ -53,8 +53,11 @@ def sample_sparse_jvp_worker_fun(task, args):
                 (
                     part_id,
                     torch.autograd.functional.jvp(
-                        func=grad_f, inputs=input_tensor.view(-1)[i:j], v=partial_vector
-                    )[1],
+                        func=grad_f,
+                        inputs=input_tensor.view(-1)[i:j],
+                        v=partial_vector,
+                        strict=True,
+                    )[1].detach(),
                 )
             )
     return result
