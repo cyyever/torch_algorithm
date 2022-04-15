@@ -11,10 +11,6 @@ class SampleJVPHook(SampleComputationHook):
         super().__init__(worker_fun=worker_fun, **kwargs)
         self.__sample_vector_fun: None | Callable = None
 
-    @property
-    def sample_jvp_dict(self) -> dict:
-        return super().sample_result_dict
-
     def set_sample_vector_fun(self, sample_vector_fun: Callable) -> None:
         self.__sample_vector_fun = sample_vector_fun
 
