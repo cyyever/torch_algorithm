@@ -46,7 +46,6 @@ def sample_sparse_jvp_worker_fun(task, args):
             i, j = partial_range
 
             def grad_f(partial_input_tensor):
-                nonlocal partial_range
                 nonlocal input_tensor
                 new_tensor = cat_tensors_to_vector(
                     [
