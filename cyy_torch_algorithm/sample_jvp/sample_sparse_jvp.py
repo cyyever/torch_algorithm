@@ -21,6 +21,8 @@ def sample_sparse_jvp_worker_fun(task, args):
         extra_args,
     ) = task
     dot_vector = extra_args.get("dot_vector", None)
+    if dot_vector is not None:
+        dot_vector = dot_vector.dot(worker_device)
     model_with_loss.model.to(worker_device)
     forward_embedding = hasattr(model_with_loss.model, "forward_embedding")
     f = functools.partial(
@@ -64,6 +66,6 @@ def sample_sparse_jvp_worker_fun(task, args):
                 strict=True,
             )[1].detach()
             if dot_vector is not None:
-                jvp_result = dot_vector.dot(jvp_result.to(device=dot_vector.device))
+                jvp_result = dot_vector.dot(jvp_result)
             result[index].append((part_id, jvp_result))
     return result
