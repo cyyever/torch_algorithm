@@ -66,16 +66,12 @@ def sample_sparse_jvp_worker_fun(task, args):
                     parameter_list, new_tensor.view(input_shape), target
                 ).view(-1)
 
-            jvp_result = (
-                torch.autograd.functional.jvp(
-                    func=grad_f,
-                    inputs=inputs,
-                    v=v,
-                    strict=True,
-                )[1]
-                .sum()
-                .detach()
-            )
+            jvp_result = torch.autograd.functional.jvp(
+                func=grad_f,
+                inputs=inputs,
+                v=v,
+                strict=True,
+            )[1].detach()
             if dot_vector is not None:
                 jvp_result = dot_vector.dot(jvp_result)
             result[index].append((part_id, jvp_result))
