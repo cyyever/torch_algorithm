@@ -38,32 +38,44 @@ def sample_sparse_jvp_worker_fun(task, args):
         sample_indices, input_chunk, target_chunk, vector_chunk
     ):
         input_tensor = input_tensor.to(worker_device)
-        target = target.to(worker_device)
         input_shape = input_tensor.shape
+        input_tensor = input_tensor.view(-1)
+        target = target.to(worker_device)
 
         result[index] = []
-        for part_id, partial_range, partial_vector in vectors:
-            i, j = partial_range
+        for part_id, partial_ranges, partial_vectors in vectors:
+            inputs = tuple(input_tensor[i:j] for i, j in partial_ranges)
+            v = tuple(p.to(worker_device) for p in partial_vectors)
 
-            def grad_f(partial_input_tensor):
+            def grad_f(*partial_inputs):
                 nonlocal input_tensor
-                new_tensor = cat_tensors_to_vector(
-                    [
-                        input_tensor.view(-1)[:i],
-                        partial_input_tensor,
-                        input_tensor.view(-1)[j:],
-                    ]
-                )
+                nonlocal partial_ranges
+                start_idx = 0
+                tensor_list = []
+                for partial_range, partial_input in zip(partial_ranges, partial_inputs):
+                    i, j = partial_range
+                    if i > start_idx:
+                        tensor_list.append(input_tensor[start_idx:i])
+                    tensor_list.append(partial_input)
+                    start_idx = j
+                end_tensor = input_tensor[start_idx:]
+                if end_tensor.nelement() > 0:
+                    tensor_list.append(end_tensor)
+                new_tensor = cat_tensors_to_vector(tensor_list)
                 return grad(f, argnums=0)(
                     parameter_list, new_tensor.view(input_shape), target
                 ).view(-1)
 
-            jvp_result = torch.autograd.functional.jvp(
-                func=grad_f,
-                inputs=input_tensor.view(-1)[i:j],
-                v=partial_vector.to(worker_device),
-                strict=True,
-            )[1].detach()
+            jvp_result = (
+                torch.autograd.functional.jvp(
+                    func=grad_f,
+                    inputs=inputs,
+                    v=v,
+                    strict=True,
+                )[1]
+                .sum()
+                .detach()
+            )
             if dot_vector is not None:
                 jvp_result = dot_vector.dot(jvp_result)
             result[index].append((part_id, jvp_result))
