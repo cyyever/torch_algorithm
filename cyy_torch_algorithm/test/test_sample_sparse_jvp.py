@@ -16,13 +16,10 @@ def test_CV_jvp():
     trainer = config.create_trainer()
     hook = SampleSparseJVPHook()
     hook.set_computed_indices([1])
-    hook.set_sample_vector_fun(
-        lambda _, sample_input, __: [torch.zeros_like(sample_input).reshape(-1)]
-    )
 
     def sample_vector_fun(_, sample_input, sample_embedding):
         vectors = []
-        vectors.append((0, ((0, 5),), (torch.ones(5),)))
+        vectors.append((0, ((0, 5), (15, 20)), (torch.ones(5), torch.zeros(5))))
         return vectors
 
     hook.set_sample_vector_fun(sample_vector_fun)
