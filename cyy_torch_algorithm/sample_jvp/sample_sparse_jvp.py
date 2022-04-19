@@ -15,6 +15,10 @@ def sample_sparse_jvp_worker_fun(task, args):
     if worker_device is None:
         worker_device = args["device"]
         local_data.worker_device = worker_device
+    worker_stream = getattr(local_data, "worker_stream", None)
+    if worker_stream is None:
+        worker_stream = torch.cuda.Stream(device=worker_device)
+        local_data.worker_stream = worker_stream
     (
         model_with_loss,
         (sample_indices, input_chunk, target_chunk, vector_chunk),
@@ -24,13 +28,12 @@ def sample_sparse_jvp_worker_fun(task, args):
     if dot_vector is not None:
         dot_vector = dot_vector.to(worker_device)
     model_with_loss.model.to(worker_device)
-    forward_embedding = hasattr(model_with_loss.model, "forward_embedding")
     f = functools.partial(
         eval_model_by_parameter,
         device=worker_device,
         model_with_loss=model_with_loss,
         model_util=model_with_loss.model_util,
-        forward_embedding=forward_embedding,
+        forward_embedding=hasattr(model_with_loss.model, "forward_embedding"),
     )
     parameter_list = model_with_loss.model_util.get_parameter_list(detach=True)
     result = {}
