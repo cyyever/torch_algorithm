@@ -10,6 +10,7 @@ def eval_model_by_parameter(
     model_util=None,
     phase=MachineLearningPhase.Training,
     forward_embedding=False,
+    non_blocking=False,
 ):
     if model_util is None:
         model_util = model_with_loss.model_util
@@ -27,7 +28,7 @@ def eval_model_by_parameter(
         inputs,
         targets,
         device=device,
-        non_blocking=False,
+        non_blocking=non_blocking,
         phase=phase,
         model_fun=model_fun,
     )["loss"]
