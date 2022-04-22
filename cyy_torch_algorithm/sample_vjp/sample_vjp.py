@@ -20,6 +20,7 @@ def sample_vjp_worker_fun(vector, task, args):
         device=worker_device,
         model_with_loss=model_with_loss,
         model_util=model_with_loss.model_util,
+        forward_embedding=hasattr(model_with_loss.model, "forward_embedding"),
     )
     parameter_list = model_with_loss.model_util.get_parameter_list(detach=True)
     result = {}
