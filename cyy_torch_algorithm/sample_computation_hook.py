@@ -9,25 +9,31 @@ from cyy_torch_toolbox.ml_type import DatasetType
 
 
 class SampleComputationHook(Hook):
-    def __init__(self, worker_fun, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.dataset_index_hook = AddIndexToDataset()
         self.__sample_selector = None
         self.__sample_result_dict = None
-        self.__task_queue = None
+        self._task_queue = None
         self.__task_size = None
-        self.__worker_fun = worker_fun
+        self.__worker_fun = None
         self.extra_args: dict = {}
 
-    @property
-    def task_queue(self):
-        return self.__task_queue
+    def _set_worker_fun(self, worker_fun):
+        if self._task_queue is not None:
+            self._task_queue.stop()
+            self._task_queue = None
+        self.__worker_fun = worker_fun
+
+    # @property
+    # def task_queue(self):
+    #     return self._task_queue
 
     def iterate_result(self):
         if self.__task_size is None:
             return
         for _ in range(self.__task_size):
-            for sample_index, result in self.__task_queue.get_result().items():
+            for sample_index, result in self._task_queue.get_result().items():
                 yield (sample_index, result)
         return
 
@@ -38,7 +44,7 @@ class SampleComputationHook(Hook):
                 return {}
             self.__sample_result_dict = {}
             for _ in range(self.__task_size):
-                self.__sample_result_dict |= self.__task_queue.get_result()
+                self.__sample_result_dict |= self._task_queue.get_result()
         return self.__sample_result_dict
 
     def set_sample_selector(self, selector: Callable) -> None:
@@ -96,9 +102,9 @@ class SampleComputationHook(Hook):
 
     def _after_execute(self, **_):
         self.__sample_result_dict = None
-        if self.__task_queue is not None:
-            self.__task_queue.release()
-            self.__task_queue = None
+        if self._task_queue is not None:
+            self._task_queue.release()
+            self._task_queue = None
 
     def _process_samples(
         self, model_with_loss, sample_indices: list, inputs: list, targets: list
@@ -111,21 +117,24 @@ class SampleComputationHook(Hook):
         trainer.model_with_loss.model.zero_grad(set_to_none=True)
         model_with_loss = trainer.copy_model_with_loss(deepcopy=True)
         model_with_loss.model.cpu()
-        if self.__task_queue is None:
+        if self._task_queue is None:
             max_needed_cuda_bytes = None
             stats = torch.cuda.memory_stats(device=trainer.device)
             if stats:
                 max_needed_cuda_bytes = stats["allocated_bytes.all.peak"]
 
-            self.__task_queue = TorchProcessTaskQueue(
+            self._task_queue = TorchProcessTaskQueue(
                 worker_fun=self.__worker_fun,
                 move_data_in_cpu=True,
                 max_needed_cuda_bytes=max_needed_cuda_bytes,
             )
-            self.__task_queue.start()
+            self._task_queue.start()
         self.__task_size = 0
         for task in self._process_samples(
             model_with_loss, sample_indices, inputs, targets
         ):
             self.__task_size += 1
-            self.__task_queue.add_task((model_with_loss, task, self.extra_args))
+            if self.extra_args:
+                self._task_queue.add_task((model_with_loss, task, self.extra_args))
+            else:
+                self._task_queue.add_task((model_with_loss, task))
