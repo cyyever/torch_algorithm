@@ -15,13 +15,11 @@ def sample_vjp_worker_fun(vector, task, args):
         worker_device = args["device"]
         local_data.worker_device = worker_device
     model_with_loss, (sample_indices, input_chunk, target_chunk) = task
-    forward_embedding = hasattr(model_with_loss.model, "forward_embedding")
     f = functools.partial(
         eval_model_by_parameter,
         device=worker_device,
         model_with_loss=model_with_loss,
         model_util=model_with_loss.model_util,
-        forward_embedding=forward_embedding,
     )
     parameter_list = model_with_loss.model_util.get_parameter_list(detach=True)
     result = {}

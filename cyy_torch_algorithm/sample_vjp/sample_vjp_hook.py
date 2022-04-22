@@ -18,12 +18,6 @@ class SampleVJPHook(SampleComputationHook):
         inputs: list,
         targets: list,
     ) -> list:
-
-        if hasattr(model_with_loss.model, "forward_embedding"):
-            inputs = [
-                model_with_loss.model.get_embedding(sample_input).detach()
-                for sample_input in inputs
-            ]
         return list(
             zip(
                 *(
