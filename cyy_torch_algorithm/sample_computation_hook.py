@@ -15,7 +15,7 @@ class SampleComputationHook(Hook):
         self.__sample_selector = None
         self.__sample_result_dict = None
         self._task_queue = None
-        self.__task_size = None
+        self.__task_size: int | None = None
         self.__worker_fun = None
         self.extra_args: dict = {}
 
@@ -24,10 +24,6 @@ class SampleComputationHook(Hook):
             self._task_queue.stop()
             self._task_queue = None
         self.__worker_fun = worker_fun
-
-    # @property
-    # def task_queue(self):
-    #     return self._task_queue
 
     def iterate_result(self):
         if self.__task_size is None:
