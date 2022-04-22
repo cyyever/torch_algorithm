@@ -16,6 +16,7 @@ setuptools.setup(
         "cyy_torch_algorithm/hydra",
         "cyy_torch_algorithm/quantization",
         "cyy_torch_algorithm/data_structure",
+        "cyy_torch_algorithm/shapely_value",
         "cyy_torch_algorithm/sample_gradient",
         "cyy_torch_algorithm/sample_jvp",
     ],
@@ -23,5 +24,5 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
     ],
-    python_requires=">=3.6",
+    python_requires=">=3.10",
 )
