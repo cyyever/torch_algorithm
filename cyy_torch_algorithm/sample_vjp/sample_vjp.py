@@ -39,19 +39,16 @@ def sample_vjp_worker_fun(product_transform, vector, task, args):
             input_tensor = raw_input_tensor
         input_shape = input_tensor.shape
         input_tensor = input_tensor.view(-1)
-        print("parameter_list shape is", parameter_list.shape)
 
         def grad_f(input_tensor):
             return grad(f, argnums=0)(
                 parameter_list, input_tensor.view(input_shape), target
             ).view(-1)
 
-        print("input tensor shape is", input_tensor.view(-1).shape)
-        print("vector shape is", vector.shape)
         product = torch.autograd.functional.vjp(
             func=grad_f, inputs=input_tensor, v=vector
         )[1]
         if product_transform is not None:
-            product = product_transform(index, raw_input_tensor, input_tensor)
+            product = product_transform(index, raw_input_tensor, input_tensor, product)
         result[index] = product
     return result
