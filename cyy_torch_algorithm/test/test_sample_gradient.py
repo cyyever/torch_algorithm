@@ -22,8 +22,8 @@ def test_CV_sample_gradient():
     trainer.append_hook(hook)
 
     def print_sample_gradients(**kwargs):
-        if hook.sample_gradient_dict:
-            print(hook.sample_gradient_dict)
+        if hook.sample_result_dict:
+            print(hook.sample_result_dict)
             raise StopExecutingException()
 
     trainer.append_named_hook(

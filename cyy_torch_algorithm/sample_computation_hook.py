@@ -1,6 +1,7 @@
 from typing import Callable
 
 import torch
+from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
 from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
     TorchProcessTaskQueue
 from cyy_torch_toolbox.hook import Hook
@@ -16,14 +17,10 @@ class SampleComputationHook(Hook):
         self.__sample_result_dict = None
         self._task_queue = None
         self.__task_size: int | None = None
-        self.__worker_fun = None
         self.extra_args: dict = {}
 
-    def _set_worker_fun(self, worker_fun):
-        if self._task_queue is not None:
-            self._task_queue.stop()
-            self._task_queue = None
-        self.__worker_fun = worker_fun
+    def _get_worker_fun(self) -> Callable:
+        raise NotImplementedError()
 
     def iterate_result(self):
         if self.__task_size is None:
@@ -103,9 +100,20 @@ class SampleComputationHook(Hook):
             self._task_queue = None
 
     def _process_samples(
-        self, model_with_loss, sample_indices: list, inputs: list, targets: list
+        self, model_with_loss, sample_indices, inputs, targets
     ) -> list:
-        raise NotImplementedError()
+        return zip(
+            *(
+                tuple(
+                    split_list_to_chunks(
+                        data,
+                        (len(data) + self._task_queue.worker_num - 1)
+                        // self._task_queue.worker_num,
+                    )
+                )
+                for data in (sample_indices, inputs, targets)
+            )
+        )
 
     def __compute_sample_info(
         self, trainer, sample_indices: list, inputs: list, targets: list
@@ -120,7 +128,7 @@ class SampleComputationHook(Hook):
                 max_needed_cuda_bytes = stats["allocated_bytes.all.peak"]
 
             self._task_queue = TorchProcessTaskQueue(
-                worker_fun=self.__worker_fun,
+                worker_fun=self._get_worker_fun(),
                 move_data_in_cpu=True,
                 max_needed_cuda_bytes=max_needed_cuda_bytes,
             )

@@ -11,10 +11,12 @@ class SampleSparseJVPHook(SampleComputationHook):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.__sample_vector_fun: None | Callable = None
-        self._set_worker_fun(sample_sparse_jvp_worker_fun)
 
     def set_sample_vector_fun(self, sample_vector_fun: Callable) -> None:
         self.__sample_vector_fun = sample_vector_fun
+
+    def _get_worker_fun(self):
+        return sample_sparse_jvp_worker_fun
 
     def _process_samples(
         self,
