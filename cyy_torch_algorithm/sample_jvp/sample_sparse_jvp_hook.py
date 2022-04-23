@@ -8,9 +8,10 @@ from .sample_sparse_jvp import sample_sparse_jvp_worker_fun
 
 
 class SampleSparseJVPHook(SampleComputationHook):
-    def __init__(self, worker_fun=sample_sparse_jvp_worker_fun, **kwargs):
-        super().__init__(worker_fun=worker_fun, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.__sample_vector_fun: None | Callable = None
+        self._set_worker_fun(sample_sparse_jvp_worker_fun)
 
     def set_sample_vector_fun(self, sample_vector_fun: Callable) -> None:
         self.__sample_vector_fun = sample_vector_fun
@@ -46,8 +47,8 @@ class SampleSparseJVPHook(SampleComputationHook):
                     tuple(
                         split_list_to_chunks(
                             data,
-                            (len(data) + self.task_queue.worker_num - 1)
-                            // self.task_queue.worker_num,
+                            (len(data) + self._task_queue.worker_num - 1)
+                            // self._task_queue.worker_num,
                         )
                     )
                     for data in (sample_indices, inputs, targets, vectors)

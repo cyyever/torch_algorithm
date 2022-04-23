@@ -15,6 +15,8 @@ def sample_vjp_worker_fun(vector, task, args):
         worker_device = args["device"]
         local_data.worker_device = worker_device
     model_with_loss, (sample_indices, input_chunk, target_chunk) = task
+    model_with_loss.model.to(worker_device)
+    vector = vector.to(worker_device)
     f = functools.partial(
         eval_model_by_parameter,
         device=worker_device,
@@ -25,6 +27,7 @@ def sample_vjp_worker_fun(vector, task, args):
     parameter_list = model_with_loss.model_util.get_parameter_list(detach=True)
     result = {}
     for index, input_tensor, target in zip(sample_indices, input_chunk, target_chunk):
+        input_tensor = input_tensor.to(worker_device)
         input_shape = input_tensor.shape
 
         def grad_f(input_tensor):

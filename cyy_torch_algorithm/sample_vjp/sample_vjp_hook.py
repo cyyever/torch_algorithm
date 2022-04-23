@@ -25,15 +25,11 @@ class SampleVJPHook(SampleComputationHook):
             ]
         return list(
             zip(
-                *(
-                    tuple(
-                        split_list_to_chunks(
-                            data,
-                            (len(data) + self._task_queue.worker_num - 1)
-                            // self._task_queue.worker_num,
-                        )
-                    )
-                    for data in (sample_indices, inputs, targets)
+                split_list_to_chunks(
+                    data,
+                    (len(data) + self._task_queue.worker_num - 1)
+                    // self._task_queue.worker_num,
                 )
+                for data in (sample_indices, inputs, targets)
             )
         )

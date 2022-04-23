@@ -23,7 +23,10 @@ def sample_sparse_jvp_worker_fun(task, args):
         model_with_loss,
         (sample_indices, input_chunk, target_chunk, vector_chunk),
         extra_args,
-    ) = task
+    ) = (
+        *task,
+        {},
+    )
     dot_vector = extra_args.get("dot_vector", None)
     if dot_vector is not None:
         dot_vector = dot_vector.to(worker_device)
