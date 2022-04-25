@@ -14,16 +14,15 @@ def sample_vjp_worker_fun(product_transform, vector, task, args):
     if worker_device is None:
         worker_device = args["device"]
         local_data.worker_device = worker_device
-    model_with_loss, (sample_indices, input_chunk, target_chunk) = task
+    model_with_loss, (sample_indices, input_chunk, embedding_chunk, target_chunk) = task
     model_with_loss.model.to(worker_device)
     vector = vector.to(worker_device)
     forward_embedding = hasattr(model_with_loss.model, "forward_embedding")
     raw_input_chunk = [t.to(worker_device) for t in input_chunk]
     if forward_embedding:
-        input_chunk = [
-            model_with_loss.model.get_embedding(raw_input_tensor).detach()
-            for raw_input_tensor in raw_input_chunk
-        ]
+        input_chunk = [t.to(worker_device) for t in embedding_chunk]
+    else:
+        input_chunk = raw_input_chunk
     f = functools.partial(
         eval_model_foreach,
         targets=target_chunk,

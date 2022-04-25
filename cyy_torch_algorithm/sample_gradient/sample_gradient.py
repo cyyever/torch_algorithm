@@ -15,7 +15,7 @@ def sample_gradient_worker_fun(gradient_transform, task, args):
     if worker_device is None:
         worker_device = args["device"]
         local_data.worker_device = worker_device
-    model_with_loss, (sample_indices, input_chunk, target_chunk) = task
+    model_with_loss, (sample_indices, input_chunk, _, target_chunk) = task
     gradient_lists = vmap(
         grad(
             functools.partial(

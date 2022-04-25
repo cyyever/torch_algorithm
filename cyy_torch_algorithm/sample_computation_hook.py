@@ -46,51 +46,53 @@ class SampleComputationHook(Hook):
     def set_computed_indices(self, indices):
         self.set_sample_selector(lambda sample_index, *args: sample_index in indices)
 
-    def _before_batch(self, **kwargs):
+    def _after_batch(self, inputs, input_embeddings, targets, batch_info, **kwargs):
         trainer = kwargs["model_executor"]
-        batch = kwargs["batch"]
-
-        _, instance_inputs, instance_targets, instance_info = trainer.decode_batch(
-            batch
-        )
-        instance_indices = {idx.data.item() for idx in instance_info["index"]}
+        instance_indices = [idx.data.item() for idx in batch_info["index"]]
         self.__sample_result_dict = None
         self.__task_size = None
 
-        sample_indices = []
-        real_inputs = []
-        real_targets = []
         dimension_permuted = False
         if trainer.dataset_collection.dataset_type == DatasetType.Text:
             if (
-                instance_inputs.shape[0] != instance_targets.shape[0]
-                and instance_inputs.shape[1] == instance_targets.shape[0]
+                inputs.shape[0] != targets.shape[0]
+                and inputs.shape[1] == targets.shape[0]
             ):
-                instance_inputs = instance_inputs.permute(1, 0)
+                inputs = inputs.permute(1, 0)
+                if input_embeddings is not None:
+                    input_embeddings = input_embeddings.permute(1, 0, 2)
                 dimension_permuted = True
+        if input_embeddings is None:
+            input_embeddings = [None] * len(instance_indices)
 
-        for (instance_input, instance_target, instance_index) in zip(
-            instance_inputs, instance_targets, instance_indices
+        sample_indices = []
+        processed_inputs = []
+        processed_embeddings = []
+        processed_targets = []
+        for (instance_input, input_embedding, instance_target, instance_index) in zip(
+            inputs, input_embeddings, targets, instance_indices
         ):
             if (self.__sample_selector is not None) and not self.__sample_selector(
                 instance_index, instance_input
             ):
                 continue
-            if not dimension_permuted:
-                instance_input.unsqueeze_(0)
-            else:
-                instance_input.unsqueeze_(1)
+            unsqueeze_idx = 0 if not dimension_permuted else 1
+            instance_input.unsqueeze_(unsqueeze_idx)
+            if input_embedding is not None:
+                input_embedding.unsqueeze_(unsqueeze_idx)
             instance_target.unsqueeze_(0)
-            real_inputs.append(instance_input)
-            real_targets.append(instance_target)
             sample_indices.append(instance_index)
+            processed_inputs.append(instance_input)
+            processed_embeddings.append(input_embedding)
+            processed_targets.append(instance_target)
         if not sample_indices:
             return
-        self.__compute_sample_info(
+        self.__schedule_computation(
             trainer,
             sample_indices,
-            real_inputs,
-            real_targets,
+            processed_inputs,
+            processed_embeddings,
+            processed_targets,
         )
 
     def _after_execute(self, **_):
@@ -100,7 +102,12 @@ class SampleComputationHook(Hook):
             self._task_queue = None
 
     def _process_samples(
-        self, model_with_loss, sample_indices, inputs, targets
+        self,
+        model_with_loss,
+        sample_indices: list,
+        inputs: list,
+        embeddings: list,
+        targets: list,
     ) -> list:
         return zip(
             *(
@@ -111,15 +118,20 @@ class SampleComputationHook(Hook):
                         // self._task_queue.worker_num,
                     )
                 )
-                for data in (sample_indices, inputs, targets)
+                for data in (sample_indices, inputs, embeddings, targets)
             )
         )
 
-    def __compute_sample_info(
-        self, trainer, sample_indices: list, inputs: list, targets: list
+    def __schedule_computation(
+        self,
+        trainer,
+        sample_indices: list,
+        inputs: list,
+        embeddings: list,
+        targets: list,
     ) -> None:
-        trainer.model_with_loss.model.zero_grad(set_to_none=True)
         model_with_loss = trainer.copy_model_with_loss(deepcopy=True)
+        model_with_loss.model.zero_grad(set_to_none=True)
         model_with_loss.model.cpu()
         if self._task_queue is None:
             max_needed_cuda_bytes = None
@@ -135,7 +147,7 @@ class SampleComputationHook(Hook):
             self._task_queue.start()
         self.__task_size = 0
         for task in self._process_samples(
-            model_with_loss, sample_indices, inputs, targets
+            model_with_loss, sample_indices, inputs, embeddings, targets
         ):
             self.__task_size += 1
             if self.extra_args:
