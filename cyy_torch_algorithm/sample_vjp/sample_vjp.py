@@ -32,7 +32,6 @@ def sample_vjp_worker_fun(product_transform, vector, task, args):
         model_util=model_with_loss.model_util,
         forward_embedding=forward_embedding,
     )
-
     parameter_list = model_with_loss.model_util.get_parameter_list(detach=True)
 
     def grad_f(*input_tensors):

@@ -22,14 +22,6 @@ class SampleComputationHook(Hook):
     def _get_worker_fun(self) -> Callable:
         raise NotImplementedError()
 
-    def iterate_result(self):
-        if self.__task_size is None:
-            return
-        for _ in range(self.__task_size):
-            for sample_index, result in self._task_queue.get_result().items():
-                yield (sample_index, result)
-        return
-
     @property
     def sample_result_dict(self):
         if self.__sample_result_dict is None:
@@ -46,9 +38,10 @@ class SampleComputationHook(Hook):
     def set_computed_indices(self, indices):
         self.set_sample_selector(lambda sample_index, *args: sample_index in indices)
 
-    def _after_batch(self, inputs, input_embeddings, targets, batch_info, **kwargs):
-        trainer = kwargs["model_executor"]
-        instance_indices = [idx.data.item() for idx in batch_info["index"]]
+    def _after_batch(
+        self, model_executor, inputs, input_embeddings, targets, batch_info, **kwargs
+    ):
+        trainer = model_executor
         self.__sample_result_dict = None
         self.__task_size = None
 
@@ -62,6 +55,7 @@ class SampleComputationHook(Hook):
                 if input_embeddings is not None:
                     input_embeddings = input_embeddings.permute(1, 0, 2)
                 dimension_permuted = True
+        instance_indices = [idx.data.item() for idx in batch_info["index"]]
         if input_embeddings is None:
             input_embeddings = [None] * len(instance_indices)
 
@@ -69,8 +63,8 @@ class SampleComputationHook(Hook):
         processed_inputs = []
         processed_embeddings = []
         processed_targets = []
-        for (instance_input, input_embedding, instance_target, instance_index) in zip(
-            inputs, input_embeddings, targets, instance_indices
+        for (instance_index, instance_input, input_embedding, instance_target) in zip(
+            instance_indices, inputs, input_embeddings, targets
         ):
             if (self.__sample_selector is not None) and not self.__sample_selector(
                 instance_index, instance_input
@@ -88,11 +82,11 @@ class SampleComputationHook(Hook):
         if not sample_indices:
             return
         self.__schedule_computation(
-            trainer,
-            sample_indices,
-            processed_inputs,
-            processed_embeddings,
-            processed_targets,
+            trainer=trainer,
+            sample_indices=sample_indices,
+            inputs=processed_inputs,
+            embeddings=processed_embeddings,
+            targets=processed_targets,
         )
 
     def _after_execute(self, **_):
