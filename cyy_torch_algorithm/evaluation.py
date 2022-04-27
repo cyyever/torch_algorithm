@@ -42,7 +42,7 @@ def eval_model_foreach(
     input_shape=None,
     model_util=None,
     phase=MachineLearningPhase.Training,
-    forward_embedding=False,
+    is_input_feature=False,
     non_blocking=False,
 ):
     if model_util is None:
@@ -52,24 +52,24 @@ def eval_model_foreach(
         check_parameter=False,
         as_parameter=False,
     )
-    if not forward_embedding:
-        model_fun = model_with_loss.model
-    else:
-        model_fun = model_with_loss.model.forward_embedding
 
     if input_shape is not None:
         inputs = [sample_input.view(input_shape) for sample_input in inputs]
 
     total_loss = None
+    kwargs = {
+        "device": device,
+        "non_blocking": non_blocking,
+        "phase": phase,
+    }
     for sample_input, sample_target in zip(inputs, targets):
-        loss = model_with_loss(
-            sample_input,
-            sample_target,
-            device=device,
-            non_blocking=non_blocking,
-            phase=phase,
-            model_fun=model_fun,
-        )["loss"]
+        kwargs["targets"] = sample_target
+        if is_input_feature:
+            kwargs["input_features"] = sample_input
+            kwargs["inputs"] = None
+        else:
+            kwargs["inputs"] = sample_input
+        loss = model_with_loss(**kwargs)["loss"]
         if total_loss is None:
             total_loss = loss
         else:

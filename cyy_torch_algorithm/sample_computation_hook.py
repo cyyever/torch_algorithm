@@ -39,7 +39,7 @@ class SampleComputationHook(Hook):
         self.set_sample_selector(lambda sample_index, *args: sample_index in indices)
 
     def _after_batch(
-        self, model_executor, inputs, input_embeddings, targets, batch_info, **kwargs
+        self, model_executor, inputs, input_features, targets, batch_info, **kwargs
     ):
         trainer = model_executor
         self.__sample_result_dict = None
@@ -52,40 +52,40 @@ class SampleComputationHook(Hook):
                 and inputs.shape[1] == targets.shape[0]
             ):
                 inputs = inputs.permute(1, 0)
-                if input_embeddings is not None:
-                    input_embeddings = input_embeddings.permute(1, 0, 2)
+                if input_features is not None:
+                    input_features = input_features.permute(1, 0, 2)
                 dimension_permuted = True
-        instance_indices = [idx.data.item() for idx in batch_info["index"]]
-        if input_embeddings is None:
-            input_embeddings = [None] * len(instance_indices)
+        sample_indices = [idx.data.item() for idx in batch_info["index"]]
+        if input_features is None:
+            input_features = [None] * len(sample_indices)
 
-        sample_indices = []
+        processed_indices = []
         processed_inputs = []
-        processed_embeddings = []
+        processed_features = []
         processed_targets = []
-        for (instance_index, instance_input, input_embedding, instance_target) in zip(
-            instance_indices, inputs, input_embeddings, targets
+        for (sample_index, sample_input, input_feature, sample_target) in zip(
+            sample_indices, inputs, input_features, targets
         ):
             if (self.__sample_selector is not None) and not self.__sample_selector(
-                instance_index, instance_input
+                sample_index, sample_input
             ):
                 continue
             unsqueeze_idx = 0 if not dimension_permuted else 1
-            instance_input.unsqueeze_(unsqueeze_idx)
-            if input_embedding is not None:
-                input_embedding.unsqueeze_(unsqueeze_idx)
-            instance_target.unsqueeze_(0)
-            sample_indices.append(instance_index)
-            processed_inputs.append(instance_input)
-            processed_embeddings.append(input_embedding)
-            processed_targets.append(instance_target)
-        if not sample_indices:
+            sample_input.unsqueeze_(unsqueeze_idx)
+            if input_feature is not None:
+                input_feature.unsqueeze_(unsqueeze_idx)
+            sample_target.unsqueeze_(0)
+            processed_indices.append(sample_index)
+            processed_inputs.append(sample_input)
+            processed_features.append(input_feature)
+            processed_targets.append(sample_target)
+        if not processed_indices:
             return
         self.__schedule_computation(
             trainer=trainer,
-            sample_indices=sample_indices,
+            sample_indices=processed_indices,
             inputs=processed_inputs,
-            embeddings=processed_embeddings,
+            input_features=processed_features,
             targets=processed_targets,
         )
 
@@ -100,7 +100,7 @@ class SampleComputationHook(Hook):
         model_with_loss,
         sample_indices: list,
         inputs: list,
-        embeddings: list,
+        input_features: list,
         targets: list,
     ) -> list:
         return zip(
@@ -112,7 +112,7 @@ class SampleComputationHook(Hook):
                         // self._task_queue.worker_num,
                     )
                 )
-                for data in (sample_indices, inputs, embeddings, targets)
+                for data in (sample_indices, inputs, input_features, targets)
             )
         )
 
@@ -121,7 +121,7 @@ class SampleComputationHook(Hook):
         trainer,
         sample_indices: list,
         inputs: list,
-        embeddings: list,
+        input_features: list,
         targets: list,
     ) -> None:
         model_with_loss = trainer.copy_model_with_loss(deepcopy=True)
@@ -141,7 +141,7 @@ class SampleComputationHook(Hook):
             self._task_queue.start()
         self.__task_size = 0
         for task in self._process_samples(
-            model_with_loss, sample_indices, inputs, embeddings, targets
+            model_with_loss, sample_indices, inputs, input_features, targets
         ):
             self.__task_size += 1
             if self.extra_args:
