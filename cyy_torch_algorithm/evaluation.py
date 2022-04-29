@@ -1,7 +1,7 @@
 from cyy_torch_toolbox.ml_type import MachineLearningPhase
 
 
-def eval_model_by_parameter(
+def eval_model(
     parameter_list,
     inputs,
     targets,
@@ -9,7 +9,8 @@ def eval_model_by_parameter(
     model_with_loss,
     model_util=None,
     phase=MachineLearningPhase.Training,
-    forward_embedding=False,
+    non_blocking=False,
+    is_input_feature=False,
 ):
     if model_util is None:
         model_util = model_with_loss.model_util
@@ -18,19 +19,19 @@ def eval_model_by_parameter(
         check_parameter=False,
         as_parameter=False,
     )
-    if not forward_embedding:
-        model_fun = model_with_loss.model
+    kwargs = {
+        "targets": targets,
+        "device": device,
+        "non_blocking": non_blocking,
+        "phase": phase,
+    }
+    if is_input_feature:
+        kwargs["input_features"] = inputs
+        kwargs["inputs"] = None
     else:
-        model_fun = model_with_loss.model.forward_embedding
+        kwargs["inputs"] = inputs
 
-    return model_with_loss(
-        inputs,
-        targets,
-        device=device,
-        non_blocking=False,
-        phase=phase,
-        model_fun=model_fun,
-    )["loss"]
+    return model_with_loss(**kwargs)["loss"]
 
 
 def eval_model_foreach(

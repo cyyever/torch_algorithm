@@ -15,7 +15,7 @@ from cyy_torch_toolbox.model_executor import ModelExecutor
 from cyy_torch_toolbox.model_with_loss import ModelWithLoss
 from functorch import grad, vjp
 
-from evaluation import eval_model_by_parameter
+from evaluation import eval_model
 
 local_data = threading.local()
 
@@ -30,11 +30,10 @@ def worker_fun(task, args):
     vector_chunk = tuple(vector_chunk)
     model_with_loss.model.to(worker_device)
     parameter_list = model_with_loss.model_util.get_parameter_list(detach=True)
-
     _, vjp_fn = vjp(
         grad(
             functools.partial(
-                eval_model_by_parameter,
+                eval_model,
                 inputs=inputs,
                 targets=targets,
                 device=worker_device,
@@ -44,24 +43,6 @@ def worker_fun(task, args):
         parameter_list,
     )
     products = [vjp_fn(v.to(worker_device))[0] for v in vector_chunk]
-
-    # products = [
-    #     jvp(
-    #         grad(
-    #             __get_f(
-    #                 worker_device,
-    #                 inputs,
-    #                 targets,
-    #                 model_with_loss,
-    #                 model_util,
-    #             )
-    #         ),
-    #         (parameter_list,),
-    #         (v.to(worker_device),),
-    #     )
-    #     for v in vector_chunk
-    # ]
-
     return (idx, products)
 
 
