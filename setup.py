@@ -18,7 +18,6 @@ setuptools.setup(
         "cyy_torch_algorithm/data_structure",
         "cyy_torch_algorithm/shapely_value",
         "cyy_torch_algorithm/sample_gradient",
-        "cyy_torch_algorithm/sample_jvp",
         "cyy_torch_algorithm/sample_vjp",
     ],
     classifiers=[

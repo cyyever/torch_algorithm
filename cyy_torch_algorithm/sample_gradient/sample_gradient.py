@@ -29,7 +29,7 @@ def sample_gradient_worker_fun(gradient_transform, task, args):
                 device=worker_device,
                 model_with_loss=model_with_loss,
                 model_util=model_with_loss.model_util,
-                input_feature_chunk=input_feature_chunk,
+                is_input_feature=is_input_feature,
             )
         ),
         in_dims=(None, 0, 0),
