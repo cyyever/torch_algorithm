@@ -71,10 +71,10 @@ class SampleComputationHook(Hook):
             ):
                 continue
             unsqueeze_idx = 0 if not dimension_permuted else 1
-            sample_input.unsqueeze_(unsqueeze_idx)
+            sample_input = sample_input.unsqueeze(unsqueeze_idx)
             if input_feature is not None:
-                input_feature.unsqueeze_(unsqueeze_idx)
-            sample_target.unsqueeze_(0)
+                input_feature = input_feature.unsqueeze(unsqueeze_idx)
+            sample_target = sample_target.unsqueeze(0)
             processed_indices.append(sample_index)
             processed_inputs.append(sample_input)
             processed_features.append(input_feature)

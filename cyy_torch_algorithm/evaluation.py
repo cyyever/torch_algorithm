@@ -11,6 +11,7 @@ def eval_model(
     phase=MachineLearningPhase.Training,
     non_blocking=False,
     is_input_feature=False,
+    input_shape=None,
 ):
     if model_util is None:
         model_util = model_with_loss.model_util
@@ -25,6 +26,8 @@ def eval_model(
         "non_blocking": non_blocking,
         "phase": phase,
     }
+    if input_shape is not None:
+        inputs = inputs.view(input_shape)
     if is_input_feature:
         kwargs["input_features"] = inputs
         kwargs["inputs"] = None
