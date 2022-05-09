@@ -29,7 +29,7 @@ def sample_vjp_worker_fun(product_transform, vector, task, args):
     model_with_loss.model.to(worker_device)
     parameter_list = model_with_loss.model_util.get_parameter_list(detach=True)
     with torch.cuda.stream(worker_stream):
-        vector = vector.to(worker_device, non_blocking=True)
+        vector = put_data_to_device(vector, device=worker_device, non_blocking=True)
         is_input_feature = input_feature_chunk[0] is not None
         raw_input_chunk = input_chunk
         if is_input_feature:
