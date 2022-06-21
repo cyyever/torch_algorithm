@@ -5,8 +5,8 @@ import threading
 import torch.autograd
 import torch.cuda
 from cyy_torch_toolbox.device import put_data_to_device
-from evaluation import eval_model_foreach
-from functorch import grad
+from evaluation import eval_model
+from functorch import grad, vjp, vmap
 
 local_data = threading.local()
 
@@ -29,41 +29,48 @@ def sample_vjp_worker_fun(product_transform, vector, task, args):
     model_with_loss.model.to(worker_device)
     parameter_list = model_with_loss.model_util.get_parameter_list(detach=True)
     with torch.cuda.stream(worker_stream):
-        vector = vector.to(worker_device, non_blocking=True)
+        vector = put_data_to_device(vector, device=worker_device, non_blocking=True)
         is_input_feature = input_feature_chunk[0] is not None
-        raw_input_chunk = put_data_to_device(
+        raw_input_chunk = input_chunk
+        if is_input_feature:
+            input_chunk = input_feature_chunk
+        input_chunk = put_data_to_device(
             input_chunk, device=worker_device, non_blocking=True
         )
-        if is_input_feature:
-            input_chunk = put_data_to_device(
-                input_feature_chunk, device=worker_device, non_blocking=True
+
+        def vjp_wrapper(parameter_list, input_tensor, target):
+            f = functools.partial(
+                eval_model,
+                targets=target,
+                device=worker_device,
+                model_with_loss=model_with_loss,
+                input_shape=input_chunk[0].shape,
+                model_util=model_with_loss.model_util,
+                is_input_feature=is_input_feature,
+                non_blocking=True,
             )
-        else:
-            input_chunk = raw_input_chunk
-        f = functools.partial(
-            eval_model_foreach,
-            targets=target_chunk,
-            device=worker_device,
-            model_with_loss=model_with_loss,
-            input_shape=input_chunk[0].shape,
-            model_util=model_with_loss.model_util,
-            is_input_feature=is_input_feature,
-            non_blocking=True,
+
+            def grad_f(input_tensor):
+                return grad(f, argnums=0)(parameter_list, input_tensor).view(-1)
+
+            vjpfunc = vjp(grad_f, input_tensor.view(-1))[1]
+            return vjpfunc(vector)[0]
+
+        products = vmap(vjp_wrapper, in_dims=(None, 0, 0), randomness="different",)(
+            parameter_list,
+            torch.stack(input_feature_chunk)
+            if is_input_feature
+            else torch.stack(input_chunk),
+            torch.stack(target_chunk),
         )
 
-        def grad_f(*input_tensors):
-            return grad(f, argnums=0)(parameter_list, input_tensors).view(-1)
-
-        products = product = torch.autograd.functional.vjp(
-            func=grad_f, inputs=tuple(t.view(-1) for t in input_chunk), v=vector
-        )[1]
-        worker_stream.synchronize()
-
-    result = {}
-    for index, raw_input_tensor, input_tensor, product in zip(
-        sample_indices, raw_input_chunk, input_chunk, products
-    ):
-        if product_transform is not None:
-            product = product_transform(index, raw_input_tensor, input_tensor, product)
-        result[index] = product
+        result = {}
+        for index, input_tensor, input_feature_tensor, product in zip(
+            sample_indices, raw_input_chunk, input_feature_chunk, products
+        ):
+            if product_transform is not None:
+                product = product_transform(
+                    index, input_tensor, input_feature_tensor, product
+                )
+            result[index] = product
     return result
