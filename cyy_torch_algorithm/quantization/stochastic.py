@@ -24,9 +24,11 @@ class StochasticQuant:
                 if not isinstance(next(iter(data.values())), torch.Tensor):
                     return {k: self.__call__(v) for k, v in data.items()}
                 name_and_shapes = []
-                for k in sorted(tensor.keys()):
-                    name_and_shapes.append((k, tensor[k].shape))
-                tensor = cat_tensors_to_vector(get_mapping_values_by_key_order(tensor))
+                for k in sorted(data.keys()):
+                    name_and_shapes.append((k, data[k].shape))
+                tensor = cat_tensors_to_vector(get_mapping_values_by_key_order(data))
+            case _:
+                return data
 
         old_tensor_shape = tensor.shape
         tensor = tensor.reshape(-1)
