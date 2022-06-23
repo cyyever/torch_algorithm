@@ -15,24 +15,27 @@ class StochasticQuant:
         self.quantization_level = quantization_level
         self.use_l2_norm = use_l2_norm
 
-    def __call__(self, tensor):
+    def __call__(self, data):
         name_and_shapes = None
-        if isinstance(tensor, dict):
-            name_and_shapes = []
-            for k in sorted(tensor.keys()):
-                name_and_shapes.append((k, tensor[k].shape))
-            tensor = cat_tensors_to_vector(get_mapping_values_by_key_order(tensor))
+        match data:
+            case torch.Tensor():
+                tensor = data
+            case dict():
+                if not isinstance(next(iter(data.values())), torch.Tensor()):
+                    return {k: self.__call__(v) for k, v in data.items()}
+                name_and_shapes = []
+                for k in sorted(tensor.keys()):
+                    name_and_shapes.append((k, tensor[k].shape))
+                tensor = cat_tensors_to_vector(get_mapping_values_by_key_order(tensor))
 
         old_tensor_shape = tensor.shape
         tensor = tensor.reshape(-1)
-        assert len(tensor.shape) == 1
 
         norm = None
         if self.use_l2_norm:
             norm = torch.linalg.norm(tensor)
         else:
             norm = torch.linalg.norm(tensor, ord=float("inf"))
-        assert norm > 0
         sign_tensor = torch.sign(tensor)
         normalized_abs_tensor = tensor.abs() / norm
         tmp = normalized_abs_tensor * self.quantization_level
@@ -40,7 +43,6 @@ class StochasticQuant:
         prob_tensor = tmp - slot_tensor
         random_vector = torch.distributions.Bernoulli(prob_tensor).sample()
         slot_tensor += random_vector
-
         sign_tensor = numpy.packbits(
             ((sign_tensor + 1) / 2).to(torch.bool).to(get_cpu_device()).numpy()
         )
@@ -48,24 +50,28 @@ class StochasticQuant:
             slot_tensor = slot_tensor.to(torch.uint8)
         slot_tensor = slot_tensor.reshape(old_tensor_shape)
 
-        return (
-            norm,
-            sign_tensor,
-            slot_tensor,
-            self.quantization_level,
-            name_and_shapes,
-        )
+        return {
+            "norm": norm,
+            "sign": sign_tensor,
+            "slot": slot_tensor,
+            "quantization_level": self.quantization_level,
+            "name_and_shapes": name_and_shapes,
+        }
 
 
 class StochasticDequant:
-    def __call__(self, quantized_pair):
-        (
-            norm,
-            sign_tensor,
-            quantized_tensor,
-            quantization_level,
-            name_and_shapes,
-        ) = quantized_pair
+    def __call__(self, data):
+        match data:
+            case dict():
+                if "quantization_level" not in data:
+                    return {k: self.__call__(v) for k, v in data.items()}
+                norm = data["norm"]
+                sign_tensor = data["sign"]
+                quantized_tensor = data["slot"]
+                quantization_level = data["quantization_level"]
+                name_and_shapes = data["name_and_shapes"]
+            case _:
+                return data
 
         quantized_tensor = quantized_tensor.float()
         quantized_tensor *= norm
