@@ -21,7 +21,7 @@ class StochasticQuant:
             case torch.Tensor():
                 tensor = data
             case dict():
-                if not isinstance(next(iter(data.values())), torch.Tensor()):
+                if not isinstance(next(iter(data.values())), torch.Tensor):
                     return {k: self.__call__(v) for k, v in data.items()}
                 name_and_shapes = []
                 for k in sorted(tensor.keys()):
