@@ -130,6 +130,7 @@ class ImprovedStochasticQuant:
                 "mean": mean,
                 "tensor_shape": old_tensor_shape,
                 "compression_ratio": 0,
+                "quantization_level": 0,
             }
 
         quantization_level = int(
@@ -212,20 +213,17 @@ class NeuralNetworkImprovedStochasticQuant(ImprovedStochasticQuant):
                 return data
 
     @classmethod
-    def check_compression_ratio(cls, quantized_data):
-        result = []
+    def check_compression_ratio(cls, quantized_data, prefix=None):
         compressed_parameter_num = 0
-        total_parameter_num = 0
         quantization_levels = []
         parameter_numbers = []
 
         def collection(quantized_data):
-            nonlocal result, total_parameter_num, quantization_levels, compressed_parameter_num
+            nonlocal quantization_levels, compressed_parameter_num
             if not isinstance(quantized_data, dict):
                 return
             if "tensor_shape" in quantized_data:
                 parameter_num = numpy.prod(quantized_data["tensor_shape"])
-                total_parameter_num += parameter_num
                 compressed_parameter_num += (
                     parameter_num * quantized_data["compression_ratio"]
                 )
@@ -233,7 +231,6 @@ class NeuralNetworkImprovedStochasticQuant(ImprovedStochasticQuant):
                 quantization_levels.append(0)
             elif "quantization_level" in quantized_data:
                 parameter_num = numpy.prod(quantized_data["sign_tensor"].shape)
-                total_parameter_num += parameter_num
                 compressed_parameter_num += (
                     parameter_num * quantized_data["compression_ratio"]
                 )
@@ -244,15 +241,22 @@ class NeuralNetworkImprovedStochasticQuant(ImprovedStochasticQuant):
                     collection(v)
 
         collection(quantized_data)
-        assert parameter_numbers
+        if not parameter_numbers:
+            return
 
+        total_parameter_num = sum(parameter_numbers)
         parameter_ratio = [a / total_parameter_num for a in parameter_numbers]
+        if prefix is None:
+            prefix = ""
         get_logger().info(
-            "avg quantization level %s",
+            "%s avg quantization level %s",
+            prefix,
             sum([a * b for a, b in zip(quantization_levels, parameter_ratio)]),
         )
         get_logger().info(
-            "NN compression ratio is %s", compressed_parameter_num / total_parameter_num
+            "%s NNISQ compression ratio is %s",
+            prefix,
+            compressed_parameter_num / total_parameter_num,
         )
 
 
