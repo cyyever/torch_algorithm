@@ -1,25 +1,14 @@
-#!/usr/bin/env python3
 import functools
-import threading
 
-import torch.autograd
 import torch.cuda
+from cyy_torch_algorithm.sample_computation_hook import setup_cuda_device
 from cyy_torch_toolbox.device import put_data_to_device
 from evaluation import eval_model
 from functorch import grad, vjp, vmap
 
-local_data = threading.local()
-
 
 def sample_vjp_worker_fun(product_transform, vector, task, args):
-    worker_device = getattr(local_data, "worker_device", None)
-    if worker_device is None:
-        worker_device = args["device"]
-        local_data.worker_device = worker_device
-    worker_stream = getattr(local_data, "worker_stream", None)
-    if worker_stream is None:
-        worker_stream = torch.cuda.Stream(device=worker_device)
-        local_data.worker_stream = worker_stream
+    worker_device, worker_stream = setup_cuda_device(args)
     model_with_loss, (
         sample_indices,
         input_chunk,
