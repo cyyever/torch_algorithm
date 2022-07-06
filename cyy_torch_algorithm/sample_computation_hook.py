@@ -18,7 +18,6 @@ class SampleComputationHook(Hook):
         self.__sample_result_dict = None
         self.__task_queue = None
         self.__task_size: int | None = None
-        self.extra_args: dict = {}
 
     def _get_worker_fun(self) -> Callable:
         raise NotImplementedError()
@@ -144,7 +143,7 @@ class SampleComputationHook(Hook):
             sample_indices, inputs, input_features, targets
         ):
             self.__task_size += 1
-            self.__task_queue.add_task((model_with_loss, task, self.extra_args))
+            self.__task_queue.add_task((model_with_loss, task))
 
 
 local_data = threading.local()

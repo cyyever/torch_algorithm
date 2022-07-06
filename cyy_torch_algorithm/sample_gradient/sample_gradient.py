@@ -9,9 +9,14 @@ from cyy_torch_algorithm.sample_computation_hook import setup_cuda_device
 from functorch import grad, vmap
 
 
-def sample_gradient_worker_fun(gradient_transform, model_with_loss, task, args):
+def sample_gradient_worker_fun(gradient_transform, task, args):
     worker_device, worker_stream = setup_cuda_device(args)
-    sample_indices, input_chunk, input_feature_chunk, target_chunk = task
+    model_with_loss, (
+        sample_indices,
+        input_chunk,
+        input_feature_chunk,
+        target_chunk,
+    ) = task
     is_input_feature = input_feature_chunk[0] is not None
     gradient_lists = vmap(
         grad(
