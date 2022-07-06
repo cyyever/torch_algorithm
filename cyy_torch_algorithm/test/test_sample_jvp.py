@@ -15,7 +15,7 @@ def test_CV_jvp():
     config.hyper_parameter_config.find_learning_rate = False
     trainer = config.create_trainer()
     hook = SampleJVPHook()
-    hook.set_vector(torch.ones((32,32)).view(-1))
+    hook.set_vector(torch.ones((32, 32)).view(-1))
     trainer.append_hook(hook)
 
     def print_products(**kwargs):
