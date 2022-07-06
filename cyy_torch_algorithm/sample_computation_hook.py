@@ -1,4 +1,5 @@
-from typing import Callable
+import threading
+from typing import Any, Callable
 
 import torch
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
@@ -15,7 +16,7 @@ class SampleComputationHook(Hook):
         self.dataset_index_hook = AddIndexToDataset()
         self.__sample_selector = None
         self.__sample_result_dict = None
-        self._task_queue = None
+        self.__task_queue = None
         self.__task_size: int | None = None
         self.extra_args: dict = {}
 
@@ -29,7 +30,7 @@ class SampleComputationHook(Hook):
                 return {}
             self.__sample_result_dict = {}
             for _ in range(self.__task_size):
-                self.__sample_result_dict |= self._task_queue.get_result()
+                self.__sample_result_dict |= self.__task_queue.get_result()
         return self.__sample_result_dict
 
     def set_sample_selector(self, selector: Callable) -> None:
@@ -66,7 +67,7 @@ class SampleComputationHook(Hook):
         for (sample_index, sample_input, input_feature, sample_target) in zip(
             sample_indices, inputs, input_features, targets
         ):
-            if (self.__sample_selector is not None) and not self.__sample_selector(
+            if self.__sample_selector is not None and not self.__sample_selector(
                 sample_index, sample_input
             ):
                 continue
@@ -91,13 +92,12 @@ class SampleComputationHook(Hook):
 
     def _after_execute(self, **_):
         self.__sample_result_dict = None
-        if self._task_queue is not None:
-            self._task_queue.release()
-            self._task_queue = None
+        if self.__task_queue is not None:
+            self.__task_queue.release()
+            self.__task_queue = None
 
-    def _process_samples(
+    def __process_samples(
         self,
-        model_with_loss,
         sample_indices: list,
         inputs: list,
         input_features: list,
@@ -108,8 +108,8 @@ class SampleComputationHook(Hook):
                 tuple(
                     split_list_to_chunks(
                         data,
-                        (len(data) + self._task_queue.worker_num - 1)
-                        // self._task_queue.worker_num,
+                        (len(data) + self.__task_queue.worker_num - 1)
+                        // self.__task_queue.worker_num,
                     )
                 )
                 for data in (sample_indices, inputs, input_features, targets)
@@ -118,7 +118,7 @@ class SampleComputationHook(Hook):
 
     def __schedule_computation(
         self,
-        trainer,
+        trainer: Any,
         sample_indices: list,
         inputs: list,
         input_features: list,
@@ -127,24 +127,36 @@ class SampleComputationHook(Hook):
         model_with_loss = trainer.copy_model_with_loss(deepcopy=True)
         model_with_loss.model.zero_grad(set_to_none=True)
         model_with_loss.model.cpu()
-        if self._task_queue is None:
+        if self.__task_queue is None:
             max_needed_cuda_bytes = None
             stats = torch.cuda.memory_stats(device=trainer.device)
             if stats:
                 max_needed_cuda_bytes = stats["allocated_bytes.all.peak"]
 
-            self._task_queue = TorchProcessTaskQueue(
+            self.__task_queue = TorchProcessTaskQueue(
                 worker_fun=self._get_worker_fun(),
                 move_data_in_cpu=True,
                 max_needed_cuda_bytes=max_needed_cuda_bytes,
             )
-            self._task_queue.start()
+            self.__task_queue.start()
         self.__task_size = 0
-        for task in self._process_samples(
-            model_with_loss, sample_indices, inputs, input_features, targets
+        for task in self.__process_samples(
+            sample_indices, inputs, input_features, targets
         ):
             self.__task_size += 1
-            if self.extra_args:
-                self._task_queue.add_task((model_with_loss, task, self.extra_args))
-            else:
-                self._task_queue.add_task((model_with_loss, task))
+            self.__task_queue.add_task((model_with_loss, task, self.extra_args))
+
+
+local_data = threading.local()
+
+
+def setup_cuda_device(args):
+    worker_device = getattr(local_data, "worker_device", None)
+    if worker_device is None:
+        worker_device = args["device"]
+        local_data.worker_device = worker_device
+    worker_stream = getattr(local_data, "worker_stream", None)
+    if worker_stream is None:
+        worker_stream = torch.cuda.Stream(device=worker_device)
+        local_data.worker_stream = worker_stream
+    return worker_device, worker_stream

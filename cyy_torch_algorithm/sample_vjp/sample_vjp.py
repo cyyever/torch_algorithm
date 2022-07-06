@@ -45,7 +45,6 @@ def sample_vjp_worker_fun(product_transform, vector, task, args):
                 device=worker_device,
                 model_with_loss=model_with_loss,
                 input_shape=input_chunk[0].shape,
-                model_util=model_with_loss.model_util,
                 is_input_feature=is_input_feature,
                 non_blocking=True,
             )

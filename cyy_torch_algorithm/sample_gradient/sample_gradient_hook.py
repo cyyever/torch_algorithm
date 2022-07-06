@@ -10,13 +10,12 @@ class SampleGradientHook(SampleComputationHook):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.__gradient_transform: Callable | None = None
-        self.set_gradient_transform(None)
 
     def set_gradient_transform(self, f):
         self.__gradient_transform = f
 
     def sample_gradient_dict(self):
-        return self.sample_result_dict()
+        return self.sample_result_dict
 
     def _get_worker_fun(self):
         return functools.partial(sample_gradient_worker_fun, self.__gradient_transform)

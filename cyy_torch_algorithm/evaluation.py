@@ -7,14 +7,12 @@ def eval_model(
     targets,
     device,
     model_with_loss,
-    model_util=None,
     phase=MachineLearningPhase.Training,
-    non_blocking=False,
+    non_blocking=True,
     is_input_feature=False,
     input_shape=None,
 ):
-    if model_util is None:
-        model_util = model_with_loss.model_util
+    model_util = model_with_loss.model_util
     model_util.load_parameter_list(
         parameter_list.to(device),
         check_parameter=False,
