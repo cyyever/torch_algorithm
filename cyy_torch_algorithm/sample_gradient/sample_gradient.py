@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import functools
-import threading
 
 import torch
 from cyy_torch_algorithm.evaluation import eval_model
