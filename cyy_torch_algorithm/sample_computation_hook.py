@@ -1,3 +1,4 @@
+import functools
 import threading
 from typing import Any, Callable
 
@@ -9,6 +10,52 @@ from cyy_torch_toolbox.hook import Hook
 from cyy_torch_toolbox.hooks.add_index_to_dataset import AddIndexToDataset
 from cyy_torch_toolbox.ml_type import DatasetType
 
+local_data = threading.local()
+
+
+def setup_cuda_device(args):
+    worker_device = getattr(local_data, "worker_device", None)
+    if worker_device is None:
+        worker_device = args["device"]
+        local_data.worker_device = worker_device
+    worker_stream = getattr(local_data, "worker_stream", None)
+    if worker_stream is None:
+        worker_stream = torch.cuda.Stream(device=worker_device)
+        local_data.worker_stream = worker_stream
+    return worker_device, worker_stream
+
+
+def common_worker_fun(result_transform, worker_fun, task, args):
+    worker_device, worker_stream = setup_cuda_device(args)
+    model_with_loss, (
+        sample_indices,
+        inputs,
+        input_features,
+        targets,
+    ) = task
+    res = worker_fun(
+        model_with_loss=model_with_loss,
+        sample_indices=sample_indices,
+        inputs=inputs,
+        input_features=input_features,
+        targets=targets,
+        worker_device=worker_device,
+        worker_stream=worker_stream,
+    )
+    if result_transform is not None:
+        for index, input_tensor, input_feature, target in zip(
+            sample_indices, inputs, input_features, targets
+        ):
+            if index in res:
+                res[index] = result_transform(
+                    index=index,
+                    result=res[index],
+                    input_tensor=input_tensor,
+                    input_feature=input_feature,
+                    target=target,
+                )
+    return res
+
 
 class SampleComputationHook(Hook):
     def __init__(self, **kwargs):
@@ -18,6 +65,10 @@ class SampleComputationHook(Hook):
         self.__sample_result_dict = None
         self.__task_queue = None
         self.__task_size: int | None = None
+        self.__result_transform: Callable | None = None
+
+    def set_result_transform(self, f):
+        self.__result_transform = f
 
     def _get_worker_fun(self) -> Callable:
         raise NotImplementedError()
@@ -133,7 +184,9 @@ class SampleComputationHook(Hook):
                 max_needed_cuda_bytes = stats["allocated_bytes.all.peak"]
 
             self.__task_queue = TorchProcessTaskQueue(
-                worker_fun=self._get_worker_fun(),
+                worker_fun=functools.partial(
+                    common_worker_fun, self.__result_transform, self._get_worker_fun()
+                ),
                 move_data_in_cpu=True,
                 max_needed_cuda_bytes=max_needed_cuda_bytes,
             )
@@ -144,18 +197,3 @@ class SampleComputationHook(Hook):
         ):
             self.__task_size += 1
             self.__task_queue.add_task((model_with_loss, task))
-
-
-local_data = threading.local()
-
-
-def setup_cuda_device(args):
-    worker_device = getattr(local_data, "worker_device", None)
-    if worker_device is None:
-        worker_device = args["device"]
-        local_data.worker_device = worker_device
-    worker_stream = getattr(local_data, "worker_stream", None)
-    if worker_stream is None:
-        worker_stream = torch.cuda.Stream(device=worker_device)
-        local_data.worker_stream = worker_stream
-    return worker_device, worker_stream
