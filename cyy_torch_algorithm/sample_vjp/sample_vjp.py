@@ -45,9 +45,7 @@ def sample_vjp_worker_fun(
 
         products = vmap(vjp_wrapper, in_dims=(None, 0, 0), randomness="different",)(
             parameter_list,
-            torch.stack(input_features)
-            if is_input_feature
-            else torch.stack(inputs),
+            torch.stack(inputs),
             torch.stack(targets),
         )
 
