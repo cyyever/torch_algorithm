@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import torch
-import torch.nn as nn
-from cyy_torch_algorithm.sample_jvp.sample_jvp_hook import SampleJVPHook
+from cyy_torch_algorithm.sample_gjvp.sample_gjvp_hook import \
+    SampleGradientJVPHook
 from cyy_torch_toolbox.default_config import DefaultConfig
 from cyy_torch_toolbox.ml_type import (ModelExecutorHookPoint,
                                        StopExecutingException)
@@ -14,7 +14,7 @@ def test_CV_jvp():
     config.hyper_parameter_config.learning_rate = 0.01
     config.hyper_parameter_config.find_learning_rate = False
     trainer = config.create_trainer()
-    hook = SampleJVPHook()
+    hook = SampleGradientJVPHook()
     hook.set_vector(torch.ones((32, 32)).view(-1))
     trainer.append_hook(hook)
 

@@ -18,13 +18,13 @@ def test_CV_vjp():
     hook.set_vector(torch.ones_like(trainer.model_util.get_parameter_list()).view(-1))
     trainer.append_hook(hook)
 
-    def print_sample_gradients(**kwargs):
+    def print_result(**kwargs):
         if hook.sample_result_dict:
             print(hook.sample_result_dict)
             raise StopExecutingException()
 
     trainer.append_named_hook(
-        ModelExecutorHookPoint.AFTER_BATCH, "check gradients", print_sample_gradients
+        ModelExecutorHookPoint.AFTER_BATCH, "check gradients", print_result
     )
     trainer.train()
 
@@ -44,12 +44,12 @@ def test_NLP_vjp():
     hook.set_vector(torch.ones_like(trainer.model_util.get_parameter_list()).view(-1))
     trainer.append_hook(hook)
 
-    def print_sample_gradients(**kwargs):
+    def print_result(**kwargs):
         if hook.sample_result_dict:
             print(hook.sample_result_dict)
             raise StopExecutingException()
 
     trainer.append_named_hook(
-        ModelExecutorHookPoint.AFTER_BATCH, "check gradients", print_sample_gradients
+        ModelExecutorHookPoint.AFTER_BATCH, "check gradients", print_result
     )
     trainer.train()
