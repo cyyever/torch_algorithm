@@ -42,7 +42,7 @@ def test_NLP_vjp():
     trainer = config.create_trainer()
     trainer.model_util.freeze_modules(module_type=torch.nn.Embedding)
     hook = SampleGradientJVPHook()
-    hook.set_vector(torch.ones((1, 100*300)).view(-1))
+    hook.set_vector(torch.ones((1, 100 * 300)).view(-1))
     trainer.append_hook(hook)
 
     def print_result(**kwargs):

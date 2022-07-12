@@ -1,7 +1,6 @@
 import functools
 
 import torch.cuda
-from cyy_torch_algorithm.sample_computation_hook import setup_cuda_device
 from cyy_torch_toolbox.device import put_data_to_device
 from evaluation import eval_model
 from functorch import grad, vjp, vmap
