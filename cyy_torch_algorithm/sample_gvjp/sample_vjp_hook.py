@@ -1,12 +1,9 @@
 import functools
 
-import torch.cuda
-from cyy_torch_toolbox.device import put_data_to_device
-from evaluation import eval_model
-from functorch import grad, vjp, vmap
+from cyy_torch_algorithm.sample_computation_hook import SampleComputationHook
 
 
-def sample_vjp_worker_fun(
+def sample_gvjp_worker_fun(
     vector,
     model_with_loss,
     sample_indices,
@@ -47,5 +44,16 @@ def sample_vjp_worker_fun(
             torch.stack(inputs),
             torch.stack(targets),
         )
-
         return dict(zip(sample_indices, products))
+
+
+class SampleGradientVJPHook(SampleComputationHook):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.__vector = None
+
+    def set_vector(self, vector):
+        self.__vector = vector
+
+    def _get_worker_fun(self):
+        return functools.partial(sample_gvjp_worker_fun, self.__vector)
