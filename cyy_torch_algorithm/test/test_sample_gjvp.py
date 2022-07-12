@@ -9,7 +9,6 @@ from cyy_torch_toolbox.ml_type import (ModelExecutorHookPoint,
 
 
 def test_CV_jvp():
-    return
     config = DefaultConfig("MNIST", "lenet5")
     config.hyper_parameter_config.epoch = 1
     config.hyper_parameter_config.batch_size = 8
