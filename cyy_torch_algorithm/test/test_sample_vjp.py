@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 import torch
 import torch.nn as nn
-from cyy_torch_algorithm.sample_vjp.sample_vjp_hook import SampleVJPHook
+from cyy_torch_algorithm.sample_gvjp.sample_gvjp_hook import \
+    SampleGradientVJPHook
 from cyy_torch_toolbox.default_config import DefaultConfig
 from cyy_torch_toolbox.ml_type import (ModelExecutorHookPoint,
                                        StopExecutingException)
@@ -14,7 +15,7 @@ def test_CV_vjp():
     config.hyper_parameter_config.learning_rate = 0.01
     config.hyper_parameter_config.find_learning_rate = False
     trainer = config.create_trainer()
-    hook = SampleVJPHook()
+    hook = SampleGradientVJPHook()
     hook.set_vector(torch.ones_like(trainer.model_util.get_parameter_list()).view(-1))
     trainer.append_hook(hook)
 
@@ -40,7 +41,7 @@ def test_NLP_vjp():
     config.hyper_parameter_config.find_learning_rate = False
     trainer = config.create_trainer()
     trainer.model_util.freeze_modules(module_type=nn.Embedding)
-    hook = SampleVJPHook()
+    hook = SampleGradientVJPHook()
     hook.set_vector(torch.ones_like(trainer.model_util.get_parameter_list()).view(-1))
     trainer.append_hook(hook)
 

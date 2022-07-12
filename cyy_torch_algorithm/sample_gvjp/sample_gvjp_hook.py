@@ -1,6 +1,11 @@
 import functools
 
+import torch
+import torch.cuda
+from cyy_torch_algorithm.evaluation import eval_model
 from cyy_torch_algorithm.sample_computation_hook import SampleComputationHook
+from cyy_torch_toolbox.device import put_data_to_device
+from functorch import grad, vjp, vmap
 
 
 def sample_gvjp_worker_fun(

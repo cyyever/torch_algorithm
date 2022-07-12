@@ -10,8 +10,8 @@ from cyy_torch_toolbox.ml_type import (ModelExecutorHookPoint,
 
 def test_CV_sample_gradient():
     config = DefaultConfig("MNIST", "lenet5")
-    config.make_reproducible_env = True
-    config.apply_global_config()
+    # config.make_reproducible_env = True
+    # config.apply_global_config()
     config.hyper_parameter_config.epoch = 1
     config.hyper_parameter_config.batch_size = 8
     config.hyper_parameter_config.learning_rate = 0.01
