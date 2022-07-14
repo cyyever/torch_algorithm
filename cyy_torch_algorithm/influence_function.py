@@ -1,4 +1,5 @@
-from .data_structure.synced_tensor_dict import SyncedTensorDict
+from cyy_torch_cpp_extension.data_structure import SyncedTensorDict
+
 from .inverse_hessian_vector_product import \
     stochastic_inverse_hessian_vector_product
 
@@ -11,7 +12,7 @@ def compute_influence_function(
     dampling_term=0,
     scale=1,
     epsilon=0.0001,
-):
+) -> dict:
     training_dataset_size = len(trainer.dataset)
     if batch_size is None:
         batch_size = trainer.hyper_parameter.batch_size
@@ -29,8 +30,8 @@ def compute_influence_function(
         )
         / training_dataset_size
     )
-    contributions = dict()
 
-    for (sample_index, sample_gradient) in training_sample_gradient_dict.iterate():
-        contributions[sample_index] = (product @ sample_gradient).data.item()
-    return contributions
+    return {
+        sample_index: (product @ sample_gradient).data.item()
+        for (sample_index, sample_gradient) in training_sample_gradient_dict.iterate()
+    }
