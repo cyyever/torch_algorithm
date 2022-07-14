@@ -13,7 +13,6 @@ def compute_influence_function(
     trainer: Trainer,
     computed_indices,
     test_gradient=None,
-    batch_size=None,
     dampling_term=0,
     scale=1,
     epsilon=0.0001,
@@ -24,8 +23,6 @@ def compute_influence_function(
         inferencer = trainer.get_inferencer(phase=MachineLearningPhase.Test)
         test_gradient = inferencer.get_gradient()
 
-    if batch_size is None:
-        batch_size = trainer.hyper_parameter.batch_size
     product = (
         stochastic_inverse_hessian_vector_product(
             trainer.dataset,
@@ -33,7 +30,7 @@ def compute_influence_function(
             test_gradient,
             repeated_num=3,
             max_iteration=None,
-            batch_size=batch_size,
+            batch_size=trainer.hyper_parameter.batch_size,
             dampling_term=dampling_term,
             scale=scale,
             epsilon=epsilon,
