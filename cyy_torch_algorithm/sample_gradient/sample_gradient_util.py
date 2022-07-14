@@ -10,4 +10,5 @@ def get_sample_gradient_dict(inferencer, computed_indices=None):
         hook.set_computed_indices(computed_indices)
     tmp_inferencer.append_hook(hook)
     tmp_inferencer.inference(use_grad=True)
+    assert hook.sample_result_dict
     return hook.sample_result_dict

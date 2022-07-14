@@ -1,19 +1,29 @@
 from cyy_torch_cpp_extension.data_structure import SyncedTensorDict
+from cyy_torch_toolbox.ml_type import MachineLearningPhase
+from cyy_torch_toolbox.trainer import Trainer
+
+from cyy_torch_algorithm.sample_gradient.sample_gradient_util import \
+    get_sample_gradient_dict
 
 from .inverse_hessian_vector_product import \
     stochastic_inverse_hessian_vector_product
 
 
 def compute_influence_function(
-    trainer,
-    test_gradient,
-    training_sample_gradient_dict: SyncedTensorDict,
+    trainer: Trainer,
+    computed_indices,
+    test_gradient=None,
     batch_size=None,
     dampling_term=0,
     scale=1,
     epsilon=0.0001,
 ) -> dict:
     training_dataset_size = len(trainer.dataset)
+
+    if test_gradient is None:
+        inferencer = trainer.get_inferencer(phase=MachineLearningPhase.Test)
+        test_gradient = inferencer.get_gradient()
+
     if batch_size is None:
         batch_size = trainer.hyper_parameter.batch_size
     product = (
@@ -31,6 +41,10 @@ def compute_influence_function(
         / training_dataset_size
     )
 
+    inferencer = trainer.get_inferencer(phase=MachineLearningPhase.Training)
+    training_sample_gradient_dict = get_sample_gradient_dict(
+        inferencer, computed_indices
+    )
     return {
         sample_index: (product @ sample_gradient).data.item()
         for (sample_index, sample_gradient) in training_sample_gradient_dict.iterate()
