@@ -248,16 +248,11 @@ class NeuralNetworkImprovedStochasticQuant(ImprovedStochasticQuant):
         parameter_ratio = [a / total_parameter_num for a in parameter_numbers]
         if prefix is None:
             prefix = ""
-        get_logger().info(
-            "%s avg quantization level %s",
-            prefix,
-            sum([a * b for a, b in zip(quantization_levels, parameter_ratio)]),
-        )
-        get_logger().info(
-            "%s NNISQ compression ratio is %s",
-            prefix,
-            compressed_parameter_num / total_parameter_num,
-        )
+        avg_level = sum([a * b for a, b in zip(quantization_levels, parameter_ratio)])
+        compression_ratio = (compressed_parameter_num / total_parameter_num,)
+        get_logger().info("%s avg quantization level %s", prefix, avg_level)
+        get_logger().info("%s NNISQ compression ratio is %s", prefix, compression_ratio)
+        return avg_level, compression_ratio
 
 
 class NeuralNetworkImprovedStochasticDequant(ImprovedStochasticDequant):
