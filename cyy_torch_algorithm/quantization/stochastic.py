@@ -242,7 +242,7 @@ class NeuralNetworkImprovedStochasticQuant(ImprovedStochasticQuant):
 
         collection(quantized_data)
         if not parameter_numbers:
-            return
+            return 0, 0
 
         total_parameter_num = sum(parameter_numbers)
         parameter_ratio = [a / total_parameter_num for a in parameter_numbers]
