@@ -155,7 +155,7 @@ class NeuralNetworkAdaptiveDeterministicQuant(AdaptiveDeterministicQuant):
         if prefix is None:
             prefix = ""
         avg_level = sum([a * b for a, b in zip(quantization_levels, parameter_ratio)])
-        compression_ratio = (compressed_parameter_num / total_parameter_num,)
+        compression_ratio = compressed_parameter_num / total_parameter_num
         get_logger().info("%s avg quantization level %s", prefix, avg_level)
         get_logger().info("%s NNABQ compression ratio is %s", prefix, compression_ratio)
         return avg_level, compression_ratio
