@@ -48,9 +48,9 @@ def compute_influence_function_new(
     trainer: Trainer,
     computed_indices,
     test_gradient=None,
-    dampling_term=0,
-    scale=1,
-    epsilon=0.0001,
+    dampling_term=0.01,
+    scale=1000,
+    epsilon=0.03,
 ) -> dict:
 
     if test_gradient is None:
