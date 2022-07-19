@@ -142,6 +142,8 @@ class SampleComputationHook(Hook):
 
     def _after_execute(self, **_):
         self.__sample_result_dict = None
+
+    def __del__(self):
         if self.__task_queue is not None:
             self.__task_queue.release()
             self.__task_queue = None

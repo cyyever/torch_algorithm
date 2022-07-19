@@ -2,6 +2,8 @@ import functools
 
 import torch
 import torch.cuda
+from cyy_naive_lib.log import get_logger
+# from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_algorithm.evaluation import eval_model
 from cyy_torch_algorithm.sample_computation_hook import SampleComputationHook
 from cyy_torch_toolbox.device import put_data_to_device
@@ -18,6 +20,8 @@ def batch_hvp_worker_fun(
     worker_device,
     worker_stream,
 ):
+    # time_counter = TimeCounter(debug_logging=False)
+    # time_counter.reset_start_time()
     model_with_loss.model.to(worker_device)
     parameter_list = model_with_loss.model_util.get_parameter_list(detach=True)
     with torch.cuda.stream(worker_stream):
@@ -32,7 +36,7 @@ def batch_hvp_worker_fun(
             torch.stack(targets), device=worker_device, non_blocking=True
         )
 
-        def vjp_wrapper(parameter_list, vector):
+        def vjp_wrapper(vector):
             return jvp(
                 grad(
                     functools.partial(
@@ -49,10 +53,10 @@ def batch_hvp_worker_fun(
                 (vector,),
             )[1]
 
-        products = vmap(vjp_wrapper, in_dims=(None, 0), randomness="different",)(
-            parameter_list,
+        products = vmap(vjp_wrapper, randomness="different",)(
             torch.stack(vectors),
         )
+        # get_logger().error("use %s ms", time_counter.elapsed_milliseconds())
         return {0: products}
 
 
