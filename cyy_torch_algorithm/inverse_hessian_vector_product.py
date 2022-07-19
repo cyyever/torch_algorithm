@@ -98,6 +98,7 @@ def stochastic_inverse_hessian_vector_product_new(
     )
 
     def iteration():
+        v = v.cpu()
         cur_product = copy.deepcopy(v)
         iteration_num = 0
         hook = BatchHVPHook()
@@ -108,13 +109,6 @@ def stochastic_inverse_hessian_vector_product_new(
             nonlocal cur_product
             hook.set_vectors([cur_product])
 
-        tmp_inferencer = copy.deepcopy(inferencer)
-        tmp_inferencer.append_named_hook(
-            hook_point=ModelExecutorHookPoint.AFTER_BATCH,
-            name="set_vectors",
-            fun=set_vectors,
-        )
-        tmp_inferencer.append_hook(hook)
         result = None
 
         def compute_product(**kwargs) -> None:
@@ -124,7 +118,7 @@ def stochastic_inverse_hessian_vector_product_new(
             next_product = (
                 v
                 + (1 - dampling_term) * cur_product
-                - hook.sample_result_dict[0][0].to(get_device()) / scale
+                - hook.sample_result_dict[0][0].cpu() / scale
             )
             diff = torch.dist(cur_product, next_product)
             get_logger().debug(
@@ -138,6 +132,19 @@ def stochastic_inverse_hessian_vector_product_new(
             if (diff <= epsilon or iteration_num >= max_iteration) and epoch > 1:
                 result = cur_product / scale
                 raise StopExecutingException()
+
+        tmp_inferencer = copy.deepcopy(inferencer)
+        tmp_inferencer.append_named_hook(
+            hook_point=ModelExecutorHookPoint.AFTER_BATCH,
+            name="set_vectors",
+            fun=set_vectors,
+        )
+        tmp_inferencer.append_hook(hook)
+        tmp_inferencer.append_named_hook(
+            hook_point=ModelExecutorHookPoint.AFTER_BATCH,
+            name="compute_product",
+            fun=compute_product,
+        )
 
         while result is None:
             tmp_inferencer.inference(use_grad=True, epoch=epoch)
