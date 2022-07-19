@@ -97,7 +97,7 @@ def stochastic_inverse_hessian_vector_product_new(
         epsilon,
     )
 
-    def iteration():
+    def iteration() -> torch.Tensor:
         nonlocal v
         v = v.cpu()
         cur_product = copy.deepcopy(v)
@@ -122,15 +122,18 @@ def stochastic_inverse_hessian_vector_product_new(
                 - hook.sample_result_dict[0][0].cpu() / scale
             )
             diff = torch.dist(cur_product, next_product)
-            get_logger().debug(
-                "diff is %s, iteration is %s, max_iteration is %s",
+            get_logger().error(
+                "diff is %s, epsilon is %s, epoch is %s,iteration is %s, max_iteration is %s",
                 diff,
+                epsilon,
+                epoch,
                 iteration_num,
                 max_iteration,
             )
             cur_product = next_product
             iteration_num += 1
-            if (diff <= epsilon or iteration_num >= max_iteration) and epoch > 1:
+                # and epoch > 1:
+            if (diff <= epsilon or iteration_num >= max_iteration):
                 result = cur_product / scale
                 raise StopExecutingException()
 
@@ -150,9 +153,10 @@ def stochastic_inverse_hessian_vector_product_new(
         while result is None:
             tmp_inferencer.inference(use_grad=False, epoch=epoch)
             epoch += 1
-            get_logger().debug(
+            get_logger().error(
                 "stochastic_inverse_hessian_vector_product epoch is %s", epoch
             )
+        return result
 
     product_list = [iteration() for _ in range(repeated_num)]
     return sum(product_list) / len(product_list)
