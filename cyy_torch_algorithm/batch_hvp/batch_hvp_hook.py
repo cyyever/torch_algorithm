@@ -25,8 +25,12 @@ def batch_hvp_worker_fun(
         is_input_feature = input_features[0] is not None
         if is_input_feature:
             inputs = input_features
-        inputs = put_data_to_device(inputs, device=worker_device, non_blocking=True)
-        targets = put_data_to_device(targets, device=worker_device, non_blocking=True)
+        inputs = put_data_to_device(
+            torch.stack(inputs).squeeze(dim=1), device=worker_device, non_blocking=True
+        )
+        targets = put_data_to_device(
+            torch.stack(targets), device=worker_device, non_blocking=True
+        )
 
         def vjp_wrapper(parameter_list, vector):
             return jvp(
@@ -37,7 +41,6 @@ def batch_hvp_worker_fun(
                         targets=targets,
                         device=worker_device,
                         model_with_loss=model_with_loss,
-                        input_shape=inputs[0].shape,
                         is_input_feature=is_input_feature,
                         non_blocking=True,
                     )
