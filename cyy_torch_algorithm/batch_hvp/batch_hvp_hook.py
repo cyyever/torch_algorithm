@@ -7,6 +7,7 @@ from cyy_naive_lib.log import get_logger
 from cyy_torch_algorithm.evaluation import eval_model
 from cyy_torch_algorithm.sample_computation_hook import SampleComputationHook
 from cyy_torch_toolbox.device import put_data_to_device
+from cyy_torch_toolbox.ml_type import MachineLearningPhase
 from functorch import grad, jvp, vmap
 
 
@@ -47,6 +48,7 @@ def batch_hvp_worker_fun(
                         device=worker_device,
                         model_with_loss=model_with_loss,
                         is_input_feature=is_input_feature,
+                        phase=MachineLearningPhase.Test,
                         non_blocking=True,
                     )
                 ),
