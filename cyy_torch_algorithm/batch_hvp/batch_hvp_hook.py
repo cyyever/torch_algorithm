@@ -17,6 +17,7 @@ def batch_hvp_worker_fun(
     inputs,
     input_features,
     targets,
+    batch_dim,
     worker_device,
     worker_stream,
 ):
@@ -30,7 +31,7 @@ def batch_hvp_worker_fun(
         if is_input_feature:
             inputs = input_features
         inputs = put_data_to_device(
-            torch.stack(inputs).squeeze(dim=1), device=worker_device, non_blocking=True
+            torch.cat(inputs, dim=batch_dim), device=worker_device, non_blocking=True
         )
         targets = put_data_to_device(
             torch.stack(targets), device=worker_device, non_blocking=True

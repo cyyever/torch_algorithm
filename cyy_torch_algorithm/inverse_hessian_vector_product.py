@@ -98,6 +98,7 @@ def stochastic_inverse_hessian_vector_product_new(
     )
 
     def iteration():
+        nonlocal v
         v = v.cpu()
         cur_product = copy.deepcopy(v)
         iteration_num = 0
@@ -147,7 +148,7 @@ def stochastic_inverse_hessian_vector_product_new(
         )
 
         while result is None:
-            tmp_inferencer.inference(use_grad=True, epoch=epoch)
+            tmp_inferencer.inference(use_grad=False, epoch=epoch)
             epoch += 1
             get_logger().debug(
                 "stochastic_inverse_hessian_vector_product epoch is %s", epoch

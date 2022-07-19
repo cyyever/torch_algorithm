@@ -27,18 +27,14 @@ def setup_cuda_device(args):
 
 def common_worker_fun(result_transform, worker_fun, task, args):
     worker_device, worker_stream = setup_cuda_device(args)
-    model_with_loss, (
-        sample_indices,
-        inputs,
-        input_features,
-        targets,
-    ) = task
+    model_with_loss, (sample_indices, inputs, input_features, targets, batch_dim) = task
     res = worker_fun(
         model_with_loss=model_with_loss,
         sample_indices=sample_indices,
         inputs=inputs,
         input_features=input_features,
         targets=targets,
+        batch_dim=batch_dim,
         worker_device=worker_device,
         worker_stream=worker_stream,
     )
@@ -96,7 +92,7 @@ class SampleComputationHook(Hook):
         self.__sample_result_dict = None
         self.__task_size = None
 
-        dimension_permuted = False
+        batch_dim = 0
         if trainer.dataset_collection.dataset_type == DatasetType.Text:
             if (
                 inputs.shape[0] != targets.shape[0]
@@ -105,7 +101,7 @@ class SampleComputationHook(Hook):
                 inputs = inputs.permute(1, 0)
                 if input_features is not None:
                     input_features = input_features.permute(1, 0, 2)
-                dimension_permuted = True
+                batch_dim = 1
         sample_indices = [idx.data.item() for idx in batch_info["index"]]
         if input_features is None:
             input_features = [None] * len(sample_indices)
@@ -121,10 +117,9 @@ class SampleComputationHook(Hook):
                 sample_index, sample_input
             ):
                 continue
-            unsqueeze_idx = 0 if not dimension_permuted else 1
-            sample_input = sample_input.unsqueeze(unsqueeze_idx)
+            sample_input = sample_input.unsqueeze(batch_dim)
             if input_feature is not None:
-                input_feature = input_feature.unsqueeze(unsqueeze_idx)
+                input_feature = input_feature.unsqueeze(batch_dim)
             sample_target = sample_target.unsqueeze(0)
             processed_indices.append(sample_index)
             processed_inputs.append(sample_input)
@@ -138,6 +133,7 @@ class SampleComputationHook(Hook):
             inputs=processed_inputs,
             input_features=processed_features,
             targets=processed_targets,
+            batch_dim=batch_dim,
         )
 
     def _after_execute(self, **_):
@@ -175,6 +171,7 @@ class SampleComputationHook(Hook):
         inputs: list,
         input_features: list,
         targets: list,
+        batch_dim,
     ) -> None:
         model_with_loss = trainer.copy_model_with_loss(deepcopy=True)
         model_with_loss.model.zero_grad(set_to_none=True)
@@ -197,5 +194,6 @@ class SampleComputationHook(Hook):
         for task in self.__process_samples(
             sample_indices, inputs, input_features, targets
         ):
+            task = (*task, batch_dim)
             self.__task_size += 1
             self.__task_queue.add_task((model_with_loss, task))

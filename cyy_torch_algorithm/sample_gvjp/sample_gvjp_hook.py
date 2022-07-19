@@ -15,6 +15,7 @@ def sample_gvjp_worker_fun(
     inputs,
     input_features,
     targets,
+    batch_dim,
     worker_device,
     worker_stream,
 ):
