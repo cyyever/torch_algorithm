@@ -24,4 +24,4 @@ def get_sample_gradient_dict(inferencer, computed_indices=None) -> dict:
     )
     tmp_inferencer.inference(use_grad=True)
     assert gradients
-    return hook.sample_result_dict
+    return gradients
