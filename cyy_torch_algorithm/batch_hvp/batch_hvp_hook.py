@@ -8,7 +8,7 @@ from cyy_torch_toolbox.device import put_data_to_device
 from functorch import grad, jvp, vmap
 
 
-def sample_hvp_worker_fun(
+def batch_hvp_worker_fun(
     vectors,
     model_with_loss,
     sample_indices,
@@ -53,7 +53,7 @@ def sample_hvp_worker_fun(
         return dict(zip(sample_indices, products))
 
 
-class SampleHVPHook(SampleComputationHook):
+class BatchHVPHook(SampleComputationHook):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.__vectors = None
@@ -62,4 +62,4 @@ class SampleHVPHook(SampleComputationHook):
         self.__vectors = vectors
 
     def _get_worker_fun(self):
-        return functools.partial(sample_hvp_worker_fun, self.__vectors)
+        return functools.partial(batch_hvp_worker_fun, self.__vectors)
