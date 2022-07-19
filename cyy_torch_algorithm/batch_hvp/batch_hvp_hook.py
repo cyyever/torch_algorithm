@@ -50,7 +50,7 @@ def batch_hvp_worker_fun(
             parameter_list,
             torch.stack(vectors),
         )
-        return dict(zip(sample_indices, products))
+        return {0: products}
 
 
 class BatchHVPHook(SampleComputationHook):
