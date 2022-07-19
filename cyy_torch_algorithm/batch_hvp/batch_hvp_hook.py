@@ -28,9 +28,6 @@ def batch_hvp_worker_fun(
     parameter_list = model_with_loss.model_util.get_parameter_list(detach=True)
     with torch.cuda.stream(worker_stream):
         vectors = put_data_to_device(vectors, device=worker_device, non_blocking=True)
-        is_input_feature = input_features[0] is not None
-        if is_input_feature:
-            inputs = input_features
         inputs = put_data_to_device(
             torch.cat(inputs, dim=batch_dim), device=worker_device, non_blocking=True
         )
@@ -47,7 +44,6 @@ def batch_hvp_worker_fun(
                         targets=targets,
                         device=worker_device,
                         model_with_loss=model_with_loss,
-                        is_input_feature=is_input_feature,
                         phase=MachineLearningPhase.Test,
                         non_blocking=True,
                     )
