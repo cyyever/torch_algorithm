@@ -1,4 +1,3 @@
-from cyy_torch_cpp_extension.data_structure import SyncedTensorDict
 from cyy_torch_toolbox.ml_type import MachineLearningPhase
 from cyy_torch_toolbox.trainer import Trainer
 
