@@ -5,7 +5,7 @@ from cyy_torch_algorithm.sample_gradient_product.sample_gradient_product_hook im
     get_sample_gradient_product_dict
 
 from .inverse_hessian_vector_product import \
-    stochastic_inverse_hessian_vector_product_new
+    stochastic_inverse_hessian_vector_product
 
 
 def compute_influence_function(
@@ -23,7 +23,7 @@ def compute_influence_function(
         )
         test_gradient = inferencer.get_gradient()
 
-    product = stochastic_inverse_hessian_vector_product_new(
+    product = stochastic_inverse_hessian_vector_product(
         trainer.get_inferencer(phase=MachineLearningPhase.Training, copy_model=True),
         test_gradient,
         repeated_num=3,
