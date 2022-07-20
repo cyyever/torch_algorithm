@@ -11,6 +11,7 @@ from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
 from cyy_torch_toolbox.data_structure.torch_thread_task_queue import \
     TorchThreadTaskQueue
 from cyy_torch_toolbox.device import get_devices
+from cyy_torch_toolbox.ml_type import MachineLearningPhase
 from cyy_torch_toolbox.model_executor import ModelExecutor
 from cyy_torch_toolbox.model_with_loss import ModelWithLoss
 from functorch import grad, vjp
@@ -38,6 +39,7 @@ def worker_fun(task, args):
                 targets=targets,
                 device=worker_device,
                 model_with_loss=model_with_loss,
+                phase=MachineLearningPhase.Test,
             )
         ),
         parameter_list,
