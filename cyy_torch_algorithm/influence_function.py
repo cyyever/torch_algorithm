@@ -8,7 +8,7 @@ from .inverse_hessian_vector_product import \
     stochastic_inverse_hessian_vector_product_new
 
 
-def compute_influence_function_new(
+def compute_influence_function(
     trainer: Trainer,
     computed_indices,
     test_gradient=None,
