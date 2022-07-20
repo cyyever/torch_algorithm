@@ -21,12 +21,12 @@ class BatchComputationHook(ComputationHook):
         assert self.__data_fun is not None
         self._result_dict = None
         self._task_size = None
+        data = self.__data_fun()
+        if not data:
+            return
 
         self.__schedule_computation(
-            trainer=model_executor,
-            inputs=inputs,
-            targets=targets,
-            data=self.__data_fun(),
+            trainer=model_executor, inputs=inputs, targets=targets, data=data
         )
 
     def __schedule_computation(
