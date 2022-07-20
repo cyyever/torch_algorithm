@@ -16,7 +16,6 @@ def sample_gradient_product_worker_fun(
     inputs,
     input_features,
     targets,
-    batch_dim,
     worker_device,
     worker_stream,
 ):

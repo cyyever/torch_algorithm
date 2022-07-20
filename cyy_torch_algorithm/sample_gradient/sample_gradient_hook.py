@@ -3,8 +3,7 @@ from typing import Callable
 
 import torch
 from cyy_torch_algorithm.evaluation import eval_model
-from cyy_torch_algorithm.sample_computation_hook import (SampleComputationHook,
-                                                         setup_cuda_device)
+from cyy_torch_algorithm.sample_computation_hook import SampleComputationHook
 from functorch import grad, vmap
 
 
@@ -14,7 +13,6 @@ def sample_gradient_worker_fun(
     inputs,
     input_features,
     targets,
-    batch_dim,
     worker_device,
     worker_stream,
 ):
