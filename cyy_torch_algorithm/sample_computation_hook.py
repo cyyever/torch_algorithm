@@ -85,7 +85,7 @@ class SampleComputationHook(Hook):
     def set_computed_indices(self, indices):
         self.set_sample_selector(lambda sample_index, *args: sample_index in indices)
 
-    def _after_batch(
+    def _before_backward(
         self, model_executor, inputs, input_features, targets, batch_info, **kwargs
     ):
         trainer = model_executor
