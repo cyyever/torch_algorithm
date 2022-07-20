@@ -3,22 +3,19 @@ import functools
 import torch
 import torch.cuda
 from cyy_naive_lib.log import get_logger
+from cyy_torch_algorithm.batch_computation_hook import BatchComputationHook
 # from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_algorithm.evaluation import eval_model
-from cyy_torch_algorithm.sample_computation_hook import SampleComputationHook
 from cyy_torch_toolbox.device import put_data_to_device
 from cyy_torch_toolbox.ml_type import MachineLearningPhase
 from functorch import grad, jvp, vmap
 
 
 def batch_hvp_worker_fun(
-    vectors,
     model_with_loss,
-    sample_indices,
     inputs,
-    input_features,
     targets,
-    batch_dim,
+    data,
     worker_device,
     worker_stream,
 ):
@@ -27,13 +24,9 @@ def batch_hvp_worker_fun(
     model_with_loss.model.to(worker_device)
     parameter_list = model_with_loss.model_util.get_parameter_list(detach=True)
     with torch.cuda.stream(worker_stream):
-        vectors = put_data_to_device(vectors, device=worker_device, non_blocking=True)
-        inputs = put_data_to_device(
-            torch.cat(inputs, dim=batch_dim), device=worker_device, non_blocking=True
-        )
-        targets = put_data_to_device(
-            torch.stack(targets), device=worker_device, non_blocking=True
-        )
+        vectors = put_data_to_device(data, device=worker_device, non_blocking=True)
+        inputs = put_data_to_device(inputs, device=worker_device, non_blocking=True)
+        targets = put_data_to_device(targets, device=worker_device, non_blocking=True)
 
         def vjp_wrapper(vector):
             return jvp(
@@ -59,13 +52,9 @@ def batch_hvp_worker_fun(
         return {0: products}
 
 
-class BatchHVPHook(SampleComputationHook):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.__vectors = None
-
+class BatchHVPHook(BatchComputationHook):
     def set_vectors(self, vectors):
-        self.__vectors = vectors
+        self.set_data_fun(lambda: vectors)
 
     def _get_worker_fun(self):
-        return functools.partial(batch_hvp_worker_fun, self.__vectors)
+        return batch_hvp_worker_fun

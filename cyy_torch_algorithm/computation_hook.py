@@ -10,7 +10,7 @@ class ComputationHook(Hook):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.__result_dict = None
+        self._result_dict = None
         self._task_queue = None
         self._task_size: int | None = None
         self._result_transform: Callable | None = None
@@ -23,16 +23,16 @@ class ComputationHook(Hook):
 
     @property
     def result_dict(self):
-        if self.__result_dict is None:
+        if self._result_dict is None:
             if self._task_size is None:
                 return {}
-            self.__result_dict = {}
+            self._result_dict = {}
             for _ in range(self._task_size):
-                self.__result_dict |= self._task_queue.get_result()
-        return self.__result_dict
+                self._result_dict |= self._task_queue.get_result()
+        return self._result_dict
 
     def _after_execute(self, **_):
-        self.__result_dict = None
+        self._result_dict = None
 
     def __del__(self):
         if self._task_queue is not None:

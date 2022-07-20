@@ -17,9 +17,6 @@ class SampleComputationHook(ComputationHook):
         self.dataset_index_hook = AddIndexToDataset()
         self.__sample_selector = None
 
-    def _get_worker_fun(self) -> Callable:
-        raise NotImplementedError()
-
     @property
     def sample_result_dict(self):
         return self.result_dict
@@ -34,7 +31,7 @@ class SampleComputationHook(ComputationHook):
         self, model_executor, inputs, input_features, targets, batch_info, **kwargs
     ):
         trainer = model_executor
-        self.__sample_result_dict = None
+        self._sample_result_dict = None
         self._task_size = None
 
         batch_dim = 0

@@ -29,8 +29,8 @@ def test_CV_jvp():
     trainer.append_hook(hook)
 
     def print_products(**kwargs):
-        if hook.sample_result_dict:
-            print(hook.sample_result_dict)
+        if hook.result_dict:
+            print(hook.result_dict)
             get_logger().error("use time %s", time_counter.elapsed_milliseconds())
             raise StopExecutingException()
 
