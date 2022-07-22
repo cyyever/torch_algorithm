@@ -20,7 +20,6 @@ class BatchComputationHook(ComputationHook):
     def _after_forward(self, model_executor, inputs, targets, **kwargs):
         assert self.__data_fun is not None
         self._result_dict = None
-        self._task_size = None
         data = self.__data_fun()
         if not data:
             return
@@ -51,7 +50,6 @@ class BatchComputationHook(ComputationHook):
                 max_needed_cuda_bytes=max_needed_cuda_bytes,
             )
             self._task_queue.start()
-        self._task_size = 0
         for data_piece in split_list_to_chunks(
             data,
             (len(data) + self._task_queue.worker_num - 1)

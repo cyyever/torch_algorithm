@@ -31,8 +31,7 @@ class SampleComputationHook(ComputationHook):
         self, model_executor, inputs, input_features, targets, batch_info, **kwargs
     ):
         trainer = model_executor
-        self._sample_result_dict = None
-        self._task_size = None
+        self._result_dict = None
 
         batch_dim = 0
         if trainer.dataset_collection.dataset_type == DatasetType.Text:
@@ -124,7 +123,6 @@ class SampleComputationHook(ComputationHook):
                 max_needed_cuda_bytes=max_needed_cuda_bytes,
             )
             self._task_queue.start()
-        self._task_size = 0
         for task in self.__process_samples(
             sample_indices, inputs, input_features, targets
         ):
