@@ -2,6 +2,10 @@ import threading
 from typing import Callable
 
 import torch
+from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
+from cyy_naive_lib.log import get_logger
+from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
+    TorchProcessTaskQueue
 from cyy_torch_toolbox.hook import Hook
 
 
@@ -11,8 +15,8 @@ class ComputationHook(Hook):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._result_dict = None
-        self._task_queue = None
-        self._task_size: int = 0
+        self.__task_queue = None
+        self.__task_size: int = 0
         self._result_transform: Callable | None = None
 
     def set_result_transform(self, f):
@@ -25,18 +29,49 @@ class ComputationHook(Hook):
     def result_dict(self):
         if self._result_dict is None:
             self._result_dict = {}
-            for _ in range(self._task_size):
-                self._result_dict |= self._task_queue.get_result()
-            self._task_size = 0
+            for _ in range(self.__task_size):
+                self._result_dict |= self.__task_queue.get_result()
+            self.__task_size = 0
         return self._result_dict
+
+    def _split_data(self, data_list: list) -> list:
+        chunk_size = 24
+        if self.__task_queue is not None:
+            avg_chunk_size = (
+                len(data_list) + self.__task_queue.worker_num - 1
+            ) // self.__task_queue.worker_num
+            chunk_size = max(avg_chunk_size, chunk_size)
+        get_logger().error("chunk_size is %s", chunk_size)
+        return zip(
+            *(tuple(split_list_to_chunks(data, chunk_size)) for data in data_list)
+        )
+
+    def __get_task_queue(self, trainer, worker_fun) -> TorchProcessTaskQueue:
+        if self.__task_queue is None:
+            max_needed_cuda_bytes = None
+            stats = torch.cuda.memory_stats(device=trainer.device)
+            if stats:
+                max_needed_cuda_bytes = stats["allocated_bytes.all.peak"]
+
+            self.__task_queue = TorchProcessTaskQueue(
+                worker_fun=worker_fun,
+                move_data_in_cpu=True,
+                max_needed_cuda_bytes=max_needed_cuda_bytes,
+            )
+            self.__task_queue.start()
+        return self.__task_queue
+
+    def _add_task(self, trainer, worker_fun, task) -> None:
+        self.__task_size += 1
+        self.__get_task_queue(trainer, worker_fun).add_task(task)
 
     def _after_execute(self, **_):
         self._result_dict = None
 
     def __del__(self):
-        if self._task_queue is not None:
-            self._task_queue.release()
-            self._task_queue = None
+        if self.__task_queue is not None:
+            self.__task_queue.release()
+            self.__task_queue = None
 
     @classmethod
     def _setup_cuda_device(cls, advised_device):

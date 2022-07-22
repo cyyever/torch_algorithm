@@ -1,10 +1,6 @@
 import functools
-from typing import Any, Callable
+from typing import Callable
 
-import torch
-from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
-from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
-    TorchProcessTaskQueue
 from cyy_torch_toolbox.hooks.add_index_to_dataset import AddIndexToDataset
 from cyy_torch_toolbox.ml_type import DatasetType
 
@@ -68,78 +64,28 @@ class SampleComputationHook(ComputationHook):
             processed_targets.append(sample_target)
         if not processed_indices:
             return
-        self.__schedule_computation(
-            trainer=trainer,
-            sample_indices=processed_indices,
-            inputs=processed_inputs,
-            input_features=processed_features,
-            targets=processed_targets,
-        )
 
-    def __process_samples(
-        self,
-        sample_indices: list,
-        inputs: list,
-        input_features: list,
-        targets: list,
-    ) -> list:
-        return zip(
-            *(
-                tuple(
-                    split_list_to_chunks(
-                        data,
-                        (len(data) + self._task_queue.worker_num - 1)
-                        // self._task_queue.worker_num,
-                    )
-                )
-                for data in (sample_indices, inputs, input_features, targets)
-            )
-        )
-
-    def __schedule_computation(
-        self,
-        trainer: Any,
-        sample_indices: list,
-        inputs: list,
-        input_features: list,
-        targets: list,
-    ) -> None:
         model_with_loss = trainer.copy_model_with_loss(deepcopy=True)
         model_with_loss.model.zero_grad(set_to_none=True)
         model_with_loss.model.cpu()
-        if self._task_queue is None:
-            max_needed_cuda_bytes = None
-            stats = torch.cuda.memory_stats(device=trainer.device)
-            if stats:
-                max_needed_cuda_bytes = stats["allocated_bytes.all.peak"]
-
-            self._task_queue = TorchProcessTaskQueue(
-                worker_fun=functools.partial(
-                    SampleComputationHook.common_worker_fun,
-                    self._result_transform,
-                    self._get_worker_fun(),
-                ),
-                move_data_in_cpu=True,
-                max_needed_cuda_bytes=max_needed_cuda_bytes,
-            )
-            self._task_queue.start()
-        for task in self.__process_samples(
-            sample_indices, inputs, input_features, targets
+        worker_fun = functools.partial(
+            SampleComputationHook.common_worker_fun,
+            self._result_transform,
+            self._get_worker_fun(),
+        )
+        for task in self._split_data(
+            [processed_indices, processed_inputs, processed_features, processed_targets]
         ):
-            self._task_size += 1
-            self._task_queue.add_task((model_with_loss, task))
+            self._add_task(
+                trainer=trainer, worker_fun=worker_fun, task=(model_with_loss, *task)
+            )
 
     @classmethod
     def common_worker_fun(cls, result_transform, worker_fun, task, args):
         worker_device, worker_stream = ComputationHook._setup_cuda_device(
             args["device"]
         )
-        model_with_loss, (
-            sample_indices,
-            inputs,
-            input_features,
-            targets,
-        ) = task
+        model_with_loss, sample_indices, inputs, input_features, targets = task
         res = worker_fun(
             model_with_loss=model_with_loss,
             sample_indices=sample_indices,
