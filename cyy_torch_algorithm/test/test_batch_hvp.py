@@ -39,8 +39,8 @@ def test_CV_jvp():
     )
     v = torch.ones_like(parameter_vector).view(-1)
     hook.set_vectors([v * (i + 1) for i in range(100)])
-
     trainer.train()
-    hook.set_vectors([v * (i + 1) for i in range(100)])
 
-    trainer.train()
+    for _ in range(10):
+        hook.set_vectors([v * (i + 1) for i in range(100)])
+        trainer.train()
