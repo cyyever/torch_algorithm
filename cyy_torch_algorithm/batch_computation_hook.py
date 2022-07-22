@@ -17,7 +17,7 @@ class BatchComputationHook(ComputationHook):
     def set_data_fun(self, data_fun):
         self.__data_fun = data_fun
 
-    def _before_backward(self, model_executor, inputs, targets, **kwargs):
+    def _after_forward(self, model_executor, inputs, targets, **kwargs):
         assert self.__data_fun is not None
         self._result_dict = None
         self._task_size = None
