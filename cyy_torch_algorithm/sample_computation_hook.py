@@ -99,12 +99,11 @@ class SampleComputationHook(ComputationHook):
             for index, input_tensor, input_feature, target in zip(
                 sample_indices, inputs, input_features, targets
             ):
-                if index in res:
-                    res[index] = result_transform(
-                        index=index,
-                        result=res[index],
-                        input_tensor=input_tensor,
-                        input_feature=input_feature,
-                        target=target,
-                    )
+                res[index] = result_transform(
+                    index=index,
+                    result=res[index],
+                    input_tensor=input_tensor,
+                    input_feature=input_feature,
+                    target=target,
+                )
         return res
