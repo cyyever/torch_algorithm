@@ -41,7 +41,7 @@ class ComputationHook(Hook):
                 len(data_list) + self.__task_queue.worker_num - 1
             ) // self.__task_queue.worker_num
             chunk_size = max(avg_chunk_size, chunk_size)
-        get_logger().error("chunk_size is %s", chunk_size)
+        get_logger().debug("chunk_size is %s", chunk_size)
         return zip(
             *(tuple(split_list_to_chunks(data, chunk_size)) for data in data_list)
         )
