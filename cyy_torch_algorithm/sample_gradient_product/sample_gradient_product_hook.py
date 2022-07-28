@@ -54,11 +54,14 @@ class SampleGradientProductHook(SampleComputationHook):
         return functools.partial(sample_gradient_product_worker_fun, self.__vector)
 
 
-def get_sample_gradient_product_dict(inferencer, vector, computed_indices=None) -> dict:
+def get_sample_gradient_product_dict(
+    inferencer, vector, computed_indices=None, input_transform=None
+) -> dict:
     tmp_inferencer = copy.deepcopy(inferencer)
     hook = SampleGradientProductHook()
     if computed_indices is not None:
         hook.set_computed_indices(computed_indices)
+    hook.set_input_transform(input_transform)
     hook.set_vector(vector)
     products: dict = {}
     tmp_inferencer.append_hook(hook)

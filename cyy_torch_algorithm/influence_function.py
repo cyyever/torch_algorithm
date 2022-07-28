@@ -39,6 +39,7 @@ def compute_influence_function(
 
 def compute_perturbation_influence_function(
     trainer: Trainer,
+    computed_indices: set | None,
     perturbation_fun,
     test_gradient: torch.Tensor | None = None,
     inverse_hvp_arguments: None | dict = None,
@@ -58,4 +59,9 @@ def compute_perturbation_influence_function(
         inferencer, test_gradient, **inverse_hvp_arguments
     ) / len(trainer.dataset)
 
-    return get_sample_gradient_product_dict(inferencer, product, computed_indices)
+    return get_sample_gradient_product_dict(
+        inferencer=inferencer,
+        vector=product,
+        computed_indices=computed_indices,
+        input_transform=perturbation_fun,
+    )

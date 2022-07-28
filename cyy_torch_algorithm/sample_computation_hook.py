@@ -12,6 +12,7 @@ class SampleComputationHook(ComputationHook):
         super().__init__(**kwargs)
         self.dataset_index_hook = AddIndexToDataset()
         self.__sample_selector = None
+        self.__input_transform: Callable | None = None
 
     @property
     def sample_result_dict(self):
@@ -19,6 +20,9 @@ class SampleComputationHook(ComputationHook):
 
     def set_sample_selector(self, selector: Callable) -> None:
         self.__sample_selector = selector
+
+    def set_input_transform(self, transform: Callable) -> None:
+        self.__input_transform = transform
 
     def set_computed_indices(self, indices):
         self.set_sample_selector(lambda sample_index, *args: sample_index in indices)
@@ -54,6 +58,10 @@ class SampleComputationHook(ComputationHook):
             if input_feature is not None:
                 input_feature = input_feature.unsqueeze(batch_dim)
             sample_target = sample_target.unsqueeze(0)
+            if self.__input_transform is not None:
+                sample_input, input_feature = self.__input_transform(
+                    sample_input, input_feature
+                )
             processed_indices.append(sample_index)
             processed_inputs.append(sample_input)
             processed_features.append(input_feature)
