@@ -22,6 +22,6 @@ def get_sample_gradient_dict(inferencer, computed_indices=None) -> dict:
         name="collect_gradients",
         fun=collect_gradients,
     )
-    tmp_inferencer.inference(use_grad=True)
+    tmp_inferencer.inference()
     assert gradients
     return gradients

@@ -23,14 +23,11 @@ class SampleComputationHook(ComputationHook):
     def set_computed_indices(self, indices):
         self.set_sample_selector(lambda sample_index, *args: sample_index in indices)
 
-    def _after_forward(
-        self, model_executor, inputs, input_features, targets, batch_info, **kwargs
-    ):
-        trainer = model_executor
-        self._result_dict = None
+    def add_task(self, model_executor, sample_indices, inputs, input_features, targets):
+        self._reset_result()
 
         batch_dim = 0
-        if trainer.dataset_collection.dataset_type == DatasetType.Text:
+        if model_executor.dataset_collection.dataset_type == DatasetType.Text:
             if (
                 inputs.shape[0] != targets.shape[0]
                 and inputs.shape[1] == targets.shape[0]
@@ -39,7 +36,6 @@ class SampleComputationHook(ComputationHook):
                 if input_features is not None:
                     input_features = input_features.permute(1, 0, 2)
                 batch_dim = 1
-        sample_indices = [idx.data.item() for idx in batch_info["index"]]
         if input_features is None:
             input_features = [None] * len(sample_indices)
 
@@ -65,7 +61,7 @@ class SampleComputationHook(ComputationHook):
         if not processed_indices:
             return
 
-        model_with_loss = trainer.copy_model_with_loss(deepcopy=True)
+        model_with_loss = model_executor.copy_model_with_loss(deepcopy=True)
         model_with_loss.model.zero_grad(set_to_none=True)
         model_with_loss.model.cpu()
         worker_fun = functools.partial(
@@ -77,8 +73,22 @@ class SampleComputationHook(ComputationHook):
             [processed_indices, processed_inputs, processed_features, processed_targets]
         ):
             self._add_task(
-                trainer=trainer, worker_fun=worker_fun, task=(model_with_loss, *task)
+                model_executor=model_executor,
+                worker_fun=worker_fun,
+                task=(model_with_loss, *task),
             )
+
+    def _after_forward(
+        self, model_executor, inputs, input_features, targets, batch_info, **kwargs
+    ):
+        sample_indices = [idx.data.item() for idx in batch_info["index"]]
+        self.add_task(
+            model_executor=model_executor,
+            sample_indices=sample_indices,
+            inputs=inputs,
+            input_features=input_features,
+            targets=targets,
+        )
 
     @classmethod
     def common_worker_fun(cls, result_transform, worker_fun, task, args):

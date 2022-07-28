@@ -14,13 +14,12 @@ class BatchComputationHook(ComputationHook):
 
     def _after_forward(self, model_executor, inputs, targets, **kwargs):
         assert self.__data_fun is not None
-        self._result_dict = None
+        self._reset_result()
         data = self.__data_fun()
         if not data:
             return
 
-        trainer = model_executor
-        model_with_loss = trainer.copy_model_with_loss(deepcopy=True)
+        model_with_loss = model_executor.copy_model_with_loss(deepcopy=True)
         model_with_loss.model.zero_grad(set_to_none=True)
         model_with_loss.model.cpu()
         worker_fun = functools.partial(
@@ -30,7 +29,9 @@ class BatchComputationHook(ComputationHook):
         )
         for data_piece in self._split_data([data]):
             task = (model_with_loss, inputs, targets, *data_piece)
-            self._add_task(trainer=trainer, worker_fun=worker_fun, task=task)
+            self._add_task(
+                model_executor=model_executor, worker_fun=worker_fun, task=task
+            )
 
     @classmethod
     def common_worker_fun(cls, result_transform, worker_fun, task, args):
