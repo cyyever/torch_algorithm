@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import atexit
 import collections
-import functools
 import threading
 from typing import Callable
 
@@ -11,12 +10,10 @@ from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
 from cyy_torch_toolbox.data_structure.torch_thread_task_queue import \
     TorchThreadTaskQueue
 from cyy_torch_toolbox.device import get_devices
-from cyy_torch_toolbox.ml_type import MachineLearningPhase
 from cyy_torch_toolbox.model_executor import ModelExecutor
 from cyy_torch_toolbox.model_with_loss import ModelWithLoss
-from functorch import grad, vjp
 
-from evaluation import eval_model
+from cyy_torch_algorithm.batch_hvp.batch_hvp_hook import hvp
 
 local_data = threading.local()
 
@@ -27,24 +24,15 @@ def worker_fun(task, args):
         worker_device = args["device"]
         local_data.worker_device = worker_device
 
-    (idx, vector_chunk, model_with_loss, inputs, targets) = task
-    vector_chunk = tuple(vector_chunk)
-    model_with_loss.model.to(worker_device)
-    parameter_list = model_with_loss.model_util.get_parameter_list(detach=True)
-    _, vjp_fn = vjp(
-        grad(
-            functools.partial(
-                eval_model,
-                inputs=inputs,
-                targets=targets,
-                device=worker_device,
-                model_with_loss=model_with_loss,
-                phase=MachineLearningPhase.Test,
-            )
-        ),
-        parameter_list,
+    idx, vectors, model_with_loss, inputs, targets = task
+    vectors = tuple(vectors)
+    products = hvp(
+        model_with_loss=model_with_loss,
+        inputs=inputs,
+        targets=targets,
+        vectors=vectors,
+        worker_device=worker_device,
     )
-    products = [vjp_fn(v.to(worker_device))[0] for v in vector_chunk]
     return (idx, products)
 
 
