@@ -35,3 +35,27 @@ def compute_influence_function(
     ) / len(trainer.dataset)
 
     return get_sample_gradient_product_dict(inferencer, product, computed_indices)
+
+
+def compute_perturbation_influence_function(
+    trainer: Trainer,
+    perturbation_fun,
+    test_gradient: torch.Tensor | None = None,
+    inverse_hvp_arguments: None | dict = None,
+) -> dict:
+    if test_gradient is None:
+        inferencer = trainer.get_inferencer(
+            phase=MachineLearningPhase.Test, copy_model=True
+        )
+        test_gradient = inferencer.get_gradient()
+
+    inferencer = trainer.get_inferencer(
+        phase=MachineLearningPhase.Training, copy_model=True
+    )
+    if inverse_hvp_arguments is None:
+        inverse_hvp_arguments = __get_inverse_hvp_arguments()
+    product = stochastic_inverse_hessian_vector_product(
+        inferencer, test_gradient, **inverse_hvp_arguments
+    ) / len(trainer.dataset)
+
+    return get_sample_gradient_product_dict(inferencer, product, computed_indices)
