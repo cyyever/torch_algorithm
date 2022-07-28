@@ -39,8 +39,8 @@ def compute_influence_function(
 
 def compute_perturbation_influence_function(
     trainer: Trainer,
-    computed_indices: set | None,
-    perturbation_fun,
+    perturbation_funs: dict,
+    sample_selector_funs: dict,
     test_gradient: torch.Tensor | None = None,
     inverse_hvp_arguments: None | dict = None,
 ) -> dict:
@@ -55,13 +55,25 @@ def compute_perturbation_influence_function(
     )
     if inverse_hvp_arguments is None:
         inverse_hvp_arguments = __get_inverse_hvp_arguments()
-    product = stochastic_inverse_hessian_vector_product(
+    product = -stochastic_inverse_hessian_vector_product(
         inferencer, test_gradient, **inverse_hvp_arguments
     ) / len(trainer.dataset)
 
-    return get_sample_gradient_product_dict(
-        inferencer=inferencer,
-        vector=product,
-        computed_indices=computed_indices,
-        input_transform=perturbation_fun,
-    )
+    assert len(perturbation_funs) == len(sample_selector_funs)
+
+    result = {}
+    for perturbation_id, perturbation_fun in perturbation_funs.items():
+        result[perturbation_id] = sum(
+            get_sample_gradient_product_dict(
+                inferencer=inferencer,
+                vector=product,
+                input_transform=perturbation_fun,
+            ).values()
+        ) - sum(
+            get_sample_gradient_product_dict(
+                inferencer=inferencer,
+                vector=product,
+                sample_selector=sample_selector_funs[perturbation_id],
+            ).values()
+        )
+    return result
