@@ -59,10 +59,11 @@ class SampleComputationHook(ComputationHook):
                 input_feature = input_feature.unsqueeze(batch_dim)
             sample_target = sample_target.unsqueeze(0)
             if self.__input_transform is not None:
-                res = self.__input_transform(sample_input, input_feature)
+                res = self.__input_transform(sample_input)
                 if res is None:
                     continue
-                sample_input, input_feature = res
+                sample_input = res
+                input_feature = None
             processed_indices.append(sample_index)
             processed_inputs.append(sample_input)
             processed_features.append(input_feature)
