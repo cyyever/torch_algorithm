@@ -31,7 +31,7 @@ def sample_gradient_product_worker_fun(
             )
         ),
         in_dims=(None, 0, 0),
-        randomness="different",
+        randomness="same",
     )(
         model_with_loss.model_util.get_parameter_list(detach=True).to(worker_device),
         torch.stack(input_features) if is_input_feature else torch.stack(inputs),

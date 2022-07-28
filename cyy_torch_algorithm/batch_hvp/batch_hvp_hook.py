@@ -37,9 +37,7 @@ def hvp(model_with_loss, inputs, targets, vectors, worker_device):
             (vector,),
         )[1]
 
-    return vmap(vjp_wrapper, randomness="different",)(
-        torch.stack(vectors),
-    )
+    return vmap(vjp_wrapper, randomness="same")(torch.stack(vectors))
 
 
 def batch_hvp_worker_fun(

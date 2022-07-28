@@ -43,7 +43,7 @@ def sample_gjvp_worker_fun(
 
             return jvp(grad_f, (input_tensor.view(-1),), (vector,))[1]
 
-        products = vmap(jvp_wrapper, in_dims=(None, 0, 0), randomness="different",)(
+        products = vmap(jvp_wrapper, in_dims=(None, 0, 0), randomness="same",)(
             parameter_list,
             torch.stack(inputs),
             torch.stack(targets),

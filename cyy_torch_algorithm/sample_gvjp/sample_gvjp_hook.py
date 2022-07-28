@@ -44,7 +44,7 @@ def sample_gvjp_worker_fun(
             vjpfunc = vjp(grad_f, input_tensor.view(-1))[1]
             return vjpfunc(vector)[0]
 
-        products = vmap(vjp_wrapper, in_dims=(None, 0, 0), randomness="different",)(
+        products = vmap(vjp_wrapper, in_dims=(None, 0, 0), randomness="same")(
             parameter_list,
             torch.stack(inputs),
             torch.stack(targets),
