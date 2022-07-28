@@ -71,7 +71,7 @@ def get_sample_gradient_product_dict(
         products |= hook.sample_result_dict
 
     tmp_inferencer.append_named_hook(
-        hook_point=ModelExecutorHookPoint.AFTER_BATCH,
+        hook_point=ModelExecutorHookPoint.AFTER_FORWARD,
         name="collect_gradients",
         fun=collect_gradients,
     )

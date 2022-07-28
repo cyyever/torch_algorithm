@@ -51,7 +51,7 @@ def stochastic_inverse_hessian_vector_product(
             next_product = (
                 vector
                 + (1 - dampling_term) * cur_product
-                - hook.sample_result_dict[0][0].cpu() / scale
+                - hook.result_dict[0][0].cpu() / scale
             )
             diff = torch.dist(cur_product, next_product)
             get_logger().error(
@@ -71,13 +71,13 @@ def stochastic_inverse_hessian_vector_product(
 
         tmp_inferencer = copy.deepcopy(inferencer)
         tmp_inferencer.append_named_hook(
-            hook_point=ModelExecutorHookPoint.AFTER_BATCH,
+            hook_point=ModelExecutorHookPoint.AFTER_FORWARD,
             name="set_vectors",
             fun=set_vectors,
         )
         tmp_inferencer.append_hook(hook)
         tmp_inferencer.append_named_hook(
-            hook_point=ModelExecutorHookPoint.AFTER_BATCH,
+            hook_point=ModelExecutorHookPoint.AFTER_FORWARD,
             name="compute_product",
             fun=compute_product,
         )

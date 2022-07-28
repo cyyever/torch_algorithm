@@ -25,7 +25,7 @@ def test_CV_jvp():
             raise StopExecutingException()
 
     trainer.append_named_hook(
-        ModelExecutorHookPoint.AFTER_BATCH, "check results", print_products
+        ModelExecutorHookPoint.AFTER_FORWARD, "check results", print_products
     )
     trainer.train()
 
