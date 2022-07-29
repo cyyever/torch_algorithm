@@ -116,12 +116,12 @@ class SampleComputationHook(ComputationHook):
             worker_stream=worker_stream,
         )
         if result_transform is not None:
-            for index, input_tensor, input_feature, target in zip(
+            for sample_index, input_tensor, input_feature, target in zip(
                 sample_indices, inputs, input_features, targets
             ):
-                res[index] = result_transform(
-                    index=index,
-                    result=res[index],
+                res[sample_index] = result_transform(
+                    sample_index=sample_index,
+                    result=res[sample_index],
                     input_tensor=input_tensor,
                     input_feature=input_feature,
                     target=target,
