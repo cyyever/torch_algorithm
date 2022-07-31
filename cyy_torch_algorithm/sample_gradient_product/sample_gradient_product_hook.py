@@ -81,6 +81,6 @@ def get_sample_gradient_product_dict(
         name="collect_gradients",
         fun=collect_gradients,
     )
-    tmp_inferencer.inference(use_grad=True)
+    tmp_inferencer.inference(use_grad=False)
     assert products
     return products
