@@ -4,7 +4,6 @@ from typing import Any, Callable, Tuple
 import numpy
 import torch
 from cyy_naive_lib.log import get_logger
-from cyy_torch_toolbox.device import get_cpu_device
 
 
 class AdaptiveDeterministicQuant:
@@ -16,14 +15,18 @@ class AdaptiveDeterministicQuant:
         self.normalization = normalization
 
     def __call__(self, tensor):
+        device = tensor.device
         element_bits = None
         dtype = tensor.dtype
         element_bits = tensor.element_size() * 8
         old_tensor_shape = tensor.shape
-        tensor = tensor.to(dtype=torch.float64)
+        if torch.cuda.is_available():
+            tensor = tensor.to(dtype=torch.float64, device="cuda:0", non_blocking=True)
+        else:
+            tensor = tensor.to(dtype=torch.float64, non_blocking=True)
         tensor = tensor.view(-1)
         if self.normalization:
-            mean = torch.mean(tensor)
+            mean = tensor.mean()
             tensor = tensor - mean
         else:
             mean = None
@@ -35,6 +38,7 @@ class AdaptiveDeterministicQuant:
             norm = torch.linalg.norm(tensor, ord=float("inf"))
         if norm == 0.0:
             return {
+                "device": device,
                 "dtype": dtype,
                 "mean": mean,
                 "tensor_shape": old_tensor_shape,
@@ -45,9 +49,9 @@ class AdaptiveDeterministicQuant:
         quantization_level = int(
             max(1, math.sqrt(norm * element_bits * math.log(4) / self.weight))
         )
-        sign_tensor = torch.sign(tensor)
+        sign_tensor = tensor.sign()
         sign_tensor = numpy.packbits(
-            ((sign_tensor + 1) / 2).to(torch.bool).to(get_cpu_device()).numpy()
+            ((sign_tensor + 1) / 2).to(dtype=torch.bool, device="cpu").numpy()
         )
         normalized_abs_tensor = tensor.abs() / norm
         tmp = normalized_abs_tensor * quantization_level
@@ -62,9 +66,10 @@ class AdaptiveDeterministicQuant:
         else:
             raise RuntimeError(f"invalid quantization level {quantization_level}")
         slot_tensor = (
-            slot_tensor.reshape(old_tensor_shape).numpy().astype(dtype=new_dtype)
+            slot_tensor.reshape(old_tensor_shape).cpu().numpy().astype(dtype=new_dtype)
         )
         return {
+            "device": device,
             "dtype": dtype,
             "norm": norm,
             "sign_tensor": sign_tensor,
@@ -78,6 +83,7 @@ class AdaptiveDeterministicQuant:
 
 class AdaptiveDeterministicDequant:
     def __call__(self, quantized_dict: dict) -> torch.Tensor:
+        device = quantized_dict["device"]
         dtype = quantized_dict["dtype"]
         mean = quantized_dict["mean"]
         if "tensor_shape" in quantized_dict:
@@ -86,7 +92,7 @@ class AdaptiveDeterministicDequant:
             )
             if mean is not None:
                 quantized_tensor += mean
-            return quantized_tensor.to(dtype=dtype)
+            return quantized_tensor.to(dtype=dtype, device=device)
 
         quantized_tensor = torch.from_numpy(
             quantized_dict["quantized_tensor"].astype(dtype=numpy.int64)
@@ -105,7 +111,7 @@ class AdaptiveDeterministicDequant:
         )
         if mean is not None:
             res = res + mean
-        return res.to(dtype=dtype)
+        return res.to(dtype=dtype, device=device)
 
 
 class NeuralNetworkAdaptiveDeterministicQuant(AdaptiveDeterministicQuant):
