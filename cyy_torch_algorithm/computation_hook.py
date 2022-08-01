@@ -81,6 +81,7 @@ class ComputationHook(Hook):
                 if isinstance(v, torch.Tensor):
                     self.__result_dict[k] = v.clone
         else:
+            assert not self.__prev_tasks
             self.reset_result()
         if self.__task_queue is not None:
             self.__task_queue.release()
