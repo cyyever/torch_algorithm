@@ -79,7 +79,7 @@ class ComputationHook(Hook):
             self._fetch_result()
             for k, v in self.__result_dict.items():
                 if isinstance(v, torch.Tensor):
-                    self.__result_dict[k] = v.clone
+                    self.__result_dict[k] = v.clone()
         else:
             assert not self.__prev_tasks
             self.reset_result()
