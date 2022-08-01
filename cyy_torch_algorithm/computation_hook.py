@@ -74,8 +74,8 @@ class ComputationHook(Hook):
     def _before_execute(self, **_):
         self.reset_result()
 
-    def __del__(self):
-        self.reset_result()
+    def _after_execute(self,**kwargs):
+        self._fetch_result()
         if self.__task_queue is not None:
             self.__task_queue.release()
             self.__task_queue = None

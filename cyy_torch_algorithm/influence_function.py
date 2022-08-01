@@ -12,7 +12,7 @@ from .inverse_hessian_vector_product import \
 
 
 def __get_inverse_hvp_arguments() -> dict:
-    return {"dampling_term": 0.01, "scale": 1000, "epsilon": 0.03, "repeated_num": 1}
+    return {"dampling_term": 0.01, "scale": 1000, "epsilon": 0.03, "repeated_num": 3}
 
 
 def compute_influence_function(

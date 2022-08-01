@@ -54,7 +54,7 @@ def stochastic_inverse_hessian_vector_product(
                 - hook.result_dict[0][0].cpu() / scale
             )
             diff = torch.dist(cur_product, next_product)
-            get_logger().error(
+            get_logger().debug(
                 "diff is %s, epsilon is %s, epoch is %s,iteration is %s, max_iteration is %s",
                 diff,
                 epsilon,
@@ -85,7 +85,7 @@ def stochastic_inverse_hessian_vector_product(
         while result is None:
             tmp_inferencer.inference(use_grad=False, epoch=epoch)
             epoch += 1
-            get_logger().error(
+            get_logger().debug(
                 "stochastic_inverse_hessian_vector_product epoch is %s", epoch
             )
         return result
