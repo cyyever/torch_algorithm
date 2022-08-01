@@ -5,7 +5,6 @@ import torch
 from cyy_torch_algorithm.evaluation import eval_model
 from cyy_torch_algorithm.sample_computation_hook import SampleComputationHook
 from cyy_torch_toolbox.device import put_data_to_device
-from cyy_torch_toolbox.ml_type import ModelExecutorHookPoint
 from functorch import grad, vmap
 
 
@@ -63,24 +62,15 @@ def get_sample_gradient_product_dict(
 ) -> dict:
     tmp_inferencer = copy.deepcopy(inferencer)
     hook = SampleGradientProductHook()
+    hook.set_vector(vector)
     if computed_indices is not None:
         hook.set_computed_indices(computed_indices)
     if sample_selector is not None:
         hook.set_sample_selector(sample_selector)
     hook.set_input_transform(input_transform)
-    hook.set_vector(vector)
-    products: dict = {}
     tmp_inferencer.append_hook(hook)
 
-    def collect_gradients(**kwargs):
-        nonlocal products
-        products |= hook.sample_result_dict
-
-    tmp_inferencer.append_named_hook(
-        hook_point=ModelExecutorHookPoint.AFTER_FORWARD,
-        name="collect_gradients",
-        fun=collect_gradients,
-    )
     tmp_inferencer.inference(use_grad=False)
+    products = hook.sample_result_dict
     assert products
     return products

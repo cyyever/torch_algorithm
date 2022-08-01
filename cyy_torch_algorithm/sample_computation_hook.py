@@ -1,6 +1,7 @@
 import functools
 from typing import Callable
 
+import torch
 from cyy_torch_toolbox.hooks.add_index_to_dataset import AddIndexToDataset
 from cyy_torch_toolbox.ml_type import DatasetType
 
@@ -28,8 +29,6 @@ class SampleComputationHook(ComputationHook):
         self.set_sample_selector(lambda sample_index, *args: sample_index in indices)
 
     def add_task(self, model_executor, sample_indices, inputs, input_features, targets):
-        self._reset_result()
-
         batch_dim = 0
         if model_executor.dataset_collection.dataset_type == DatasetType.Text:
             if (
@@ -59,21 +58,43 @@ class SampleComputationHook(ComputationHook):
                 input_feature = input_feature.unsqueeze(batch_dim)
             sample_target = sample_target.unsqueeze(0)
             if self.__input_transform is not None:
-                res = self.__input_transform(sample_input)
-                if res is None:
-                    continue
-                sample_input = res
-                input_feature = None
-            processed_indices.append(sample_index)
-            processed_inputs.append(sample_input)
-            processed_features.append(input_feature)
-            processed_targets.append(sample_target)
+                res = self.__input_transform(
+                    sample_index=sample_index,
+                    sample_input=sample_input,
+                    input_feature=input_feature,
+                )
+                match res:
+                    case None:
+                        pass
+                    case list():
+                        for new_input in res:
+                            processed_indices.append(
+                                new_input.get("sample_index", sample_index)
+                            )
+                            if "sample_input" in new_input:
+                                processed_inputs.append(new_input["sample_input"])
+                            else:
+                                processed_inputs.append(sample_input.clone())
+                            processed_features.append(
+                                new_input.get("input_feature", None)
+                            )
+                            processed_targets.append(sample_target.clone())
+                    case _:
+                        raise NotImplementedError()
+            else:
+                processed_indices.append(sample_index)
+                processed_inputs.append(sample_input)
+                processed_features.append(input_feature)
+                processed_targets.append(sample_target)
         if not processed_indices:
             return
 
-        model_with_loss = model_executor.copy_model_with_loss(deepcopy=True)
-        model_with_loss.model.zero_grad(set_to_none=True)
-        model_with_loss.model.cpu()
+        self._fetch_result()
+        model_with_loss = model_executor.model_with_loss
+        if model_with_loss.model.training:
+            model_with_loss = model_executor.copy_model_with_loss(deepcopy=True)
+            model_with_loss.model.zero_grad(set_to_none=True)
+        model_with_loss.model.share_memory()
         worker_fun = functools.partial(
             SampleComputationHook.common_worker_fun,
             self._result_transform,
@@ -126,4 +147,8 @@ class SampleComputationHook(ComputationHook):
                     input_feature=input_feature,
                     target=target,
                 )
+        for k, v in res.items():
+            if isinstance(v, torch.Tensor):
+                if v.numel() == 1:
+                    res[k] = v.item()
         return res
