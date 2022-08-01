@@ -25,7 +25,7 @@ class ComputationHook(Hook):
     def _get_worker_fun(self) -> Callable:
         raise NotImplementedError()
 
-    def _reset_result(self) -> None:
+    def reset_result(self) -> None:
         # get_logger().error("call reset result")
         self.__result_dict = {}
 
@@ -72,9 +72,10 @@ class ComputationHook(Hook):
         self.__get_task_queue(model_executor, worker_fun).add_task(task)
 
     def _before_execute(self, **_):
-        self._reset_result()
+        self.reset_result()
 
     def __del__(self):
+        self.reset_result()
         if self.__task_queue is not None:
             self.__task_queue.release()
             self.__task_queue = None

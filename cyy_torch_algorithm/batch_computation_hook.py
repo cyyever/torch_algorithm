@@ -14,7 +14,7 @@ class BatchComputationHook(ComputationHook):
 
     def _after_forward(self, model_executor, inputs, targets, **kwargs):
         assert self.__data_fun is not None
-        self._reset_result()
+        self.reset_result()
         data = self.__data_fun()
         if not data:
             return
