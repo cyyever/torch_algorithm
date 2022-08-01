@@ -61,17 +61,17 @@ def compute_perturbation_influence_function(
         inferencer, test_gradient, **inverse_hvp_arguments
     ) / len(trainer.dataset)
 
-    perturbation_id_dict: dict = {}
+    perturbation_idx_dict: dict = {}
 
     def sample_selector(sample_index, sample_input):
-        nonlocal perturbation_id_dict
+        nonlocal perturbation_idx_dict
 
         res = perturbation_idx_fun(sample_index=sample_index, sample_input=sample_input)
         if res:
             for perturbation_idx in res:
-                if perturbation_idx not in perturbation_id_dict:
-                    perturbation_id_dict[perturbation_idx] = set()
-                perturbation_id_dict[perturbation_idx].add(sample_index)
+                if perturbation_idx not in perturbation_idx_dict:
+                    perturbation_idx_dict[perturbation_idx] = set()
+                perturbation_idx_dict[perturbation_idx].add(sample_index)
             return True
         return False
 
@@ -79,7 +79,7 @@ def compute_perturbation_influence_function(
         inferencer=inferencer, vector=product, sample_selector=sample_selector
     )
     sample_product_dict: dict = {}
-    for perturbation_idx, sample_indices in perturbation_id_dict.items():
+    for perturbation_idx, sample_indices in perturbation_idx_dict.items():
         assert sample_indices
         for sample_index in sample_indices:
             if perturbation_idx not in sample_product_dict:
