@@ -71,6 +71,7 @@ def get_sample_gradient_product_dict(
     tmp_inferencer.append_hook(hook)
 
     tmp_inferencer.inference(use_grad=False)
+    hook.release_queue()
     products = hook.sample_result_dict
     assert products
     return products

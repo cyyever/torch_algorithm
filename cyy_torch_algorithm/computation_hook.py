@@ -74,8 +74,14 @@ class ComputationHook(Hook):
     def _before_execute(self, **_):
         self.reset_result()
 
-    def _after_execute(self,**kwargs):
-        self._fetch_result()
+    def release_queue(self, keep_result=True):
+        if keep_result:
+            self._fetch_result()
+            for k, v in self.__result_dict.items():
+                if isinstance(v, torch.Tensor):
+                    self.__result_dict[k] = v.clone
+        else:
+            self.reset_result()
         if self.__task_queue is not None:
             self.__task_queue.release()
             self.__task_queue = None

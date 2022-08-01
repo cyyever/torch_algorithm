@@ -64,9 +64,9 @@ def stochastic_inverse_hessian_vector_product(
             )
             cur_product = next_product
             iteration_num += 1
-            # and epoch > 1:
-            if diff <= epsilon or iteration_num >= max_iteration:
+            if (diff <= epsilon and epoch > 1) or iteration_num >= max_iteration:
                 result = cur_product / scale
+                hook.reset_result()
                 raise StopExecutingException()
 
         tmp_inferencer = copy.deepcopy(inferencer)
@@ -88,6 +88,7 @@ def stochastic_inverse_hessian_vector_product(
             get_logger().debug(
                 "stochastic_inverse_hessian_vector_product epoch is %s", epoch
             )
+        hook.release_queue(keep_result=False)
         return result
 
     product_list = [iteration() for _ in range(repeated_num)]
