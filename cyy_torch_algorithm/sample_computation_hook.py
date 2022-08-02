@@ -2,8 +2,8 @@ import functools
 from typing import Callable
 
 import torch
-from cyy_naive_lib.log import get_logger
-from cyy_naive_lib.time_counter import TimeCounter
+# from cyy_naive_lib.log import get_logger
+# from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_toolbox.device import put_data_to_device
 from cyy_torch_toolbox.hooks.add_index_to_dataset import AddIndexToDataset
 from cyy_torch_toolbox.ml_type import DatasetType
