@@ -18,10 +18,6 @@ class SampleComputationHook(ComputationHook):
         self.__sample_selector = None
         self.__input_transform: Callable | None = None
 
-    @property
-    def sample_result_dict(self):
-        return self.result_dict
-
     def set_sample_selector(self, selector: Callable) -> None:
         self.__sample_selector = selector
 
