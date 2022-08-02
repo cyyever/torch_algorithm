@@ -89,17 +89,17 @@ class AdaptiveDeterministicDequant:
         if "tensor_shape" in quantized_dict:
             quantized_tensor = torch.zeros(
                 quantized_dict["tensor_shape"], dtype=torch.float64
-            )
+            ).to(device=device)
             if mean is not None:
-                quantized_tensor += mean
-            return quantized_tensor.to(dtype=dtype, device=device)
+                quantized_tensor += mean.to(device=device)
+            return quantized_tensor.to(dtype=dtype)
 
-        quantized_tensor = torch.from_numpy(
-            quantized_dict["quantized_tensor"].astype(dtype=numpy.int64)
-        ).to(dtype=torch.float64)
         sign_tensor = quantized_dict["sign_tensor"]
         quantization_level = quantized_dict["quantization_level"]
         norm = quantized_dict["norm"]
+        quantized_tensor = torch.from_numpy(
+            quantized_dict["quantized_tensor"].astype(dtype=numpy.int64)
+        ).to(dtype=torch.float64,device=norm.device)
         quantized_tensor *= norm
         sign_tensor = (torch.from_numpy(numpy.unpackbits(sign_tensor)).float() * 2 - 1)[
             : numpy.prod(quantized_tensor.shape)
