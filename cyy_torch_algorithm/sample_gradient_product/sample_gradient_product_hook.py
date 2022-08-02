@@ -16,24 +16,23 @@ def sample_gradient_product_worker_fun(
     input_features,
     targets,
     worker_device,
-    worker_stream,
 ):
-    vector = put_data_to_device(vector, worker_device)
-    is_input_feature = input_features[0] is not None
+    vector = put_data_to_device(vector, worker_device, non_blocking=True)
     gradient_lists = vmap(
         grad(
             functools.partial(
                 eval_model,
                 device=worker_device,
                 model_with_loss=model_with_loss,
-                is_input_feature=is_input_feature,
             )
         ),
         in_dims=(None, 0, 0),
         randomness="same",
     )(
-        model_with_loss.model_util.get_parameter_list(detach=True).to(worker_device),
-        torch.stack(input_features) if is_input_feature else torch.stack(inputs),
+        model_with_loss.model_util.get_parameter_list(detach=True),
+        torch.stack(
+            put_data_to_device(inputs, device=worker_device, non_blocking=True)
+        ),
         torch.stack(targets),
     )
     return {

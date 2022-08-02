@@ -26,7 +26,7 @@ class ComputationHook(Hook):
         raise NotImplementedError()
 
     def reset_result(self) -> None:
-        # get_logger().error("call reset result")
+        del self.__result_dict
         self.__result_dict = {}
 
     @property
@@ -45,7 +45,7 @@ class ComputationHook(Hook):
             avg_chunk_size = (
                 len(data_list[0]) + self.__task_queue.worker_num - 1
             ) // self.__task_queue.worker_num
-            chunk_size = min(max(avg_chunk_size, chunk_size), 50)
+            chunk_size = min(max(avg_chunk_size, chunk_size), 100)
         get_logger().debug("chunk_size is %s", chunk_size)
         return zip(
             *(tuple(split_list_to_chunks(data, chunk_size)) for data in data_list)
@@ -74,7 +74,7 @@ class ComputationHook(Hook):
     def _before_execute(self, **_):
         self.reset_result()
 
-    def release_queue(self, keep_result=True):
+    def release_queue(self, keep_result: bool = True):
         if keep_result:
             self._fetch_result()
             for k, v in self.__result_dict.items():

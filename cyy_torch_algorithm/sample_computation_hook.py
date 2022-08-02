@@ -2,6 +2,8 @@ import functools
 from typing import Callable
 
 import torch
+from cyy_naive_lib.log import get_logger
+from cyy_torch_toolbox.device import put_data_to_device
 from cyy_torch_toolbox.hooks.add_index_to_dataset import AddIndexToDataset
 from cyy_torch_toolbox.ml_type import DatasetType
 
@@ -127,28 +129,39 @@ class SampleComputationHook(ComputationHook):
             args["device"]
         )
         model_with_loss, sample_indices, inputs, input_features, targets = task
-        res = worker_fun(
-            model_with_loss=model_with_loss,
-            sample_indices=sample_indices,
-            inputs=inputs,
-            input_features=input_features,
-            targets=targets,
-            worker_device=worker_device,
-            worker_stream=worker_stream,
-        )
-        if result_transform is not None:
-            for sample_index, input_tensor, input_feature, target in zip(
-                sample_indices, inputs, input_features, targets
-            ):
-                res[sample_index] = result_transform(
-                    sample_index=sample_index,
-                    result=res[sample_index],
-                    input_tensor=input_tensor,
-                    input_feature=input_feature,
-                    target=target,
-                )
-        for k, v in res.items():
-            if isinstance(v, torch.Tensor):
-                if v.numel() == 1:
-                    res[k] = v.item()
-        return res
+        model_with_loss.model.to(worker_device)
+        targets = put_data_to_device(targets, device=worker_device, non_blocking=True)
+
+        is_input_feature = input_features[0] is not None
+        if is_input_feature:
+            input_features = put_data_to_device(
+                input_features, device=worker_device, non_blocking=True
+            )
+        else:
+            inputs = put_data_to_device(inputs, device=worker_device, non_blocking=True)
+
+        with torch.cuda.stream(worker_stream):
+            res = worker_fun(
+                model_with_loss=model_with_loss,
+                sample_indices=sample_indices,
+                inputs=inputs,
+                input_features=input_features,
+                targets=targets,
+                worker_device=worker_device,
+            )
+            if result_transform is not None:
+                for sample_index, input_tensor, input_feature, target in zip(
+                    sample_indices, inputs, input_features, targets
+                ):
+                    res[sample_index] = result_transform(
+                        sample_index=sample_index,
+                        result=res[sample_index],
+                        input_tensor=input_tensor,
+                        input_feature=input_feature,
+                        target=target,
+                    )
+            for k, v in res.items():
+                if isinstance(v, torch.Tensor):
+                    if v.numel() == 1:
+                        res[k] = v.item()
+            return res
