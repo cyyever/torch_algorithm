@@ -20,8 +20,8 @@ def test_CV_jvp():
     trainer.append_hook(hook)
 
     def print_products(**kwargs):
-        if hook.sample_result_dict:
-            print(hook.sample_result_dict)
+        if hook.result_dict:
+            print(hook.result_dict)
             raise StopExecutingException()
 
     trainer.append_named_hook(
@@ -46,8 +46,8 @@ def test_NLP_vjp():
     trainer.append_hook(hook)
 
     def print_result(**kwargs):
-        if hook.sample_result_dict:
-            print(hook.sample_result_dict)
+        if hook.result_dict:
+            print(hook.result_dict)
             raise StopExecutingException()
 
     trainer.append_named_hook(
