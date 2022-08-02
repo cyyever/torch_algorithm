@@ -3,6 +3,7 @@ from typing import Callable
 
 import torch
 from cyy_naive_lib.log import get_logger
+from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_toolbox.device import put_data_to_device
 from cyy_torch_toolbox.hooks.add_index_to_dataset import AddIndexToDataset
 from cyy_torch_toolbox.ml_type import DatasetType
@@ -125,6 +126,7 @@ class SampleComputationHook(ComputationHook):
 
     @classmethod
     def common_worker_fun(cls, result_transform, worker_fun, task, args):
+        # counter = TimeCounter()
         worker_device, worker_stream = ComputationHook._setup_cuda_device(
             args["device"]
         )
@@ -140,6 +142,7 @@ class SampleComputationHook(ComputationHook):
         else:
             inputs = put_data_to_device(inputs, device=worker_device, non_blocking=True)
 
+        res = None
         with torch.cuda.stream(worker_stream):
             res = worker_fun(
                 model_with_loss=model_with_loss,
@@ -164,4 +167,5 @@ class SampleComputationHook(ComputationHook):
                 if isinstance(v, torch.Tensor):
                     if v.numel() == 1:
                         res[k] = v.item()
-            return res
+        # get_logger().error("use %s ms", counter.elapsed_milliseconds())
+        return res
