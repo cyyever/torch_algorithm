@@ -1,0 +1,31 @@
+import functools
+from typing import Callable
+
+import torch
+from cyy_torch_toolbox.ml_type import MachineLearningPhase
+from cyy_torch_toolbox.trainer import Trainer
+
+from cyy_torch_algorithm.influence_function import (
+    compute_perturbation_gradient_difference, dot_product_transform)
+
+
+def compute_perturbation_grad_dot(
+    trainer: Trainer,
+    perturbation_idx_fun: Callable,
+    perturbation_fun: Callable,
+    test_gradient: torch.Tensor | None = None,
+) -> dict:
+    if test_gradient is None:
+        inferencer = trainer.get_inferencer(
+            phase=MachineLearningPhase.Test, copy_model=True
+        )
+        test_gradient = inferencer.get_gradient()
+
+    return compute_perturbation_gradient_difference(
+        trainer=trainer,
+        perturbation_idx_fun=perturbation_idx_fun,
+        perturbation_fun=perturbation_fun,
+        result_transform=functools.partial(
+            dot_product_transform, vector=test_gradient.cpu()
+        ),
+    )

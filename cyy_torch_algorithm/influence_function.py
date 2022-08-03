@@ -119,7 +119,6 @@ def compute_perturbation_influence_function(
     perturbation_fun: Callable,
     test_gradient: torch.Tensor | None = None,
     inverse_hvp_arguments: None | dict = None,
-    grad_diff_dict=None,
 ) -> dict:
     if test_gradient is None:
         inferencer = trainer.get_inferencer(
@@ -146,4 +145,3 @@ def compute_perturbation_influence_function(
         perturbation_fun=perturbation_fun,
         result_transform=functools.partial(dot_product_transform, vector=product),
     )
-    # return {k: v.dot(product) for k, v in grad_diff_dict.items()}
