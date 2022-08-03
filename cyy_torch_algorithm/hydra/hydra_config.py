@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import argparse
 
 import torch.optim
 from cyy_torch_algorithm.hydra.hydra_adam_hook import HyDRAAdamHook

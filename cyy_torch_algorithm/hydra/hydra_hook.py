@@ -60,7 +60,7 @@ class HyDRAHook(Hook):
 
     @property
     def sample_gradient_dict(self):
-        return self.__sample_gradient_hook.sample_gradient_dict
+        return self.__sample_gradient_hook.result_dict
 
     def get_save_dir(self, trainer=None):
         if self.__save_dir is None:
