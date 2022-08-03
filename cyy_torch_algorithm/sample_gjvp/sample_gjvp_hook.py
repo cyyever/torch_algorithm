@@ -22,7 +22,6 @@ def sample_gjvp_worker_fun(
     is_input_feature = input_features[0] is not None
     if is_input_feature:
         inputs = input_features
-    inputs = put_data_to_device(inputs, device=worker_device, non_blocking=True)
 
     def jvp_wrapper(parameter_list, input_tensor, target):
         f = functools.partial(

@@ -53,6 +53,7 @@ def stochastic_inverse_hessian_vector_product(
                 + (1 - dampling_term) * cur_product
                 - hook.result_dict[0][0].cpu() / scale
             )
+            hook.reset_result()
             diff = torch.dist(cur_product, next_product)
             get_logger().debug(
                 "diff is %s, epsilon is %s, epoch is %s,iteration is %s, max_iteration is %s",
@@ -70,6 +71,7 @@ def stochastic_inverse_hessian_vector_product(
                 raise StopExecutingException()
 
         tmp_inferencer = copy.deepcopy(inferencer)
+        tmp_inferencer.disable_logger()
         tmp_inferencer.append_named_hook(
             hook_point=ModelExecutorHookPoint.AFTER_FORWARD,
             name="set_vectors",

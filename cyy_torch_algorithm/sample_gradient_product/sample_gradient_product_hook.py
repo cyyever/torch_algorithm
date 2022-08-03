@@ -60,6 +60,7 @@ def get_sample_gradient_product_dict(
     input_transform=None,
 ) -> dict:
     tmp_inferencer = copy.deepcopy(inferencer)
+    tmp_inferencer.disable_logger()
     hook = SampleGradientProductHook()
     hook.set_vector(vector)
     if computed_indices is not None:
@@ -71,6 +72,6 @@ def get_sample_gradient_product_dict(
 
     tmp_inferencer.inference(use_grad=False)
     hook.release_queue()
-    products = hook.sample_result_dict
+    products = hook.result_dict
     assert products
     return products

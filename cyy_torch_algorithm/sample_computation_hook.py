@@ -127,19 +127,23 @@ class SampleComputationHook(ComputationHook):
             args["device"]
         )
         model_with_loss, sample_indices, inputs, input_features, targets = task
-        model_with_loss.model.to(worker_device)
-        targets = put_data_to_device(targets, device=worker_device, non_blocking=True)
-
-        is_input_feature = input_features[0] is not None
-        if is_input_feature:
-            input_features = put_data_to_device(
-                input_features, device=worker_device, non_blocking=True
-            )
-        else:
-            inputs = put_data_to_device(inputs, device=worker_device, non_blocking=True)
 
         res = None
         with torch.cuda.stream(worker_stream):
+            model_with_loss.to(device=worker_device, non_blocking=True)
+            targets = put_data_to_device(
+                targets, device=worker_device, non_blocking=True
+            )
+
+            is_input_feature = input_features[0] is not None
+            if is_input_feature:
+                input_features = put_data_to_device(
+                    input_features, device=worker_device, non_blocking=True
+                )
+            else:
+                inputs = put_data_to_device(
+                    inputs, device=worker_device, non_blocking=True
+                )
             res = worker_fun(
                 model_with_loss=model_with_loss,
                 sample_indices=sample_indices,

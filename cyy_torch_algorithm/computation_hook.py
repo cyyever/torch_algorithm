@@ -74,6 +74,9 @@ class ComputationHook(Hook):
     def _before_execute(self, **_):
         self.reset_result()
 
+    def __del__(self):
+        self.release_queue(keep_result=False)
+
     def release_queue(self, keep_result: bool = True):
         if keep_result:
             self._fetch_result()
