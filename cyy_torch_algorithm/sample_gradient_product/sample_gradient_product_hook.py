@@ -67,7 +67,8 @@ def get_sample_gradient_product_dict(
         hook.set_computed_indices(computed_indices)
     if sample_selector is not None:
         hook.set_sample_selector(sample_selector)
-    hook.set_input_transform(input_transform)
+    if input_transform is not None:
+        hook.set_input_transform(input_transform)
     tmp_inferencer.append_hook(hook)
 
     tmp_inferencer.inference(use_grad=False)

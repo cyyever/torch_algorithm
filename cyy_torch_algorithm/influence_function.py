@@ -1,9 +1,13 @@
+import functools
 from typing import Callable
 
 import torch
+from cyy_torch_toolbox.device import put_data_to_device
 from cyy_torch_toolbox.ml_type import MachineLearningPhase
 from cyy_torch_toolbox.trainer import Trainer
 
+from cyy_torch_algorithm.sample_gradient.sample_gradient_hook import \
+    get_sample_gradient_dict
 from cyy_torch_algorithm.sample_gradient_product.sample_gradient_product_hook import \
     get_sample_gradient_product_dict
 
@@ -12,7 +16,7 @@ from .inverse_hessian_vector_product import \
 
 
 def __get_inverse_hvp_arguments() -> dict:
-    return {"dampling_term": 0.01, "scale": 1000, "epsilon": 0.03, "repeated_num": 3}
+    return {"dampling_term": 0.01, "scale": 1000, "epsilon": 0.03, "repeated_num": 1}
 
 
 def compute_influence_function(
@@ -42,29 +46,14 @@ def compute_influence_function(
     return get_sample_gradient_product_dict(inferencer, product, computed_indices)
 
 
-def compute_perturbation_influence_function(
+def compute_perturbation_gradient_difference(
     trainer: Trainer,
     perturbation_idx_fun: Callable,
     perturbation_fun: Callable,
-    test_gradient: torch.Tensor | None = None,
-    inverse_hvp_arguments: None | dict = None,
+    result_transform: Callable,
 ) -> dict:
-    if test_gradient is None:
-        inferencer = trainer.get_inferencer(
-            phase=MachineLearningPhase.Test, copy_model=True
-        )
-        test_gradient = inferencer.get_gradient()
-
     inferencer = trainer.get_inferencer(
         phase=MachineLearningPhase.Training, copy_model=True
-    )
-    if inverse_hvp_arguments is None:
-        inverse_hvp_arguments = __get_inverse_hvp_arguments()
-    product = (
-        -stochastic_inverse_hessian_vector_product(
-            inferencer, test_gradient, **inverse_hvp_arguments
-        )
-        / trainer.dataset_size
     )
 
     perturbation_idx_dict: dict = {}
@@ -81,40 +70,80 @@ def compute_perturbation_influence_function(
             return True
         return False
 
-    tmp_dict = get_sample_gradient_product_dict(
-        inferencer=inferencer, vector=product, sample_selector=sample_selector
+    tmp_dict = get_sample_gradient_dict(
+        inferencer=inferencer,
+        sample_selector=sample_selector,
+        result_transform=result_transform,
     )
-    sample_product_dict: dict = {}
+    sample_dict: dict = {}
     for perturbation_idx, sample_indices in perturbation_idx_dict.items():
         assert sample_indices
         for sample_index in sample_indices:
-            if perturbation_idx not in sample_product_dict:
-                sample_product_dict[perturbation_idx] = tmp_dict[sample_index]
+            v = tmp_dict[sample_index]
+            if perturbation_idx not in sample_dict:
+                sample_dict[perturbation_idx] = v
             else:
-                sample_product_dict[perturbation_idx] = (
-                    sample_product_dict[perturbation_idx] + tmp_dict[sample_index]
-                )
+                sample_dict[perturbation_idx] = sample_dict[perturbation_idx] + v
 
-    tmp_dict = get_sample_gradient_product_dict(
+    tmp_dict = get_sample_gradient_dict(
         inferencer=inferencer,
-        vector=product,
         input_transform=perturbation_fun,
+        result_transform=result_transform,
     )
-    perturbation_product_dict: dict = {}
+    perturbation_dict: dict = {}
     for k, v in tmp_dict.items():
         sample_index, component_index = k
-        if component_index not in perturbation_product_dict:
-            perturbation_product_dict[component_index] = v
+        if component_index not in perturbation_dict:
+            perturbation_dict[component_index] = v
         else:
-            perturbation_product_dict[component_index] = (
-                perturbation_product_dict[component_index] + v
-            )
+            perturbation_dict[component_index] = perturbation_dict[component_index] + v
 
     result: dict = {}
-    for perturbation_idx in sample_product_dict:
+    for perturbation_idx in sample_dict:
         result[perturbation_idx] = (
-            sample_product_dict[perturbation_idx]
-            - perturbation_product_dict[perturbation_idx]
+            sample_dict[perturbation_idx] - perturbation_dict[perturbation_idx]
         )
 
     return result
+
+
+def dot_product_transform(
+    sample_index, result, input_tensor, input_feature, target, vector
+):
+    return put_data_to_device(result, device="cpu", non_blocking=True).dot(vector)
+
+
+def compute_perturbation_influence_function(
+    trainer: Trainer,
+    perturbation_idx_fun: Callable,
+    perturbation_fun: Callable,
+    test_gradient: torch.Tensor | None = None,
+    inverse_hvp_arguments: None | dict = None,
+    grad_diff_dict=None,
+) -> dict:
+    if test_gradient is None:
+        inferencer = trainer.get_inferencer(
+            phase=MachineLearningPhase.Test, copy_model=True
+        )
+        test_gradient = inferencer.get_gradient()
+
+    inferencer = trainer.get_inferencer(
+        phase=MachineLearningPhase.Training, copy_model=True
+    )
+    if inverse_hvp_arguments is None:
+        inverse_hvp_arguments = __get_inverse_hvp_arguments()
+
+    product = (
+        -stochastic_inverse_hessian_vector_product(
+            inferencer, test_gradient, **inverse_hvp_arguments
+        )
+        / trainer.dataset_size
+    ).cpu()
+
+    return compute_perturbation_gradient_difference(
+        trainer=trainer,
+        perturbation_idx_fun=perturbation_idx_fun,
+        perturbation_fun=perturbation_fun,
+        result_transform=functools.partial(dot_product_transform, vector=product),
+    )
+    # return {k: v.dot(product) for k, v in grad_diff_dict.items()}

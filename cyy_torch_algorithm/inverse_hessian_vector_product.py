@@ -72,6 +72,7 @@ def stochastic_inverse_hessian_vector_product(
 
         tmp_inferencer = copy.deepcopy(inferencer)
         tmp_inferencer.disable_logger()
+        tmp_inferencer.disable_performance_metric_logger()
         tmp_inferencer.append_named_hook(
             hook_point=ModelExecutorHookPoint.AFTER_FORWARD,
             name="set_vectors",
@@ -90,6 +91,7 @@ def stochastic_inverse_hessian_vector_product(
             get_logger().debug(
                 "stochastic_inverse_hessian_vector_product epoch is %s", epoch
             )
+        result = result.cpu()
         hook.release_queue(keep_result=False)
         return result
 

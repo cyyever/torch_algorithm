@@ -162,9 +162,9 @@ class SampleComputationHook(ComputationHook):
                         input_feature=input_feature,
                         target=target,
                     )
-            # for k, v in res.items():
-            #     if isinstance(v, torch.Tensor):
-            #         if v.numel() == 1:
-            #             res[k] = v.item()
+            for k, v in res.items():
+                if isinstance(v, torch.Tensor):
+                    if v.numel() == 1:
+                        res[k] = v.item()
             # get_logger().error("use %s ms", counter.elapsed_milliseconds())
             return res
