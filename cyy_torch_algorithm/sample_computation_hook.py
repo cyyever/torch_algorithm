@@ -168,3 +168,9 @@ class SampleComputationHook(ComputationHook):
                         res[k] = v.item()
             # get_logger().error("use %s ms", counter.elapsed_milliseconds())
             return res
+
+
+def sample_dot_product(
+    sample_index, result, input_tensor, input_feature, target, vector
+):
+    return put_data_to_device(result, device="cpu", non_blocking=True).dot(vector)

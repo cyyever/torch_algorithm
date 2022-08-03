@@ -3,7 +3,9 @@ import functools
 
 import torch
 from cyy_torch_algorithm.evaluation import eval_model
-from cyy_torch_algorithm.sample_computation_hook import SampleComputationHook
+from cyy_torch_algorithm.sample_computation_hook import (SampleComputationHook,
+                                                         sample_dot_product)
+from cyy_torch_toolbox.device import put_data_to_device
 from functorch import grad, vmap
 
 
@@ -61,3 +63,9 @@ def get_sample_gradient_dict(
     hook.release_queue(keep_result=False)
     assert gradients
     return gradients
+
+
+def get_sample_gradient_product_dict(vector, **kwargs):
+    return get_sample_gradient_dict(
+        result_transform=functools.partial(sample_dot_product, vector=vector)
+    )

@@ -6,17 +6,15 @@ from cyy_torch_toolbox.device import put_data_to_device
 from cyy_torch_toolbox.ml_type import MachineLearningPhase
 from cyy_torch_toolbox.trainer import Trainer
 
-from cyy_torch_algorithm.sample_gradient.sample_gradient_hook import \
-    get_sample_gradient_dict
-from cyy_torch_algorithm.sample_gradient_product.sample_gradient_product_hook import \
-    get_sample_gradient_product_dict
+from cyy_torch_algorithm.sample_gradient.sample_gradient_hook import (
+    get_sample_gradient_dict, get_sample_gradient_product_dict)
 
 from .inverse_hessian_vector_product import \
     stochastic_inverse_hessian_vector_product
 
 
 def __get_inverse_hvp_arguments() -> dict:
-    return {"dampling_term": 0.01, "scale": 1000, "epsilon": 0.03, "repeated_num": 1}
+    return {"dampling_term": 0.01, "scale": 1000, "epsilon": 0.03, "repeated_num": 3}
 
 
 def compute_influence_function(
@@ -43,7 +41,9 @@ def compute_influence_function(
         / trainer.dataset_size
     )
 
-    return get_sample_gradient_product_dict(inferencer, product, computed_indices)
+    return get_sample_gradient_product_dict(
+        inferencer=inferencer, vector=product, computed_indices=computed_indices
+    )
 
 
 def compute_perturbation_gradient_difference(
