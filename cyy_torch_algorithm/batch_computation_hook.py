@@ -1,6 +1,9 @@
 import functools
 from typing import Callable
 
+import torch
+from cyy_torch_toolbox.device import put_data_to_device
+
 from cyy_torch_algorithm.computation_hook import ComputationHook
 
 
@@ -18,7 +21,12 @@ class BatchComputationHook(ComputationHook):
         data = self.__data_fun()
         if not data:
             return
+        self.add_task(
+            model_executor=model_executor, inputs=inputs, targets=targets, data=data
+        )
 
+    def add_task(self, model_executor, inputs, targets, data):
+        self.reset_result()
         model_with_loss = model_executor.model_with_loss
         if model_with_loss.model.training:
             model_with_loss = model_executor.copy_model_with_loss(deepcopy=True)
@@ -42,13 +50,18 @@ class BatchComputationHook(ComputationHook):
             args["device"]
         )
         model_with_loss, inputs, targets, data = task
-        res = worker_fun(
-            model_with_loss=model_with_loss,
-            inputs=inputs,
-            targets=targets,
-            data=data,
-            worker_device=worker_device,
-            worker_stream=worker_stream,
-        )
-        assert result_transform is None
-        return res
+        with torch.cuda.stream(worker_stream):
+            model_with_loss.to(device=worker_device, non_blocking=True)
+            inputs = put_data_to_device(inputs, device=worker_device, non_blocking=True)
+            targets = put_data_to_device(
+                targets, device=worker_device, non_blocking=True
+            )
+            res = worker_fun(
+                model_with_loss=model_with_loss,
+                inputs=inputs,
+                targets=targets,
+                data=data,
+                worker_device=worker_device,
+            )
+            assert result_transform is None
+            return res

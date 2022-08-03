@@ -46,20 +46,16 @@ def batch_hvp_worker_fun(
     targets,
     data,
     worker_device,
-    worker_stream,
 ):
-    # time_counter = TimeCounter(debug_logging=False)
-    # time_counter.reset_start_time()
-    with torch.cuda.stream(worker_stream):
-        products = hvp(
-            model_with_loss=model_with_loss,
-            inputs=inputs,
-            targets=targets,
-            vectors=data,
-            worker_device=worker_device,
-        )
-        # get_logger().error("use %s ms", time_counter.elapsed_milliseconds())
-        return {0: products}
+    products = hvp(
+        model_with_loss=model_with_loss,
+        inputs=inputs,
+        targets=targets,
+        vectors=data,
+        worker_device=worker_device,
+    )
+    # get_logger().error("use %s ms", time_counter.elapsed_milliseconds())
+    return {0: products}
 
 
 class BatchHVPHook(BatchComputationHook):

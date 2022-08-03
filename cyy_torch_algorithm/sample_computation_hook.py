@@ -128,7 +128,6 @@ class SampleComputationHook(ComputationHook):
         )
         model_with_loss, sample_indices, inputs, input_features, targets = task
 
-        res = None
         with torch.cuda.stream(worker_stream):
             model_with_loss.to(device=worker_device, non_blocking=True)
             targets = put_data_to_device(
@@ -167,5 +166,5 @@ class SampleComputationHook(ComputationHook):
                 if isinstance(v, torch.Tensor):
                     if v.numel() == 1:
                         res[k] = v.item()
-        # get_logger().error("use %s ms", counter.elapsed_milliseconds())
-        return res
+            # get_logger().error("use %s ms", counter.elapsed_milliseconds())
+            return res
