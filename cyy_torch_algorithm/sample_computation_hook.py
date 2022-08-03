@@ -173,4 +173,5 @@ class SampleComputationHook(ComputationHook):
 def sample_dot_product(
     sample_index, result, input_tensor, input_feature, target, vector
 ):
-    return put_data_to_device(result, device="cpu", non_blocking=True).dot(vector)
+    vector = put_data_to_device(vector, device=result.device, non_blocking=True)
+    return result.dot(vector)
