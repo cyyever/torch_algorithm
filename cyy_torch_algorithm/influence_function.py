@@ -32,9 +32,12 @@ def compute_influence_function(
     )
     if inverse_hvp_arguments is None:
         inverse_hvp_arguments = __get_inverse_hvp_arguments()
-    product = stochastic_inverse_hessian_vector_product(
-        inferencer, test_gradient, **inverse_hvp_arguments
-    ) / len(trainer.dataset)
+    product = (
+        stochastic_inverse_hessian_vector_product(
+            inferencer, test_gradient, **inverse_hvp_arguments
+        )
+        / trainer.dataset_size
+    )
 
     return get_sample_gradient_product_dict(inferencer, product, computed_indices)
 
@@ -57,9 +60,12 @@ def compute_perturbation_influence_function(
     )
     if inverse_hvp_arguments is None:
         inverse_hvp_arguments = __get_inverse_hvp_arguments()
-    product = -stochastic_inverse_hessian_vector_product(
-        inferencer, test_gradient, **inverse_hvp_arguments
-    ) / len(trainer.dataset)
+    product = (
+        -stochastic_inverse_hessian_vector_product(
+            inferencer, test_gradient, **inverse_hvp_arguments
+        )
+        / trainer.dataset_size
+    )
 
     perturbation_idx_dict: dict = {}
 
