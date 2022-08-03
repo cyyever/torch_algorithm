@@ -141,6 +141,9 @@ class HyDRAHook(Hook):
                 test_gradient,
                 use_approximation=False,
             )
+        self.__sample_gradient_hook.release_queue()
+        if self.use_hessian:
+            self._hvp_hook.release_queue()
 
     @classmethod
     def create_hypergradient_dict(

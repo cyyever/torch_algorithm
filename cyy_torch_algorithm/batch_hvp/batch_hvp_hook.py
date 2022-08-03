@@ -14,11 +14,7 @@ from functorch import grad, jvp, vmap
 def hvp(model_with_loss, inputs, targets, vectors, worker_device):
     model_with_loss.model.to(worker_device)
     vectors = put_data_to_device(vectors, device=worker_device, non_blocking=True)
-    inputs = put_data_to_device(inputs, device=worker_device, non_blocking=True)
-    targets = put_data_to_device(targets, device=worker_device, non_blocking=True)
-    parameter_list = model_with_loss.model_util.get_parameter_list(detach=True).to(
-        worker_device, non_blocking=True
-    )
+    parameter_list = model_with_loss.model_util.get_parameter_list(detach=True)
 
     def hvp_wrapper(vector):
         return jvp(
