@@ -8,10 +8,9 @@ import torch
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
 from cyy_naive_lib.log import get_logger
 from cyy_naive_lib.time_counter import TimeCounter
+from cyy_torch_algorithm.batch_hvp.batch_hvp_hook import BatchHVPHook
 from cyy_torch_algorithm.data_structure.synced_tensor_dict import \
     SyncedTensorDict
-from cyy_torch_algorithm.hessian_vector_product import \
-    get_hessian_vector_product_func
 from cyy_torch_algorithm.sample_gradient.sample_gradient_hook import \
     SampleGradientHook
 from cyy_torch_toolbox.hook import Hook
@@ -33,9 +32,13 @@ class HyDRAHook(Hook):
         self.__hyper_parameter_size = None
 
         self.use_hessian = kwargs.get("use_hessian", False)
-        self._hvp_function = None
+        if self.use_hessian:
+            self._hvp_hook: BatchHVPHook = BatchHVPHook()
+            self._hvp_hook.disable()
+
         self._hessian_hyper_gradient_dict = None
         self._hessian_computation_arguments = None
+        self._hvp_arguments = None
         self.use_approximation = kwargs.get("use_approximation", None)
 
         if self.use_approximation is None:
@@ -43,20 +46,22 @@ class HyDRAHook(Hook):
 
         self._approx_hyper_gradient_dict = None
 
-    def _before_batch(self, **kwargs):
-        trainer = kwargs["model_executor"]
-        batch = kwargs["batch"]
+    def _before_batch(self, model_executor, batch, **kwargs):
+        trainer = model_executor
         if self._trainer is None:
             self._trainer = trainer
         if self._training_set_size is None:
-            self._training_set_size = len(trainer.dataset)
+            self._training_set_size = trainer.dataset_size
 
         if self.use_hessian:
-            self._hvp_function = get_hessian_vector_product_func(
-                trainer.copy_model_with_loss(deepcopy=True), batch
-            )
+            sample_inputs, sample_targets, other_info = batch
             assert not self._hessian_computation_arguments
             self._hessian_computation_arguments = {}
+            self._hvp_arguments = {
+                "model_executor": trainer,
+                "inputs": sample_inputs,
+                "targets": sample_targets,
+            }
 
     @property
     def sample_gradient_dict(self):
@@ -308,7 +313,9 @@ class HyDRAHook(Hook):
         if not hyper_gradients:
             return hessian_vector_product_dict
         with TimeCounter(log_prefix=f"hvp chunk size {len(hyper_gradients)}"):
-            hessian_vector_products = self._hvp_function(hyper_gradients)
+            self._hvp_hook.add_task(data=hyper_gradients, **self._hvp_arguments)
+            hessian_vector_products = self._hvp_hook.result_dict[0]
+            self._hvp_hook.reset_result()
             assert len(hyper_gradients) == len(hessian_vector_products)
             hessian_vector_product_dict = dict(
                 zip(hyper_gradient_indices, hessian_vector_products)
