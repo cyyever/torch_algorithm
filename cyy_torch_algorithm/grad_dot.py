@@ -27,7 +27,7 @@ def compute_perturbation_grad_dot(
     if grad_diff is not None:
         res = {}
         for (perturbation_idx, v) in grad_diff.iterate():
-            res[perturbation_idx] = v.dot(test_gradient)
+            res[perturbation_idx] = v.dot(test_gradient).item()
         return res
 
     return compute_perturbation_gradient_difference(
