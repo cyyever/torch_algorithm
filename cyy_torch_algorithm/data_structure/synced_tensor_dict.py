@@ -71,8 +71,6 @@ class SyncedTensorDict:
     ):
         if storage_dir is None:
             storage_dir = get_temp_dir().name
-        else:
-            assert os.path.isdir(storage_dir)
         m = SyncedTensorDict__(storage_dir)
         m.set_permanent_storage()
         if cache_size is not None:
