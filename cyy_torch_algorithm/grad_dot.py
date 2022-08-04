@@ -25,6 +25,7 @@ def compute_perturbation_grad_dot(
         test_gradient = inferencer.get_gradient()
 
     if grad_diff is not None:
+        test_gradient = test_gradient.cpu()
         res = {}
         for (perturbation_idx, v) in grad_diff.iterate():
             res[perturbation_idx] = v.dot(test_gradient).item()
