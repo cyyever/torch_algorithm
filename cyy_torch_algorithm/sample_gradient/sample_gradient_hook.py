@@ -58,12 +58,13 @@ def get_sample_gradient_dict(
         hook.set_result_transform(result_transform)
     if result_collection_fun is not None:
         hook.set_result_collection_fun(result_collection_fun)
-    gradients: dict = {}
     tmp_inferencer.append_hook(hook)
     tmp_inferencer.inference()
-    gradients = hook.result_dict
+    gradients = None
+    if result_collection_fun is None:
+        gradients = hook.result_dict
+        assert gradients
     hook.release_queue()
-    assert gradients
     return gradients
 
 

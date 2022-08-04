@@ -2,6 +2,7 @@ import functools
 from typing import Callable
 
 import torch
+from cyy_torch_toolbox.device import put_data_to_device
 from cyy_torch_toolbox.ml_type import MachineLearningPhase
 from cyy_torch_toolbox.trainer import Trainer
 
@@ -57,17 +58,15 @@ def compute_perturbation_gradient_difference(
         phase=MachineLearningPhase.Training, copy_model=True
     )
 
-    perturbation_idx_dict: dict = {}
+    sample_to_perturbations: dict = {}
 
     def sample_selector(sample_index, sample_input):
-        nonlocal perturbation_idx_dict
+        nonlocal sample_to_perturbations
 
         res = perturbation_idx_fun(sample_index=sample_index, sample_input=sample_input)
         if res:
-            for perturbation_idx in res:
-                if perturbation_idx not in perturbation_idx_dict:
-                    perturbation_idx_dict[perturbation_idx] = set()
-                perturbation_idx_dict[perturbation_idx].add(sample_index)
+            assert sample_index not in sample_to_perturbations
+            sample_to_perturbations[sample_index] = res
             return True
         return False
 
@@ -78,16 +77,20 @@ def compute_perturbation_gradient_difference(
 
     def collect_result(result_dict):
         nonlocal sample_dict
-        for perturbation_idx, sample_indices in result_dict.items():
-            assert sample_indices
-            for sample_index in sample_indices:
-                v = tmp_dict[sample_index]
+        nonlocal sample_to_perturbations
+        for sample_idx, grad in result_dict.items():
+            for perturbation_idx in sample_to_perturbations[sample_idx]:
                 if perturbation_idx not in sample_dict:
-                    sample_dict[perturbation_idx] = v
+                    sample_dict[perturbation_idx] = grad
                 else:
-                    sample_dict[perturbation_idx] = sample_dict[perturbation_idx] + v
+                    grad = put_data_to_device(
+                        grad,
+                        device=sample_dict[perturbation_idx].device,
+                        non_blocking=True,
+                    )
+                    sample_dict[perturbation_idx] = sample_dict[perturbation_idx] + grad
 
-    tmp_dict = get_sample_gradient_dict(
+    get_sample_gradient_dict(
         inferencer=inferencer,
         sample_selector=sample_selector,
         result_transform=result_transform,
@@ -109,7 +112,7 @@ def compute_perturbation_gradient_difference(
                     perturbation_dict[component_index] + v
                 )
 
-    tmp_dict = get_sample_gradient_dict(
+    get_sample_gradient_dict(
         inferencer=inferencer,
         input_transform=perturbation_fun,
         result_transform=result_transform,
