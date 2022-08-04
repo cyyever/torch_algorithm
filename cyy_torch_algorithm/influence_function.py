@@ -57,6 +57,7 @@ def compute_perturbation_gradient_difference(
     inferencer = trainer.get_inferencer(
         phase=MachineLearningPhase.Training, copy_model=True
     )
+    assert result_transform is None
 
     sample_to_perturbations: dict = {}
 
@@ -83,12 +84,12 @@ def compute_perturbation_gradient_difference(
                 if perturbation_idx not in sample_dict:
                     sample_dict[perturbation_idx] = grad
                 else:
-                    grad = put_data_to_device(
-                        grad,
+                    v = put_data_to_device(
+                        v,
                         device=sample_dict[perturbation_idx].device,
                         non_blocking=True,
                     )
-                    sample_dict[perturbation_idx] = sample_dict[perturbation_idx] + grad
+                    sample_dict[perturbation_idx] = sample_dict[perturbation_idx] + v
 
     get_sample_gradient_dict(
         inferencer=inferencer,
@@ -104,12 +105,17 @@ def compute_perturbation_gradient_difference(
     def collect_result2(result_dict):
         nonlocal perturbation_dict
         for k, v in result_dict.items():
-            sample_index, component_index = k
-            if component_index not in perturbation_dict:
-                perturbation_dict[component_index] = v
+            sample_index, perturbation_index = k
+            if perturbation_index not in perturbation_dict:
+                perturbation_dict[perturbation_index] = v
             else:
-                perturbation_dict[component_index] = (
-                    perturbation_dict[component_index] + v
+                v = put_data_to_device(
+                    v,
+                    device=perturbation_dict[perturbation_index].device,
+                    non_blocking=True,
+                )
+                perturbation_dict[perturbation_index] = (
+                    perturbation_dict[perturbation_index] + v
                 )
 
     get_sample_gradient_dict(
