@@ -18,9 +18,13 @@ class ComputationHook(Hook):
         self.__task_queue = None
         self._result_transform: Callable | None = None
         self.__prev_tasks = []
+        self.__result_collection_fun: Callable | None = None
 
     def set_result_transform(self, f):
         self._result_transform = f
+
+    def set_result_collection_fun(self, f):
+        self.__result_collection_fun = f
 
     def _get_worker_fun(self) -> Callable:
         raise NotImplementedError()
@@ -36,7 +40,10 @@ class ComputationHook(Hook):
 
     def _fetch_result(self) -> None:
         for _ in self.__prev_tasks:
-            self.__result_dict |= self.__task_queue.get_result()
+            if self.__result_collection_fun is not None:
+                self.__result_collection_fun(self.__task_queue.get_result())
+            else:
+                self.__result_dict |= self.__task_queue.get_result()
         self.__prev_tasks = []
 
     def _split_data(self, data_list: list) -> list:
