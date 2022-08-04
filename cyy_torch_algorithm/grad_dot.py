@@ -5,8 +5,10 @@ import torch
 from cyy_torch_toolbox.ml_type import MachineLearningPhase
 from cyy_torch_toolbox.trainer import Trainer
 
-from cyy_torch_algorithm.influence_function import (
-    compute_perturbation_gradient_difference, dot_product_transform)
+from cyy_torch_algorithm.influence_function import \
+    compute_perturbation_gradient_difference
+from cyy_torch_algorithm.sample_gradient.sample_gradient_hook import \
+    sample_dot_product
 
 
 def compute_perturbation_grad_dot(
@@ -25,7 +27,5 @@ def compute_perturbation_grad_dot(
         trainer=trainer,
         perturbation_idx_fun=perturbation_idx_fun,
         perturbation_fun=perturbation_fun,
-        result_transform=functools.partial(
-            dot_product_transform, vector=test_gradient.cpu()
-        ),
+        result_transform=functools.partial(sample_dot_product, vector=test_gradient),
     )

@@ -2,12 +2,12 @@ import functools
 from typing import Callable
 
 import torch
-from cyy_torch_toolbox.device import put_data_to_device
 from cyy_torch_toolbox.ml_type import MachineLearningPhase
 from cyy_torch_toolbox.trainer import Trainer
 
 from cyy_torch_algorithm.sample_gradient.sample_gradient_hook import (
-    get_sample_gradient_dict, get_sample_gradient_product_dict)
+    get_sample_gradient_dict, get_sample_gradient_product_dict,
+    sample_dot_product)
 
 from .inverse_hessian_vector_product import \
     stochastic_inverse_hessian_vector_product
@@ -107,12 +107,6 @@ def compute_perturbation_gradient_difference(
     return result
 
 
-def dot_product_transform(
-    sample_index, result, input_tensor, input_feature, target, vector
-):
-    return put_data_to_device(result, device="cpu", non_blocking=True).dot(vector)
-
-
 def compute_perturbation_influence_function(
     trainer: Trainer,
     perturbation_idx_fun: Callable,
@@ -143,5 +137,5 @@ def compute_perturbation_influence_function(
         trainer=trainer,
         perturbation_idx_fun=perturbation_idx_fun,
         perturbation_fun=perturbation_fun,
-        result_transform=functools.partial(dot_product_transform, vector=product),
+        result_transform=functools.partial(sample_dot_product, vector=product),
     )
