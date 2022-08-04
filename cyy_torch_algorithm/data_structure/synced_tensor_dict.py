@@ -1,9 +1,9 @@
+import os
 from typing import Generator
 
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
+from cyy_naive_lib.fs.tempdir import get_temp_dir
 from cyy_naive_lib.log import get_logger
-from cyy_torch_cpp_extension.data_structure import \
-    SyncedSparseTensorDict as SyncedSparseTensorDict__
 from cyy_torch_cpp_extension.data_structure import \
     SyncedTensorDict as SyncedTensorDict__
 
@@ -65,19 +65,15 @@ class SyncedTensorDict:
     @classmethod
     def create(
         cls,
+        storage_dir=None,
         key_type=int,
         cache_size=None,
-        mask=None,
-        tensor_shape=None,
-        storage_dir=None,
     ):
-        if not storage_dir:
-            storage_dir = ""
-        if mask is not None:
-            assert tensor_shape is not None
-            m = SyncedSparseTensorDict__(mask, tensor_shape, storage_dir)
+        if storage_dir is None:
+            storage_dir = get_temp_dir().name
         else:
-            m = SyncedTensorDict__(storage_dir)
+            assert os.path.isdir(storage_dir)
+        m = SyncedTensorDict__(storage_dir)
         m.set_permanent_storage()
         if cache_size is not None:
             m.set_in_memory_number(cache_size)
