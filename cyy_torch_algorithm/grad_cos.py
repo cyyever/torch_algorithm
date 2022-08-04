@@ -14,7 +14,7 @@ def compute_perturbation_grad_cos(
     perturbation_idx_fun: Callable,
     perturbation_fun: Callable,
     test_gradient: torch.Tensor | None = None,
-) -> dict:
+) -> tuple:
     if test_gradient is None:
         inferencer = trainer.get_inferencer(
             phase=MachineLearningPhase.Test, copy_model=True
@@ -28,7 +28,8 @@ def compute_perturbation_grad_cos(
     )
     res: dict = {}
     test_gradient = test_gradient.cpu()
-    for (perturbation_id, v) in diff.iterate():
-        res[perturbation_id] = torch.nn.functional.cosine_similarity(
-            v.cpu(), test_gradient
-        )
+    for (perturbation_idx, v) in diff.iterate():
+        res[perturbation_idx] = torch.nn.functional.cosine_similarity(
+            v.cpu(), test_gradient, dim=0
+        ).item()
+    return res, diff

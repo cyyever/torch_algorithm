@@ -16,12 +16,19 @@ def compute_perturbation_grad_dot(
     perturbation_idx_fun: Callable,
     perturbation_fun: Callable,
     test_gradient: torch.Tensor | None = None,
+    grad_diff=None,
 ) -> dict:
     if test_gradient is None:
         inferencer = trainer.get_inferencer(
             phase=MachineLearningPhase.Test, copy_model=True
         )
         test_gradient = inferencer.get_gradient()
+
+    if grad_diff is not None:
+        res = {}
+        for (perturbation_idx, v) in grad_diff.iterate():
+            res[perturbation_idx] = v.dot(test_gradient)
+        return res
 
     return compute_perturbation_gradient_difference(
         trainer=trainer,

@@ -31,6 +31,9 @@ class SyncedTensorDict:
     def get_storage_dir(self) -> str:
         return self.__tensor_dict.get_storage_dir()
 
+    def __len__(self):
+        return len(self.__tensor_dict)
+
     def keys(self) -> set:
         return {self.__key_type(k) for k in self.__tensor_dict.keys()}
 
@@ -71,8 +74,10 @@ class SyncedTensorDict:
     ):
         if storage_dir is None:
             storage_dir = get_temp_dir().name
-        m = SyncedTensorDict__(storage_dir)
-        m.set_permanent_storage()
+            m = SyncedTensorDict__(storage_dir)
+        else:
+            m = SyncedTensorDict__(storage_dir)
+            m.set_permanent_storage()
         if cache_size is not None:
             m.set_in_memory_number(cache_size)
         get_logger().info("tensor_dict use cache size %s", m.get_in_memory_number())

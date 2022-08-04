@@ -53,7 +53,7 @@ def compute_perturbation_gradient_difference(
     perturbation_idx_fun: Callable,
     perturbation_fun: Callable,
     result_transform: Callable | None = None,
-) -> dict:
+):
     inferencer = trainer.get_inferencer(
         phase=MachineLearningPhase.Training, copy_model=True
     )
@@ -79,16 +79,13 @@ def compute_perturbation_gradient_difference(
     def collect_result(result_dict):
         nonlocal sample_dict
         nonlocal sample_to_perturbations
-        for sample_idx, grad in result_dict.items():
+        nonlocal inferencer
+        for sample_idx, v in result_dict.items():
+            v = put_data_to_device(v, device=inferencer.device, non_blocking=True)
             for perturbation_idx in sample_to_perturbations[sample_idx]:
                 if perturbation_idx not in sample_dict:
-                    sample_dict[perturbation_idx] = grad
+                    sample_dict[perturbation_idx] = v
                 else:
-                    v = put_data_to_device(
-                        v,
-                        device=sample_dict[perturbation_idx].device,
-                        non_blocking=True,
-                    )
                     sample_dict[perturbation_idx] = sample_dict[perturbation_idx] + v
 
     get_sample_gradient_dict(
@@ -104,16 +101,13 @@ def compute_perturbation_gradient_difference(
 
     def collect_result2(result_dict):
         nonlocal perturbation_dict
+        nonlocal inferencer
         for k, v in result_dict.items():
             sample_index, perturbation_index = k
+            v = put_data_to_device(v, device=inferencer.device, non_blocking=True)
             if perturbation_index not in perturbation_dict:
                 perturbation_dict[perturbation_index] = v
             else:
-                v = put_data_to_device(
-                    v,
-                    device=perturbation_dict[perturbation_index].device,
-                    non_blocking=True,
-                )
                 perturbation_dict[perturbation_index] = (
                     perturbation_dict[perturbation_index] + v
                 )
@@ -128,10 +122,14 @@ def compute_perturbation_gradient_difference(
         result = SyncedTensorDict.create(cache_size=128)
     else:
         result: dict = {}
-    for perturbation_idx in sample_dict:
+    assert len(sample_dict) == len(perturbation_dict)
+    for perturbation_idx in sample_dict.keys():
         result[perturbation_idx] = (
             sample_dict[perturbation_idx] - perturbation_dict[perturbation_idx]
-        )
+        ).cpu()
+    if result_transform is None:
+        sample_dict.release()
+        perturbation_dict.release()
     return result
 
 
@@ -141,6 +139,7 @@ def compute_perturbation_influence_function(
     perturbation_fun: Callable,
     test_gradient: torch.Tensor | None = None,
     inverse_hvp_arguments: None | dict = None,
+    grad_diff=None,
 ) -> dict:
     if test_gradient is None:
         inferencer = trainer.get_inferencer(
@@ -160,6 +159,11 @@ def compute_perturbation_influence_function(
         )
         / trainer.dataset_size
     )
+    if grad_diff is not None:
+        res = {}
+        for (perturbation_idx, v) in grad_diff.iterate():
+            res[perturbation_idx] = v.dot(product)
+        return res
 
     return compute_perturbation_gradient_difference(
         trainer=trainer,
