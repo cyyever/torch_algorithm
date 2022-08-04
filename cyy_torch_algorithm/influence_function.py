@@ -50,7 +50,7 @@ def compute_perturbation_gradient_difference(
     trainer: Trainer,
     perturbation_idx_fun: Callable,
     perturbation_fun: Callable,
-    result_transform: Callable,
+    result_transform: Callable | None = None,
 ) -> dict:
     inferencer = trainer.get_inferencer(
         phase=MachineLearningPhase.Training, copy_model=True
