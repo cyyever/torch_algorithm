@@ -34,7 +34,7 @@ class ComputationHook(Hook):
         self._fetch_result()
         return self.__result_dict
 
-    def _fetch_result(self):
+    def _fetch_result(self) -> None:
         for _ in self.__prev_tasks:
             self.__result_dict |= self.__task_queue.get_result()
         self.__prev_tasks = []
@@ -47,8 +47,8 @@ class ComputationHook(Hook):
             ) // self.__task_queue.worker_num
             chunk_size = min(max(avg_chunk_size, chunk_size), 50)
         get_logger().debug("chunk_size is %s", chunk_size)
-        return zip(
-            *(tuple(split_list_to_chunks(data, chunk_size)) for data in data_list)
+        return list(
+            zip(*(tuple(split_list_to_chunks(data, chunk_size)) for data in data_list))
         )
 
     def __get_task_queue(self, model_executor, worker_fun) -> TorchProcessTaskQueue:
@@ -77,7 +77,7 @@ class ComputationHook(Hook):
     def __del__(self):
         self.release_queue(keep_result=False)
 
-    def release_queue(self, keep_result: bool = True):
+    def release_queue(self, keep_result: bool = False) -> None:
         if keep_result:
             self._fetch_result()
             for k, v in self.__result_dict.items():
