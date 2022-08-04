@@ -17,7 +17,7 @@ def sample_gjvp_worker_fun(
     targets,
     worker_device,
 ):
-    parameter_list = model_with_loss.model_util.get_parameter_list(detach=True)
+    parameter_list = model_with_loss.model_util.get_parameter_list(detach=False)
     vector = put_data_to_device(vector, device=worker_device, non_blocking=True)
     is_input_feature = input_features[0] is not None
     if is_input_feature:

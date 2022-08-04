@@ -26,7 +26,7 @@ def sample_gradient_worker_fun(
         in_dims=(None, 0, 0),
         randomness="same",
     )(
-        model_with_loss.model_util.get_parameter_list(detach=True),
+        model_with_loss.model_util.get_parameter_list(detach=False),
         torch.stack(inputs),
         torch.stack(targets),
     )
