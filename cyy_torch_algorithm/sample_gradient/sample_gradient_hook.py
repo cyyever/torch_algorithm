@@ -44,6 +44,7 @@ def get_sample_gradient_dict(
     sample_selector=None,
     input_transform=None,
     result_transform=None,
+    result_collection_fun=None,
 ) -> dict:
     tmp_inferencer = copy.deepcopy(inferencer)
     tmp_inferencer.disable_logger()
@@ -56,6 +57,8 @@ def get_sample_gradient_dict(
         hook.set_input_transform(input_transform)
     if result_transform is not None:
         hook.set_result_transform(result_transform)
+    if result_collection_fun is not None:
+        hook.set_result_collection_fun(result_collection_fun)
     gradients: dict = {}
     tmp_inferencer.append_hook(hook)
     tmp_inferencer.inference()
