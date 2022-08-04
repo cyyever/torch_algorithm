@@ -60,7 +60,7 @@ def get_sample_gradient_dict(
     tmp_inferencer.append_hook(hook)
     tmp_inferencer.inference()
     gradients = hook.result_dict
-    hook.release_queue(keep_result=False)
+    hook.release_queue()
     assert gradients
     return gradients
 

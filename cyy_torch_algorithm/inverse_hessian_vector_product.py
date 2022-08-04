@@ -92,7 +92,7 @@ def stochastic_inverse_hessian_vector_product(
                 "stochastic_inverse_hessian_vector_product epoch is %s", epoch
             )
         result = result.cpu()
-        hook.release_queue(keep_result=False)
+        hook.release_queue()
         return result
 
     product_list = [iteration() for _ in range(repeated_num)]

@@ -75,17 +75,11 @@ class ComputationHook(Hook):
         self.reset_result()
 
     def __del__(self):
-        self.release_queue(keep_result=False)
+        self.release_queue()
 
-    def release_queue(self, keep_result: bool = False) -> None:
-        if keep_result:
-            self._fetch_result()
-            for k, v in self.__result_dict.items():
-                if isinstance(v, torch.Tensor):
-                    self.__result_dict[k] = v.clone()
-        else:
-            assert not self.__prev_tasks
-            self.reset_result()
+    def release_queue(self) -> None:
+        assert not self.__prev_tasks
+        self.reset_result()
         if self.__task_queue is not None:
             self.__task_queue.release()
             self.__task_queue = None
