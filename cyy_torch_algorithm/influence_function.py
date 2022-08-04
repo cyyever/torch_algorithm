@@ -131,7 +131,7 @@ def compute_perturbation_influence_function(
             inferencer, test_gradient, **inverse_hvp_arguments
         )
         / trainer.dataset_size
-    ).cpu()
+    )
 
     return compute_perturbation_gradient_difference(
         trainer=trainer,
