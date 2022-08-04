@@ -28,3 +28,4 @@ def test_CV_sample_gradient():
         ModelExecutorHookPoint.AFTER_FORWARD, "check gradients", print_sample_gradients
     )
     trainer.train()
+    hook.release_queue()

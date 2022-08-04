@@ -54,3 +54,4 @@ def test_NLP_vjp():
         ModelExecutorHookPoint.AFTER_BATCH, "check gradients", print_result
     )
     trainer.train()
+    hook.release_queue()

@@ -5,12 +5,13 @@ import torch
 from cyy_torch_toolbox.ml_type import MachineLearningPhase
 from cyy_torch_toolbox.trainer import Trainer
 
+from cyy_torch_algorithm.data_structure.synced_tensor_dict import \
+    SyncedTensorDict
+from cyy_torch_algorithm.inverse_hessian_vector_product import \
+    stochastic_inverse_hessian_vector_product
 from cyy_torch_algorithm.sample_gradient.sample_gradient_hook import (
     get_sample_gradient_dict, get_sample_gradient_product_dict,
     sample_dot_product)
-
-from .inverse_hessian_vector_product import \
-    stochastic_inverse_hessian_vector_product
 
 
 def __get_inverse_hvp_arguments() -> dict:
@@ -70,40 +71,58 @@ def compute_perturbation_gradient_difference(
             return True
         return False
 
+    if result_transform is None:
+        sample_dict = SyncedTensorDict.create(cache_size=128)
+    else:
+        sample_dict: dict = {}
+
+    def collect_result(result_dict):
+        nonlocal sample_dict
+        for perturbation_idx, sample_indices in result_dict.items():
+            assert sample_indices
+            for sample_index in sample_indices:
+                v = tmp_dict[sample_index]
+                if perturbation_idx not in sample_dict:
+                    sample_dict[perturbation_idx] = v
+                else:
+                    sample_dict[perturbation_idx] = sample_dict[perturbation_idx] + v
+
     tmp_dict = get_sample_gradient_dict(
         inferencer=inferencer,
         sample_selector=sample_selector,
         result_transform=result_transform,
+        result_collection_fun=collect_result,
     )
-    sample_dict: dict = {}
-    for perturbation_idx, sample_indices in perturbation_idx_dict.items():
-        assert sample_indices
-        for sample_index in sample_indices:
-            v = tmp_dict[sample_index]
-            if perturbation_idx not in sample_dict:
-                sample_dict[perturbation_idx] = v
+    if result_transform is None:
+        perturbation_dict = SyncedTensorDict.create(cache_size=128)
+    else:
+        perturbation_dict: dict = {}
+
+    def collect_result2(result_dict):
+        nonlocal perturbation_dict
+        for k, v in result_dict.items():
+            sample_index, component_index = k
+            if component_index not in perturbation_dict:
+                perturbation_dict[component_index] = v
             else:
-                sample_dict[perturbation_idx] = sample_dict[perturbation_idx] + v
+                perturbation_dict[component_index] = (
+                    perturbation_dict[component_index] + v
+                )
 
     tmp_dict = get_sample_gradient_dict(
         inferencer=inferencer,
         input_transform=perturbation_fun,
         result_transform=result_transform,
+        result_collection_fun=collect_result2,
     )
-    perturbation_dict: dict = {}
-    for k, v in tmp_dict.items():
-        sample_index, component_index = k
-        if component_index not in perturbation_dict:
-            perturbation_dict[component_index] = v
-        else:
-            perturbation_dict[component_index] = perturbation_dict[component_index] + v
-
-    result: dict = {}
+    if result_transform is None:
+        result = SyncedTensorDict.create(cache_size=128)
+    else:
+        result: dict = {}
     for perturbation_idx in sample_dict:
         result[perturbation_idx] = (
             sample_dict[perturbation_idx] - perturbation_dict[perturbation_idx]
         )
-
     return result
 
 
