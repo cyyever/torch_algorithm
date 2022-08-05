@@ -16,7 +16,7 @@ from cyy_torch_algorithm.sample_gradient.sample_gradient_hook import (
 
 
 def __get_inverse_hvp_arguments() -> dict:
-    return {"dampling_term": 0.01, "scale": 1000, "epsilon": 0.03, "repeated_num": 3}
+    return {"dampling_term": 0.01, "scale": 10000, "epsilon": 0.03, "repeated_num": 3}
 
 
 def compute_influence_function(
@@ -38,10 +38,10 @@ def compute_influence_function(
         inverse_hvp_arguments = __get_inverse_hvp_arguments()
     product = (
         stochastic_inverse_hessian_vector_product(
-            inferencer, test_gradient, **inverse_hvp_arguments
+            inferencer, vectors=[test_gradient], **inverse_hvp_arguments
         )
         / trainer.dataset_size
-    )
+    )[0].cpu()
 
     return get_sample_gradient_product_dict(
         inferencer=inferencer, vector=product, computed_indices=computed_indices
@@ -57,7 +57,6 @@ def compute_perturbation_gradient_difference(
     inferencer = trainer.get_inferencer(
         phase=MachineLearningPhase.Training, copy_model=True
     )
-    assert result_transform is None
 
     sample_to_perturbations: dict = {}
 
@@ -155,10 +154,10 @@ def compute_perturbation_influence_function(
 
     product = (
         -stochastic_inverse_hessian_vector_product(
-            inferencer, test_gradient, **inverse_hvp_arguments
+            inferencer, vectors=[test_gradient], **inverse_hvp_arguments
         )
         / trainer.dataset_size
-    )
+    )[0].cpu()
     if grad_diff is not None:
         res = {}
         for (perturbation_idx, v) in grad_diff.iterate():

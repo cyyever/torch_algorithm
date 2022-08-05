@@ -17,16 +17,15 @@ class BatchComputationHook(ComputationHook):
 
     def _after_forward(self, model_executor, inputs, targets, **kwargs):
         assert self.__data_fun is not None
-        self.reset_result()
         data = self.__data_fun()
-        if not data:
+        if data is None:
             return
         self.add_task(
             model_executor=model_executor, inputs=inputs, targets=targets, data=data
         )
 
     def add_task(self, model_executor, inputs, targets, data):
-        self.reset_result()
+        assert not self.has_unfetched_result()
         model_with_loss = model_executor.model_with_loss
         if model_with_loss.model.training:
             model_with_loss = model_executor.copy_model_with_loss(deepcopy=True)
@@ -38,7 +37,6 @@ class BatchComputationHook(ComputationHook):
             self._result_transform,
             self._get_worker_fun(),
         )
-        self._fetch_result()
         for data_piece in self._split_data([data]):
             task = (model_with_loss, inputs, targets, *data_piece)
             self._add_task(

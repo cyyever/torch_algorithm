@@ -38,6 +38,9 @@ class ComputationHook(Hook):
         self._fetch_result()
         return self.__result_dict
 
+    def has_unfetched_result(self):
+        return bool(self.__prev_tasks)
+
     def _fetch_result(self) -> None:
         for _ in self.__prev_tasks:
             if self.__result_collection_fun is not None:

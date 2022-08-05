@@ -17,23 +17,29 @@ def hvp(model_with_loss, inputs, targets, vectors, worker_device):
     parameter_list = model_with_loss.model_util.get_parameter_list(detach=False)
 
     def hvp_wrapper(vector):
+        f = functools.partial(
+            eval_model,
+            inputs=inputs,
+            targets=targets,
+            device=worker_device,
+            model_with_loss=model_with_loss,
+            phase=MachineLearningPhase.Test,
+            non_blocking=True,
+        )
+
+        def grad_f(parameter_list):
+            return grad(f, argnums=0)(parameter_list).view(-1)
+
         return jvp(
-            grad(
-                functools.partial(
-                    eval_model,
-                    inputs=inputs,
-                    targets=targets,
-                    device=worker_device,
-                    model_with_loss=model_with_loss,
-                    phase=MachineLearningPhase.Test,
-                    non_blocking=True,
-                )
-            ),
+            grad_f,
             (parameter_list,),
             (vector,),
         )[1]
 
-    return vmap(hvp_wrapper, randomness="same")(torch.stack(vectors))
+    if not isinstance(vectors, torch.Tensor):
+        vectors = torch.stack(vectors)
+
+    return vmap(hvp_wrapper, randomness="same")(vectors)
 
 
 def batch_hvp_worker_fun(

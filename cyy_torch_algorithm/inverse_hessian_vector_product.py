@@ -29,18 +29,15 @@ def stochastic_inverse_hessian_vector_product(
         epsilon,
     )
 
+    vectors = torch.stack(vectors).cpu()
+
     def iteration() -> torch.Tensor:
         nonlocal vectors
-        vectors = torch.stack(vectors).cpu()
         cur_products = copy.deepcopy(vectors)
         iteration_num = 0
         hook = BatchHVPHook()
 
         epoch = 1
-
-        def set_vectors(**kwargs):
-            nonlocal cur_products
-            hook.set_vectors(cur_products)
 
         results = None
 
@@ -54,14 +51,17 @@ def stochastic_inverse_hessian_vector_product(
                 - hook.result_dict[0].cpu() / scale
             )
             hook.reset_result()
-            diffs = torch.cdist(cur_products, next_products)
-            get_logger().debug(
-                "diff is %s, epsilon is %s, epoch is %s,iteration is %s, max_iteration is %s",
-                diffs.diagonal(),
+            diffs = torch.tensor(
+                [torch.dist(a, b) for a, b in zip(cur_products, next_products)]
+            )
+            get_logger().error(
+                "diffs is %s, epsilon is %s, epoch is %s, iteration is %s, max_iteration is %s, product %s",
+                diffs,
                 epsilon,
                 epoch,
                 iteration_num,
                 max_iteration,
+                torch.linalg.norm(cur_products, ord=2),
             )
             cur_products = next_products
             iteration_num += 1
@@ -69,17 +69,12 @@ def stochastic_inverse_hessian_vector_product(
                 (diffs <= epsilon).all().bool() and epoch > 1
             ) or iteration_num >= max_iteration:
                 results = cur_products / scale
-                hook.reset_result()
                 raise StopExecutingException()
 
         tmp_inferencer = copy.deepcopy(inferencer)
         tmp_inferencer.disable_logger()
         tmp_inferencer.disable_performance_metric_logger()
-        tmp_inferencer.append_named_hook(
-            hook_point=ModelExecutorHookPoint.AFTER_FORWARD,
-            name="set_vectors",
-            fun=set_vectors,
-        )
+        hook.set_data_fun(lambda: cur_products)
         tmp_inferencer.append_hook(hook)
         tmp_inferencer.append_named_hook(
             hook_point=ModelExecutorHookPoint.AFTER_FORWARD,
@@ -98,4 +93,5 @@ def stochastic_inverse_hessian_vector_product(
         return results
 
     product_list = [iteration() for _ in range(repeated_num)]
+    print("product_list is ", product_list)
     return sum(product_list) / len(product_list)
