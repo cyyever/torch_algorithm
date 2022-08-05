@@ -13,13 +13,13 @@ from cyy_torch_algorithm.batch_hvp.batch_hvp_hook import BatchHVPHook
 
 def stochastic_inverse_hessian_vector_product(
     inferencer: Inferencer,
-    vector,
-    repeated_num=1,
-    max_iteration=1000,
-    dampling_term=0,
-    scale=1,
-    epsilon=0.0001,
-):
+    vectors: list,
+    repeated_num: int = 1,
+    max_iteration: int = 1000,
+    dampling_term: float = 0,
+    scale: float = 1,
+    epsilon: float = 0.0001,
+) -> torch.Tensor:
     get_logger().info(
         "repeated_num is %s,max_iteration is %s,dampling term is %s,scale is %s,epsilon is %s",
         repeated_num,
@@ -30,43 +30,45 @@ def stochastic_inverse_hessian_vector_product(
     )
 
     def iteration() -> torch.Tensor:
-        nonlocal vector
-        vector = vector.cpu()
-        cur_product = copy.deepcopy(vector)
+        nonlocal vectors
+        vectors = torch.stack(vectors).cpu()
+        cur_products = copy.deepcopy(vectors)
         iteration_num = 0
         hook = BatchHVPHook()
 
         epoch = 1
 
         def set_vectors(**kwargs):
-            nonlocal cur_product
-            hook.set_vectors([cur_product])
+            nonlocal cur_products
+            hook.set_vectors(cur_products)
 
-        result = None
+        results = None
 
         def compute_product(**kwargs) -> None:
-            nonlocal cur_product
-            nonlocal result
+            nonlocal cur_products
+            nonlocal results
             nonlocal iteration_num
-            next_product = (
-                vector
-                + (1 - dampling_term) * cur_product
-                - hook.result_dict[0][0].cpu() / scale
+            next_products = (
+                vectors
+                + (1 - dampling_term) * cur_products
+                - hook.result_dict[0].cpu() / scale
             )
             hook.reset_result()
-            diff = torch.dist(cur_product, next_product)
+            diffs = torch.cdist(cur_products, next_products)
             get_logger().debug(
                 "diff is %s, epsilon is %s, epoch is %s,iteration is %s, max_iteration is %s",
-                diff,
+                diffs.diagonal(),
                 epsilon,
                 epoch,
                 iteration_num,
                 max_iteration,
             )
-            cur_product = next_product
+            cur_products = next_products
             iteration_num += 1
-            if (diff <= epsilon and epoch > 1) or iteration_num >= max_iteration:
-                result = cur_product / scale
+            if (
+                (diffs <= epsilon).all().bool() and epoch > 1
+            ) or iteration_num >= max_iteration:
+                results = cur_products / scale
                 hook.reset_result()
                 raise StopExecutingException()
 
@@ -85,15 +87,15 @@ def stochastic_inverse_hessian_vector_product(
             fun=compute_product,
         )
 
-        while result is None:
+        while results is None:
             tmp_inferencer.inference(use_grad=False, epoch=epoch)
             epoch += 1
             get_logger().debug(
                 "stochastic_inverse_hessian_vector_product epoch is %s", epoch
             )
-        result = result.cpu()
+        results = results.cpu()
         hook.release_queue()
-        return result
+        return results
 
     product_list = [iteration() for _ in range(repeated_num)]
     return sum(product_list) / len(product_list)
