@@ -12,7 +12,7 @@ from cyy_torch_toolbox.ml_type import MachineLearningPhase
 from cyy_torch_toolbox.trainer import Trainer
 
 
-def __get_inverse_hvp_arguments() -> dict:
+def get_default_inverse_hvp_arguments() -> dict:
     return {"dampling_term": 0.001, "scale": 10000, "epsilon": 0.03, "repeated_num": 3}
 
 
@@ -32,7 +32,7 @@ def compute_influence_function(
         phase=MachineLearningPhase.Training, copy_model=True
     )
     if inverse_hvp_arguments is None:
-        inverse_hvp_arguments = __get_inverse_hvp_arguments()
+        inverse_hvp_arguments = get_default_inverse_hvp_arguments()
     product = (
         stochastic_inverse_hessian_vector_product(
             inferencer, vectors=[test_gradient], **inverse_hvp_arguments
@@ -63,7 +63,7 @@ def compute_perturbation_influence_function(
         phase=MachineLearningPhase.Training, copy_model=True
     )
     if inverse_hvp_arguments is None:
-        inverse_hvp_arguments = __get_inverse_hvp_arguments()
+        inverse_hvp_arguments = get_default_inverse_hvp_arguments()
 
     product = (
         -stochastic_inverse_hessian_vector_product(
