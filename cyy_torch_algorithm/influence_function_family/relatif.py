@@ -25,7 +25,7 @@ def compute_perturbation_relatif(
         )
         test_gradient = inferencer.get_gradient()
 
-    if grad_diff is not None:
+    if grad_diff is None:
         grad_diff = compute_perturbation_gradient_difference(
             trainer=trainer,
             perturbation_idx_fun=perturbation_idx_fun,
