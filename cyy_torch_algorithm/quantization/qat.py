@@ -1,10 +1,7 @@
-import copy
-
 import torch
 from cyy_naive_lib.log import get_logger
 from cyy_torch_toolbox.hook import Hook
 from cyy_torch_toolbox.model_util import ModelUtil
-from cyy_torch_toolbox.model_with_loss import ModelWithLoss
 from cyy_torch_toolbox.trainer import Trainer
 from torch.ao.quantization.fuser_method_mappings import \
     DEFAULT_OP_LIST_TO_FUSER_METHOD
