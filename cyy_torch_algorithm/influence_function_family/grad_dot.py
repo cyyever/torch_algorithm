@@ -2,13 +2,12 @@ import functools
 from typing import Callable
 
 import torch
+from cyy_torch_algorithm.computation.sample_gradient.sample_gradient_hook import \
+    sample_dot_product
+from cyy_torch_algorithm.influence_function_family.influence_function import \
+    compute_perturbation_gradient_difference
 from cyy_torch_toolbox.ml_type import MachineLearningPhase
 from cyy_torch_toolbox.trainer import Trainer
-
-from cyy_torch_algorithm.influence_function import \
-    compute_perturbation_gradient_difference
-from cyy_torch_algorithm.sample_gradient.sample_gradient_hook import \
-    sample_dot_product
 
 
 def compute_perturbation_grad_dot(

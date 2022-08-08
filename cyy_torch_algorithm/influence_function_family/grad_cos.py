@@ -2,11 +2,10 @@ from typing import Callable
 
 import torch
 import torch.nn.functional
+from cyy_torch_algorithm.influence_function_family.influence_function import \
+    compute_perturbation_gradient_difference
 from cyy_torch_toolbox.ml_type import MachineLearningPhase
 from cyy_torch_toolbox.trainer import Trainer
-
-from cyy_torch_algorithm.influence_function import \
-    compute_perturbation_gradient_difference
 
 
 def compute_perturbation_grad_cos(
