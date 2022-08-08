@@ -123,9 +123,10 @@ def compute_perturbation_gradient_difference(
         result: dict = {}
     assert len(sample_dict) == len(perturbation_dict)
     for perturbation_idx in sample_dict.keys():
-        result[perturbation_idx] = (
-            sample_dict[perturbation_idx] - perturbation_dict[perturbation_idx]
-        ).cpu()
+        tmp = sample_dict[perturbation_idx] - perturbation_dict[perturbation_idx]
+        if isinstance(tmp, torch.Tensor):
+            tmp = tmp.cpu()
+        result[perturbation_idx] = tmp
     if result_transform is None:
         sample_dict.release()
         perturbation_dict.release()
