@@ -4,11 +4,11 @@ import copy
 
 import torch
 from cyy_naive_lib.log import get_logger
+from cyy_torch_algorithm.computation.batch_hvp.batch_hvp_hook import \
+    BatchHVPHook
 from cyy_torch_toolbox.inferencer import Inferencer
 from cyy_torch_toolbox.ml_type import (ModelExecutorHookPoint,
                                        StopExecutingException)
-
-from cyy_torch_algorithm.computation.batch_hvp.batch_hvp_hook import BatchHVPHook
 
 
 def stochastic_inverse_hessian_vector_product(
@@ -37,14 +37,13 @@ def stochastic_inverse_hessian_vector_product(
         iteration_num = 0
         hook = BatchHVPHook()
 
-        epoch = 1
-
         results = None
 
-        def compute_product(**kwargs) -> None:
+        def compute_product(epoch, **kwargs) -> None:
             nonlocal cur_products
             nonlocal results
             nonlocal iteration_num
+            get_logger().error("result_dict values are %s", hook.result_dict[0])
             next_products = (
                 vectors
                 + (1 - dampling_term) * cur_products
@@ -55,13 +54,13 @@ def stochastic_inverse_hessian_vector_product(
                 [torch.dist(a, b) for a, b in zip(cur_products, next_products)]
             )
             get_logger().error(
-                "diffs is %s, epsilon is %s, epoch is %s, iteration is %s, max_iteration is %s, product %s",
+                "diffs is %s, epsilon is %s, epoch is %s, iteration is %s, max_iteration is %s, scale %s",
                 diffs,
                 epsilon,
                 epoch,
                 iteration_num,
                 max_iteration,
-                torch.linalg.norm(cur_products, ord=2),
+                scale,
             )
             cur_products = next_products
             iteration_num += 1
@@ -81,7 +80,7 @@ def stochastic_inverse_hessian_vector_product(
             name="compute_product",
             fun=compute_product,
         )
-
+        epoch = 1
         while results is None:
             tmp_inferencer.inference(use_grad=False, epoch=epoch)
             epoch += 1

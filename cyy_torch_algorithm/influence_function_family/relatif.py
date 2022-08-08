@@ -1,6 +1,7 @@
 from typing import Callable
 
 import torch
+from cyy_naive_lib.log import get_logger
 from cyy_torch_algorithm.influence_function_family.influence_function import \
     get_default_inverse_hvp_arguments
 from cyy_torch_algorithm.influence_function_family.inverse_hessian_vector_product import \
@@ -24,6 +25,7 @@ def compute_perturbation_relatif(
             phase=MachineLearningPhase.Test, copy_model=True
         )
         test_gradient = inferencer.get_gradient()
+    test_gradient = test_gradient.cpu()
 
     if grad_diff is None:
         grad_diff = compute_perturbation_gradient_difference(
@@ -34,6 +36,7 @@ def compute_perturbation_relatif(
 
     if inverse_hvp_arguments is None:
         inverse_hvp_arguments = get_default_inverse_hvp_arguments()
+        inverse_hvp_arguments["repeated_num"] = 1
 
     res: dict = {}
     accumulated_indices = []
@@ -41,8 +44,10 @@ def compute_perturbation_relatif(
     inferencer = trainer.get_inferencer(
         phase=MachineLearningPhase.Training, copy_model=True
     )
-    batch_size = 128
+    torch.cuda.empty_cache()
+    batch_size = 1
     for (perturbation_idx, v) in grad_diff.iterate():
+        get_logger().error("v norm is %s", torch.linalg.vector_norm(v))
         accumulated_indices.append(perturbation_idx)
         accumulated_vectors.append(v)
         if len(accumulated_indices) != batch_size:
@@ -63,6 +68,6 @@ def compute_perturbation_relatif(
         for idx, product in zip(accumulated_indices, products):
             res[idx] = (
                 -test_gradient.dot(product) / torch.linalg.vector_norm(product)
-            ).cpu()
+            ).item()
     assert len(res) == len(grad_diff)
     return res

@@ -2,9 +2,8 @@ import functools
 from typing import Callable
 
 import torch
-from cyy_torch_toolbox.device import put_data_to_device
-
 from cyy_torch_algorithm.computation.computation_hook import ComputationHook
+from cyy_torch_toolbox.device import put_data_to_device
 
 
 class BatchComputationHook(ComputationHook):
@@ -38,9 +37,10 @@ class BatchComputationHook(ComputationHook):
             self._get_worker_fun(),
         )
         for data_piece in self._split_data([data]):
-            task = (model_with_loss, inputs, targets, *data_piece)
             self._add_task(
-                model_executor=model_executor, worker_fun=worker_fun, task=task
+                model_executor=model_executor,
+                worker_fun=worker_fun,
+                task=(model_with_loss, inputs, targets, *data_piece),
             )
 
     @classmethod
@@ -55,6 +55,7 @@ class BatchComputationHook(ComputationHook):
             targets = put_data_to_device(
                 targets, device=worker_device, non_blocking=True
             )
+            data = put_data_to_device(data, device=worker_device, non_blocking=True)
             res = worker_fun(
                 model_with_loss=model_with_loss,
                 inputs=inputs,

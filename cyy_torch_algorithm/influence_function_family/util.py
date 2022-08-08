@@ -20,6 +20,7 @@ def compute_perturbation_gradient_difference(
         phase=MachineLearningPhase.Training, copy_model=True
     )
 
+    torch.cuda.empty_cache()
     sample_to_perturbations: dict = {}
 
     def sample_selector(sample_index, sample_input):
