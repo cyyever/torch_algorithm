@@ -8,7 +8,7 @@ from cyy_torch_toolbox.inferencer import Inferencer
 from cyy_torch_toolbox.ml_type import (ModelExecutorHookPoint,
                                        StopExecutingException)
 
-from cyy_torch_algorithm.batch_hvp.batch_hvp_hook import BatchHVPHook
+from cyy_torch_algorithm.computation.batch_hvp.batch_hvp_hook import BatchHVPHook
 
 
 def stochastic_inverse_hessian_vector_product(

@@ -2,13 +2,13 @@ import functools
 
 import torch
 import torch.cuda
-from cyy_torch_algorithm.evaluation import eval_model
-from cyy_torch_algorithm.sample_computation_hook import SampleComputationHook
+from cyy_torch_algorithm.computation.evaluation import eval_model
+from cyy_torch_algorithm.computation.sample_computation_hook import SampleComputationHook
 from cyy_torch_toolbox.device import put_data_to_device
-from functorch import grad, vjp, vmap
+from functorch import grad, jvp, vmap
 
 
-def sample_gvjp_worker_fun(
+def sample_gjvp_worker_fun(
     vector,
     model_with_loss,
     sample_indices,
@@ -23,7 +23,7 @@ def sample_gvjp_worker_fun(
     if is_input_feature:
         inputs = input_features
 
-    def vjp_wrapper(parameter_list, input_tensor, target):
+    def jvp_wrapper(parameter_list, input_tensor, target):
         f = functools.partial(
             eval_model,
             targets=target,
@@ -37,10 +37,9 @@ def sample_gvjp_worker_fun(
         def grad_f(input_tensor):
             return grad(f, argnums=0)(parameter_list, input_tensor).view(-1)
 
-        vjpfunc = vjp(grad_f, input_tensor.view(-1))[1]
-        return vjpfunc(vector)[0]
+        return jvp(grad_f, (input_tensor.view(-1),), (vector,))[1]
 
-    products = vmap(vjp_wrapper, in_dims=(None, 0, 0), randomness="same")(
+    products = vmap(jvp_wrapper, in_dims=(None, 0, 0), randomness="same")(
         parameter_list,
         torch.stack(inputs),
         torch.stack(targets),
@@ -48,7 +47,7 @@ def sample_gvjp_worker_fun(
     return dict(zip(sample_indices, products))
 
 
-class SampleGradientVJPHook(SampleComputationHook):
+class SampleGradientJVPHook(SampleComputationHook):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.__vector = None
@@ -57,4 +56,4 @@ class SampleGradientVJPHook(SampleComputationHook):
         self.__vector = vector
 
     def _get_worker_fun(self):
-        return functools.partial(sample_gvjp_worker_fun, self.__vector)
+        return functools.partial(sample_gjvp_worker_fun, self.__vector)

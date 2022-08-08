@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import torch
 import torch.nn
-from cyy_torch_algorithm.sample_gjvp.sample_gjvp_hook import \
+from cyy_torch_algorithm.computation.sample_gjvp.sample_gjvp_hook import \
     SampleGradientJVPHook
 from cyy_torch_toolbox.default_config import DefaultConfig
 from cyy_torch_toolbox.ml_type import (ModelExecutorHookPoint,

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import torch
 import torch.nn as nn
-from cyy_torch_algorithm.sample_gvjp.sample_gvjp_hook import \
+from cyy_torch_algorithm.computation.sample_gvjp.sample_gvjp_hook import \
     SampleGradientVJPHook
 from cyy_torch_toolbox.default_config import DefaultConfig
 from cyy_torch_toolbox.ml_type import (ModelExecutorHookPoint,

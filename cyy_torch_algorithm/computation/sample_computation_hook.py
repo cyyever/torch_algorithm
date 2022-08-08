@@ -8,7 +8,7 @@ from cyy_torch_toolbox.device import put_data_to_device
 from cyy_torch_toolbox.hooks.add_index_to_dataset import AddIndexToDataset
 from cyy_torch_toolbox.ml_type import DatasetType
 
-from cyy_torch_algorithm.computation_hook import ComputationHook
+from cyy_torch_algorithm.computation.computation_hook import ComputationHook
 
 
 class SampleComputationHook(ComputationHook):
