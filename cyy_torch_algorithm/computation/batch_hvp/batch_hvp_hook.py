@@ -15,6 +15,7 @@ def batch_hvp_worker_fun(
     model_with_loss,
     inputs,
     targets,
+    data_idx,
     data,
     worker_device,
 ):
@@ -46,7 +47,7 @@ def batch_hvp_worker_fun(
 
     products = vmap(hvp_wrapper, randomness="same")(vectors)
     # get_logger().error("use %s ms", time_counter.elapsed_milliseconds())
-    return {0: products}
+    return {data_idx: products}
 
 
 class BatchHVPHook(BatchComputationHook):

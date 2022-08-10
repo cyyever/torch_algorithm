@@ -30,24 +30,28 @@ class ComputationHook(Hook):
         raise NotImplementedError()
 
     def reset_result(self) -> None:
+        self._fetch_result()
         del self.__result_dict
         self.__result_dict = {}
 
     @property
     def result_dict(self) -> dict:
-        self._fetch_result()
+        results = self._fetch_result()
+        self.__result_dict |= results
         return self.__result_dict
 
     def has_unfetched_result(self):
         return bool(self.__prev_tasks)
 
-    def _fetch_result(self) -> None:
+    def _fetch_result(self) -> dict:
+        results: dict = {}
         for _ in self.__prev_tasks:
             if self.__result_collection_fun is not None:
                 self.__result_collection_fun(self.__task_queue.get_result())
             else:
-                self.__result_dict |= self.__task_queue.get_result()
+                results |= self.__task_queue.get_result()
         self.__prev_tasks = []
+        return results
 
     def _split_data(self, data_list: list) -> list:
         chunk_size = 24
@@ -55,7 +59,8 @@ class ComputationHook(Hook):
             avg_chunk_size = (
                 len(data_list[0]) + self.__task_queue.worker_num - 1
             ) // self.__task_queue.worker_num
-            chunk_size = min(max(avg_chunk_size, chunk_size), 50)
+            chunk_size = avg_chunk_size
+            # chunk_size = min(max(avg_chunk_size, chunk_size), 50)
         get_logger().debug("chunk_size is %s", chunk_size)
         return list(
             zip(*(tuple(split_list_to_chunks(data, chunk_size)) for data in data_list))
@@ -85,7 +90,7 @@ class ComputationHook(Hook):
         self.reset_result()
 
     def _after_execute(self, **_):
-        self._fetch_result()
+        self.reset_result()
 
     def __del__(self):
         self.release_queue()

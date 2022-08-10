@@ -44,6 +44,7 @@ def stochastic_inverse_hessian_vector_product(
             nonlocal results
             nonlocal iteration_num
             get_logger().error("result_dict values are %s", hook.result_dict[0])
+            assert hook.result_dict[0].shape[0] == vectors.shape[0]
             next_products = (
                 vectors
                 + (1 - dampling_term) * cur_products

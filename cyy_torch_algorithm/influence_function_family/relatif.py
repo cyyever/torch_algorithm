@@ -45,8 +45,11 @@ def compute_perturbation_relatif(
         phase=MachineLearningPhase.Training, copy_model=True
     )
     torch.cuda.empty_cache()
-    batch_size = 1
+    batch_size = 2
     for (perturbation_idx, v) in grad_diff.iterate():
+        v_norm = torch.linalg.vector_norm(v)
+        # normalize to 1 makes convergence easier
+        v = v / v_norm
         get_logger().error("v norm is %s", torch.linalg.vector_norm(v))
         accumulated_indices.append(perturbation_idx)
         accumulated_vectors.append(v)
@@ -58,7 +61,7 @@ def compute_perturbation_relatif(
         for idx, product in zip(accumulated_indices, products):
             res[idx] = (
                 -test_gradient.dot(product) / torch.linalg.vector_norm(product)
-            ).cpu()
+            ).item()
         accumulated_indices = []
         accumulated_vectors = []
     if accumulated_indices:
