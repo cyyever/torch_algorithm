@@ -49,7 +49,8 @@ def compute_perturbation_relatif(
     for (perturbation_idx, v) in grad_diff.iterate():
         v_norm = torch.linalg.vector_norm(v)
         # normalize to 1 makes convergence easier
-        v = v / v_norm
+        if v_norm.item() > 1:
+            v = v / v_norm
         get_logger().error("v norm is %s", torch.linalg.vector_norm(v))
         accumulated_indices.append(perturbation_idx)
         accumulated_vectors.append(v)

@@ -27,6 +27,9 @@ class SyncedTensorDict:
     def release(self):
         self.__tensor_dict.release()
 
+    def __del__(self):
+        self.__tensor_dict.release()
+
     def get_storage_dir(self) -> str:
         return self.__tensor_dict.get_storage_dir()
 

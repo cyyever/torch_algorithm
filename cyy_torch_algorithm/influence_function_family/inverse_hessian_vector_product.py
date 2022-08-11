@@ -29,7 +29,7 @@ def stochastic_inverse_hessian_vector_product(
         epsilon,
     )
 
-    vectors = torch.stack(vectors).cpu()
+    vectors = torch.stack(vectors).to(device="cuda:0")
 
     def iteration() -> torch.Tensor:
         nonlocal vectors
@@ -48,7 +48,7 @@ def stochastic_inverse_hessian_vector_product(
             next_products = (
                 vectors
                 + (1 - dampling_term) * cur_products
-                - hook.result_dict[0].cpu() / scale
+                - hook.result_dict[0] / scale
             )
             hook.reset_result()
             diffs = torch.tensor(
@@ -88,10 +88,10 @@ def stochastic_inverse_hessian_vector_product(
             get_logger().debug(
                 "stochastic_inverse_hessian_vector_product epoch is %s", epoch
             )
-        results = results.cpu()
+        del cur_products
         hook.release_queue()
-        return results
+        return results.cpu()
 
     product_list = [iteration() for _ in range(repeated_num)]
-    print("product_list is ", product_list)
+    # print("product_list is ", product_list)
     return sum(product_list) / len(product_list)

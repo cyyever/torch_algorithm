@@ -20,7 +20,11 @@ class BatchComputationHook(ComputationHook):
         if not res:
             return {}
         result_list = list(get_mapping_values_by_key_order(res))
-        return {0: torch.concat([a.cpu() for a in result_list])}
+        return {
+            0: torch.concat(
+                [a.to(device="cuda:0", non_blocking=True) for a in result_list]
+            )
+        }
 
     def _after_forward(self, model_executor, inputs, targets, **kwargs):
         assert self.__data_fun is not None
