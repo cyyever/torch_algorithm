@@ -50,7 +50,6 @@ class BatchComputationHook(ComputationHook):
         )
         for data_idx, data_piece in enumerate(self._split_data([data])):
             self._add_task(
-                model_executor=model_executor,
                 worker_fun=worker_fun,
                 task=(model_with_loss, inputs, targets, data_idx, *data_piece),
             )

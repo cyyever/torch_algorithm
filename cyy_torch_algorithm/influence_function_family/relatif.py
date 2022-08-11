@@ -44,8 +44,7 @@ def compute_perturbation_relatif(
     inferencer = trainer.get_inferencer(
         phase=MachineLearningPhase.Training, copy_model=True
     )
-    torch.cuda.empty_cache()
-    batch_size = 2
+    batch_size = 32
     for (perturbation_idx, v) in grad_diff.iterate():
         v_norm = torch.linalg.vector_norm(v)
         # normalize to 1 makes convergence easier

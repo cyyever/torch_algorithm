@@ -2,13 +2,12 @@ import functools
 from typing import Callable
 
 import torch
+from cyy_torch_algorithm.computation.computation_hook import ComputationHook
 # from cyy_naive_lib.log import get_logger
 # from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_toolbox.device import put_data_to_device
 from cyy_torch_toolbox.hooks.add_index_to_dataset import AddIndexToDataset
 from cyy_torch_toolbox.ml_type import DatasetType
-
-from cyy_torch_algorithm.computation.computation_hook import ComputationHook
 
 
 class SampleComputationHook(ComputationHook):
@@ -104,7 +103,6 @@ class SampleComputationHook(ComputationHook):
             [processed_indices, processed_inputs, processed_features, processed_targets]
         ):
             self._add_task(
-                model_executor=model_executor,
                 worker_fun=worker_fun,
                 task=(model_with_loss, *task),
             )
