@@ -39,7 +39,7 @@ def test_CV_jvp():
     trainer.append_named_hook(
         ModelExecutorHookPoint.AFTER_FORWARD, "check results", print_products
     )
-    v = torch.ones_like(parameter_vector).view(-1)
+    v = torch.ones_like(parameter_vector).view(-1).to(device="cuda:0")
     hook.set_vectors([v * (i + 1) for i in range(100)])
     trainer.train()
 
