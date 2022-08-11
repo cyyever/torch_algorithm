@@ -59,8 +59,7 @@ class ComputationHook(Hook):
             avg_chunk_size = (
                 len(data_list[0]) + self.__task_queue.worker_num - 1
             ) // self.__task_queue.worker_num
-            chunk_size = avg_chunk_size
-            # chunk_size = min(max(avg_chunk_size, chunk_size), 50)
+            chunk_size = min(max(avg_chunk_size, chunk_size), 50)
         get_logger().debug("chunk_size is %s", chunk_size)
         return list(
             zip(*(tuple(split_list_to_chunks(data, chunk_size)) for data in data_list))
