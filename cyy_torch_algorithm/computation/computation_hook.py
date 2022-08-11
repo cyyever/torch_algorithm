@@ -93,6 +93,7 @@ class ComputationHook(Hook):
                 use_manager=False,
             )
             self.__task_queue.start()
+            torch.cuda.empty_cache()
         return self.__task_queue
 
     def _add_task(self, worker_fun, task) -> None:
