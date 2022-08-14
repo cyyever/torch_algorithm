@@ -24,7 +24,7 @@ class SyncedTensorDict:
     def __delitem__(self, key):
         self.__tensor_dict.__delitem__(str(key))
 
-    def release(self):
+    def release(self) -> None:
         self.__tensor_dict.release()
 
     def __del__(self):
@@ -42,7 +42,7 @@ class SyncedTensorDict:
     def in_memory_keys(self) -> set:
         return {self.__key_type(k) for k in self.__tensor_dict.in_memory_keys()}
 
-    def prefetch(self, keys: set):
+    def prefetch(self, keys: set) -> None:
         self.__tensor_dict.prefetch([str(k) for k in keys])
 
     def __getattr__(self, name):

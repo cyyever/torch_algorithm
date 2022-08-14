@@ -23,10 +23,10 @@ class ComputationHook(Hook):
         self.__result_collection_fun: Callable | None = None
         self.__prevous_chunk = None
 
-    def set_result_transform(self, f) -> None:
+    def set_result_transform(self, f: Callable) -> None:
         self._result_transform = f
 
-    def set_result_collection_fun(self, f) -> None:
+    def set_result_collection_fun(self, f: Callable) -> None:
         self.__result_collection_fun = f
 
     def _get_worker_fun(self) -> Callable:

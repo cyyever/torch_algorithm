@@ -12,13 +12,13 @@ class HyDRAAnalyzer:
     def __init__(
         self,
         inferencer: Inferencer,
-        hyper_gradient_dir,
-        training_set_size,
-        cache_size=1024,
+        hyper_gradient_dir: str,
+        training_set_size: int,
+        cache_size: int = 1024,
     ):
         self.inferencer: Inferencer = inferencer
         self.hydra_gradient = HyDRAHook.create_hypergradient_dict(
-            cache_size, self.inferencer.model, storage_dir=hyper_gradient_dir
+            cache_size, storage_dir=hyper_gradient_dir
         )
         self.cache_size = cache_size
         self.training_set_size = training_set_size
@@ -40,9 +40,9 @@ class HyDRAAnalyzer:
                     hyper_gradient_sum += hyper_gradient
             hyper_gradient_sum_dict[k] = hyper_gradient_sum
         test_subset_gradient_dict = self.__get_test_gradient_dict(test_subset_dict)
-        contribution_dict: dict = dict()
+        contribution_dict: dict = {}
         for (training_key, hyper_gradient_sum) in hyper_gradient_sum_dict.iterate():
-            contribution_dict[training_key] = dict()
+            contribution_dict[training_key] = {}
             for (test_key, test_subset_gradient) in test_subset_gradient_dict.iterate():
                 contribution_dict[training_key][test_key] = (
                     -(test_subset_gradient @ hyper_gradient_sum)
@@ -66,10 +66,9 @@ class HyDRAAnalyzer:
             self.inferencer, computed_indices
         )
         test_gredient_dict = SyncedTensorDict.create(key_type=str)
-        test_gredient_dict.set_storage_dir(tempfile.gettempdir())
         for test_key, indices in test_subset_dict.items():
-            for idx, sample_gradient in sample_gradient_dict.iterate(indices):
-                assert idx in indices
+            for idx in indices:
+                sample_gradient = sample_gradient_dict[idx]
                 if test_key not in test_gredient_dict:
                     test_gredient_dict[test_key] = sample_gradient
                 else:
