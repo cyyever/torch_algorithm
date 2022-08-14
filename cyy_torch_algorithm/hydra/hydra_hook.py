@@ -91,7 +91,7 @@ class HyDRAHook(Hook):
                 cache_size=self._cache_size,
                 storage_dir=os.path.join(
                     self.get_save_dir(trainer),
-                    "hessian_hyper_gradient_computation_dir",
+                    "hessian_hyper_gradient_dir",
                 ),
             )
             get_logger().debug(
@@ -103,7 +103,7 @@ class HyDRAHook(Hook):
                 cache_size=self._cache_size,
                 storage_dir=os.path.join(
                     self.get_save_dir(trainer),
-                    "approx_hyper_gradient_computation_dir",
+                    "approximation_hyper_gradient_dir",
                 ),
             )
             get_logger().info(
@@ -281,10 +281,6 @@ class HyDRAHook(Hook):
                 encoding="utf-8",
             ) as f:
                 json.dump(contribution, f)
-            hyper_gradient_dir = os.path.join(
-                self.get_save_dir(trainer), "approximation_hyper_gradient_dir"
-            )
-            shutil.move(tensor_dict.get_storage_dir(), hyper_gradient_dir)
         else:
             with open(
                 os.path.join(
@@ -294,10 +290,6 @@ class HyDRAHook(Hook):
                 encoding="utf-8",
             ) as f:
                 json.dump(contribution, f)
-            hyper_gradient_dir = os.path.join(
-                self.get_save_dir(trainer), "hessian_hyper_gradient_dir"
-            )
-            shutil.move(tensor_dict.get_storage_dir(), hyper_gradient_dir)
         tensor_dict.release()
         with open(
             os.path.join(self.get_save_dir(trainer), "training_set_size"), "wb"
