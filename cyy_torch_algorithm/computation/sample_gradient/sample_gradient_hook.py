@@ -44,7 +44,7 @@ def get_sample_gradient_dict(
     input_transform=None,
     result_transform=None,
     result_collection_fun=None,
-) -> dict:
+) -> dict | None:
     tmp_inferencer = copy.deepcopy(inferencer)
     tmp_inferencer.disable_logger()
     hook = SampleGradientHook()

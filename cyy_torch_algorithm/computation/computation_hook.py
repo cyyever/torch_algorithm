@@ -4,7 +4,6 @@ from typing import Callable
 import pynvml
 import torch
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
-from cyy_naive_lib.log import get_logger
 from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
     TorchProcessTaskQueue
 from cyy_torch_toolbox.device import get_cuda_devices
@@ -15,6 +14,8 @@ class ComputationHook(Hook):
     __local_data = threading.local()
 
     def __init__(self, **kwargs):
+        if "stripable" not in kwargs:
+            kwargs["stripable"] = True
         super().__init__(**kwargs)
         self.__result_dict = {}
         self.__task_queue = None

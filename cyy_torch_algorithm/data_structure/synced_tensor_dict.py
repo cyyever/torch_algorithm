@@ -8,7 +8,7 @@ from cyy_torch_cpp_extension.data_structure import \
 
 
 class SyncedTensorDict:
-    def __init__(self, tensor_dict, key_type):
+    def __init__(self, tensor_dict, key_type=int):
         self.__tensor_dict = tensor_dict
         self.__key_type = key_type
 
