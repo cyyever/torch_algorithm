@@ -13,7 +13,6 @@ class HyDRAConfig(DefaultConfig):
         super().__init__(**kwargs)
         self.cache_size: int = 128
         self.tracking_percentage: float = None
-        self.__tracking_indices = None
         self.use_hessian: bool = False
         self.use_approximation: bool = True
 
@@ -42,9 +41,8 @@ class HyDRAConfig(DefaultConfig):
             subset_dict = trainer.dataset_collection.get_dataset_util(
                 phase=MachineLearningPhase.Training
             ).iid_sample(self.tracking_percentage)
-            self.__tracking_indices = sum(subset_dict.values(), [])
-        if self.__tracking_indices:
-            hydra_hook.set_computed_indices(self.__tracking_indices)
+            tracking_indices = sum(subset_dict.values(), [])
+            hydra_hook.set_computed_indices(tracking_indices)
         if return_hydra_hook:
             return trainer, hydra_hook
         return trainer
