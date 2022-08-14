@@ -60,12 +60,12 @@ class HyDRAAnalyzer:
             {idx: [idx] for idx in training_subset_indices}, test_subset_dict
         )
 
-    def __get_test_gradient_dict(self, test_subset_dict: dict):
+    def __get_test_gradient_dict(self, test_subset_dict: dict) -> SyncedTensorDict:
         computed_indices: list = sum(test_subset_dict.values(), [])
         sample_gradient_dict = get_sample_gradient_dict(
             self.inferencer, computed_indices
         )
-        test_gredient_dict = SyncedTensorDict.create(key_type=str)
+        test_gredient_dict: SyncedTensorDict = SyncedTensorDict.create(key_type=str)
         for test_key, indices in test_subset_dict.items():
             for idx in indices:
                 sample_gradient = sample_gradient_dict[idx]
