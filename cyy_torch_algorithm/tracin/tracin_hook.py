@@ -75,7 +75,7 @@ class TracInHook(Hook):
         lr = optimizer.param_groups[0]["lr"]
         weight_decay = optimizer.param_groups[0]["weight_decay"]
         assert weight_decay == 0
-        for k, test_grad in self.__test_sample_grad_dict.iterate():
+        for k, test_grad in self.__test_sample_grad_dict.items():
             if k not in self.__influence_values:
                 self.__influence_values[k] = {}
             for k2, sample_grad in self._sample_grad_hook.result_dict.items():

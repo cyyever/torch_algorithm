@@ -1,3 +1,4 @@
+from collections.abc import MutableMapping
 from typing import Generator
 
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
@@ -7,13 +8,14 @@ from cyy_torch_cpp_extension.data_structure import \
     SyncedTensorDict as SyncedTensorDict__
 
 
-class SyncedTensorDict:
+class SyncedTensorDict(MutableMapping):
     def __init__(self, tensor_dict, key_type=int):
         self.__tensor_dict = tensor_dict
         self.__key_type = key_type
+        self.__iterated_keys = None
 
-    def __contains__(self, item):
-        return self.__tensor_dict.__contains__(str(item))
+    def __contains__(self, key):
+        return self.__tensor_dict.__contains__(str(key))
 
     def __getitem__(self, key):
         return self.__tensor_dict.__getitem__(str(key))
@@ -36,28 +38,39 @@ class SyncedTensorDict:
     def __len__(self):
         return len(self.__tensor_dict)
 
-    def keys(self) -> set:
+    def __iter__(self):
+        in_memory_keys = self.__in_memory_keys()
+        keys = self.__keys()
+        self.__iterated_keys = list(in_memory_keys) + list(keys - in_memory_keys)
+        self.prefetch(self.__iterated_keys[:10])
+        return self
+
+    def __next__(self):
+        if not self.__iterated_keys:
+            raise StopIteration()
+        key = self.__iterated_keys[0]
+        self.prefetch(self.__iterated_keys[:10])
+        self.__iterated_keys = self.__iterated_keys[1:]
+        return key
+
+    def __keys(self) -> set:
         return {self.__key_type(k) for k in self.__tensor_dict.keys()}
 
-    def in_memory_keys(self) -> set:
+    def __in_memory_keys(self) -> set:
         return {self.__key_type(k) for k in self.__tensor_dict.in_memory_keys()}
 
-    def prefetch(self, keys: set) -> None:
+    def prefetch(self, keys: list) -> None:
         self.__tensor_dict.prefetch([str(k) for k in keys])
 
     def __getattr__(self, name):
         return getattr(self.__tensor_dict, name)
-
-    @property
-    def tensor_dict(self):
-        return self.__tensor_dict
 
     def iterate(self, keys: set = None) -> Generator:
         if keys is None:
             keys = set(self.__tensor_dict.keys())
         else:
             keys = {str(k) for k in keys}
-        in_memory_keys = set(self.__tensor_dict.in_memory_keys()) & keys
+        in_memory_keys = set(self.__in_memory_keys()) & keys
         for k in in_memory_keys:
             yield (self.__key_type(k), self.__tensor_dict[k])
         remain_keys = list(keys - in_memory_keys)
