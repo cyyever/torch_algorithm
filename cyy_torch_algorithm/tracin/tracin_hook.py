@@ -3,10 +3,8 @@ import os
 
 import torch
 from cyy_naive_lib.log import get_logger
-from cyy_torch_algorithm.computation.sample_gradient.sample_gradient_hook import \
-    get_sample_gradient_dict
-from cyy_torch_algorithm.computation.sample_gvjp.sample_gvjp_hook import \
-    SampleGradientVJPHook
+from cyy_torch_algorithm.computation.sample_gradient.sample_gradient_hook import (
+    SampleGradientHook, get_sample_gradient_dict)
 from cyy_torch_algorithm.data_structure.synced_tensor_dict import \
     SyncedTensorDict
 from cyy_torch_toolbox.hook import Hook
@@ -16,7 +14,7 @@ from cyy_torch_toolbox.ml_type import MachineLearningPhase
 class TracInHook(Hook):
     def __init__(self, test_sample_indices: set | None = None):
         super().__init__(stripable=True)
-        self._sample_grad_hook: SampleGradientVJPHook = SampleGradientVJPHook()
+        self._sample_grad_hook: SampleGradientHook = SampleGradientHook()
         self.__test_sample_indices = test_sample_indices
         self.__test_sample_grad_dict = SyncedTensorDict.create()
 
@@ -77,7 +75,7 @@ class TracInHook(Hook):
                 if (k, k2) not in self.__influence_values:
                     self.__influence_values[(k, k2)] = 0
                 self.__influence_values[(k, k2)] += (
-                    test_grad.dot(sample_grad).item() * lr / batch_size
+                    test_grad.cpu().dot(sample_grad.cpu()).item() * lr / batch_size
                 )
         self.__test_sample_grad_dict.clear()
 
