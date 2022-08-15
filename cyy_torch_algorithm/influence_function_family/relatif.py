@@ -45,7 +45,7 @@ def compute_perturbation_relatif(
         phase=MachineLearningPhase.Training, copy_model=True
     )
     batch_size = 32
-    for (perturbation_idx, v) in grad_diff.iterate():
+    for (perturbation_idx, v) in grad_diff.items():
         v_norm = torch.linalg.vector_norm(v)
         # normalize to 1 makes convergence easier
         if v_norm.item() > 1:

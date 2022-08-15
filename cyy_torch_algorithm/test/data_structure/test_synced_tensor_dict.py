@@ -7,7 +7,7 @@ tensor_dict = SyncedTensorDict.create(cache_size=10)
 for i in range(100):
     tensor_dict[i] = torch.tensor([i])
 
-for (key, tensor) in tensor_dict.iterate():
+for (key, tensor) in tensor_dict.items():
     assert tensor == torch.tensor([key])
 
 for (key, tensor) in tensor_dict.iterate({"1", "2"}):

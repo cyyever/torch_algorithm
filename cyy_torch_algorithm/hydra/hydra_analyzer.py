@@ -33,7 +33,7 @@ class HyDRAAnalyzer:
 
         for k, indices in training_subset_dict.items():
             hyper_gradient_sum = None
-            for (_, hyper_gradient) in self.hydra_gradient.iterate(indices):
+            for (_, hyper_gradient) in self.hydra_gradient.items(indices):
                 if hyper_gradient_sum is None:
                     hyper_gradient_sum = hyper_gradient
                 else:
@@ -41,9 +41,9 @@ class HyDRAAnalyzer:
             hyper_gradient_sum_dict[k] = hyper_gradient_sum
         test_subset_gradient_dict = self.__get_test_gradient_dict(test_subset_dict)
         contribution_dict: dict = {}
-        for (training_key, hyper_gradient_sum) in hyper_gradient_sum_dict.iterate():
+        for (training_key, hyper_gradient_sum) in hyper_gradient_sum_dict.items():
             contribution_dict[training_key] = {}
-            for (test_key, test_subset_gradient) in test_subset_gradient_dict.iterate():
+            for (test_key, test_subset_gradient) in test_subset_gradient_dict.items():
                 contribution_dict[training_key][test_key] = (
                     -(test_subset_gradient @ hyper_gradient_sum)
                     / self.training_set_size

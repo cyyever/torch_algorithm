@@ -27,7 +27,7 @@ def compute_perturbation_grad_cos(
     )
     res: dict = {}
     test_gradient = test_gradient.cpu()
-    for (perturbation_idx, v) in diff.iterate():
+    for (perturbation_idx, v) in diff.items():
         res[perturbation_idx] = torch.nn.functional.cosine_similarity(
             v.cpu(), test_gradient, dim=0
         ).item()

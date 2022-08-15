@@ -265,7 +265,7 @@ class HyDRAHook(Hook):
         get_logger().info("end do _do_all_delayed_computation")
         tensor_dict = self._get_hyper_gradient_dict(use_approximation)
         test_gradient = test_gradient.cpu()
-        for (index, value) in tensor_dict.iterate():
+        for (index, value) in tensor_dict.items():
             hyper_gradient = self._decode_hyper_gradient_tensors(value)[0]
             contribution[index] = (
                 -(test_gradient @ hyper_gradient.cpu()) / self._training_set_size
@@ -326,7 +326,7 @@ class HyDRAHook(Hook):
         approximation_hyper_gradient_dir = self._get_hyper_gradient_dict(
             use_approximation
         )
-        for (index, _) in approximation_hyper_gradient_dir.iterate():
+        for (index, _) in approximation_hyper_gradient_dir.items():
             hyper_gradient = self.get_hyper_gradient(index, use_approximation)
             callback(index, hyper_gradient)
 
@@ -334,7 +334,7 @@ class HyDRAHook(Hook):
         assert self.use_approximation and self.use_hessian
         self._do_all_delayed_computation()
         approximation_hyper_gradient_dir = self._get_hyper_gradient_dict(True)
-        for (index, _) in approximation_hyper_gradient_dir.iterate():
+        for (index, _) in approximation_hyper_gradient_dir.items():
             approx_hyper_gradient = self.get_hyper_gradient(index, True)
             hessian_hyper_gradient = self.get_hyper_gradient(index, False)
             callback(index, approx_hyper_gradient, hessian_hyper_gradient)

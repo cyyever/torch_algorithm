@@ -26,7 +26,7 @@ def compute_perturbation_grad_dot(
     if grad_diff is not None:
         test_gradient = test_gradient.cpu()
         res = {}
-        for (perturbation_idx, v) in grad_diff.iterate():
+        for (perturbation_idx, v) in grad_diff.items():
             res[perturbation_idx] = v.dot(test_gradient).item()
         return res
 
