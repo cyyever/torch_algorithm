@@ -46,15 +46,20 @@ class TracInHook(Hook):
         if set(sample_indices).isdisjoint(self.__tracked_indices):
             return
 
-        def collect_result(res_dict):
-            for k, v in res_dict.items():
-                self.__test_sample_grad_dict[k] = v
+        inferencer = model_executor.get_inferencer(phase=MachineLearningPhase.Test)
+        if self.__test_sample_indices is None:
+            self.__test_sample_grad_dict[-1] = inferencer.get_gradient()
+        else:
 
-        get_sample_gradient_dict(
-            inferencer=model_executor.get_inferencer(phase=MachineLearningPhase.Test),
-            computed_indices=self.__test_sample_indices,
-            result_collection_fun=collect_result,
-        )
+            def collect_result(res_dict):
+                for k, v in res_dict.items():
+                    self.__test_sample_grad_dict[k] = v
+
+            get_sample_gradient_dict(
+                inferencer=inferencer,
+                computed_indices=self.__test_sample_indices,
+                result_collection_fun=collect_result,
+            )
 
     def _after_batch(self, model_executor, batch_size, **kwargs):
         if not self.__test_sample_grad_dict:
@@ -82,6 +87,9 @@ class TracInHook(Hook):
         self.__test_sample_grad_dict.clear()
 
     def _after_execute(self, model_executor, **kwargs):
+        if -1 in self.__influence_values:
+            assert len(self.__influence_values) == 1
+            self.__influence_values = self.__influence_values[-1]
         with open(
             os.path.join(
                 self.get_save_dir(model_executor),
