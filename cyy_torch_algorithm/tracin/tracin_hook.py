@@ -14,10 +14,10 @@ from cyy_torch_toolbox.ml_type import MachineLearningPhase
 
 
 class TraceInHook(Hook):
-    def __init__(self, test_sample_indices):
+    def __init__(self, test_sample_indices: set | None = None):
         super().__init__(stripable=True)
-        self.__test_sample_indices = test_sample_indices
         self._sample_grad_hook: SampleGradientVJPHook = SampleGradientVJPHook()
+        self.__test_sample_indices = test_sample_indices
         self.__test_sample_grad_dict = SyncedTensorDict.create()
 
         self.__tracked_indices: None | set = None
