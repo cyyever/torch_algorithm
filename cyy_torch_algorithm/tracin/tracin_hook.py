@@ -13,7 +13,7 @@ from cyy_torch_toolbox.hook import Hook
 from cyy_torch_toolbox.ml_type import MachineLearningPhase
 
 
-class TraceInHook(Hook):
+class TracInHook(Hook):
     def __init__(self, test_sample_indices: set | None = None):
         super().__init__(stripable=True)
         self._sample_grad_hook: SampleGradientVJPHook = SampleGradientVJPHook()
@@ -42,7 +42,8 @@ class TraceInHook(Hook):
         self._sample_grad_hook.set_computed_indices(self.__tracked_indices)
 
     @torch.no_grad()
-    def _before_batch(self, model_executor, batch_info, **kwargs):
+    def _before_batch(self, model_executor, batch, **kwargs):
+        *_, batch_info = batch
         sample_indices = [idx.data.item() for idx in batch_info["index"]]
         if set(sample_indices).isdisjoint(self.__tracked_indices):
             return
@@ -72,11 +73,11 @@ class TraceInHook(Hook):
         weight_decay = optimizer.param_groups[0]["weight_decay"]
         assert weight_decay == 0
         for k, test_grad in self.__test_sample_grad_dict.iterate():
-            for k2, grad in self._sample_grad_hook.result_dict.items():
+            for k2, sample_grad in self._sample_grad_hook.result_dict.items():
                 if (k, k2) not in self.__influence_values:
                     self.__influence_values[(k, k2)] = 0
                 self.__influence_values[(k, k2)] += (
-                    test_grad.dot(grad).item() * lr / batch_size
+                    test_grad.dot(sample_grad).item() * lr / batch_size
                 )
         self.__test_sample_grad_dict.clear()
 
