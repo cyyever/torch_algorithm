@@ -93,8 +93,7 @@ class AdaptiveDeterministicDequant:
             quantized_tensor = torch.zeros(
                 quantized_dict["tensor_shape"], dtype=torch.float64
             ).to(device=device)
-            if offset is not None:
-                quantized_tensor -= offset.to(device=device)
+            quantized_tensor -= offset.to(device=device)
             return quantized_tensor.to(dtype=dtype)
 
         sign_tensor = quantized_dict["sign_tensor"]
@@ -112,8 +111,7 @@ class AdaptiveDeterministicDequant:
             * sign_tensor.to(quantized_tensor.device)
             / quantization_level
         )
-        if offset is not None:
-            res = res - offset
+        res = res - offset
         return res.to(dtype=dtype, device=device)
 
 
