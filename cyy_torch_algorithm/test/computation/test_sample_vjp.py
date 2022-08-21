@@ -41,6 +41,7 @@ def test_NLP_vjp():
     config.hyper_parameter_config.find_learning_rate = False
     trainer = config.create_trainer()
     trainer.model_util.freeze_modules(module_type=nn.Embedding)
+    trainer.model_with_loss.need_input_features = True
     hook = SampleGradientVJPHook()
     hook.set_vector(torch.ones_like(trainer.model_util.get_parameter_list()).view(-1))
     trainer.append_hook(hook)
