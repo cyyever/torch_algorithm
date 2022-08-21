@@ -7,19 +7,11 @@ from cyy_naive_lib.log import get_logger
 
 
 class AdaptiveDeterministicQuant:
-    def __init__(
-        self,
-        weight: float,
-        use_l2_norm: bool = False,
-        use_new_offset=False,
-    ):
+    def __init__(self, weight: float, use_l2_norm: bool = False):
         self.weight = weight
         self.use_l2_norm = use_l2_norm
-        self.use_new_offset = use_new_offset
 
     def __get_offset(self, tensor):
-        if not self.use_new_offset:
-            return -tensor.mean()
         max_value = tensor.max().item()
         min_value = tensor.min().item()
         if min_value >= 0:
@@ -189,25 +181,18 @@ class NeuralNetworkAdaptiveDeterministicDequant(AdaptiveDeterministicDequant):
                 return data
 
 
-def NNADQ(
-    weight: float = None, use_l2_norm: bool = False, use_new_offset: bool = False
-) -> Tuple[Callable, Callable]:
+def NNADQ(weight: float = None, use_l2_norm: bool = False) -> Tuple[Callable, Callable]:
     return (
         NeuralNetworkAdaptiveDeterministicQuant(
             weight=weight,
             use_l2_norm=use_l2_norm,
-            use_new_offset=use_new_offset
         ),
         NeuralNetworkAdaptiveDeterministicDequant(),
     )
 
 
-def ADQ(
-    weight: float, use_l2_norm: bool = False, use_new_offset=False
-) -> Tuple[Callable, Callable]:
+def ADQ(weight: float, use_l2_norm: bool = False) -> Tuple[Callable, Callable]:
     return (
-        AdaptiveDeterministicQuant(
-            weight=weight, use_l2_norm=use_l2_norm, use_new_offset=use_new_offset
-        ),
+        AdaptiveDeterministicQuant(weight=weight, use_l2_norm=use_l2_norm),
         AdaptiveDeterministicDequant(),
     )
