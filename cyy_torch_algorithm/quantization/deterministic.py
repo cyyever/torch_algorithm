@@ -50,17 +50,19 @@ class AdaptiveDeterministicQuant:
                 "compression_ratio": 0,
                 "quantization_level": 0,
             }
-
-        quantization_level = int(
-            max(1, math.sqrt(norm * element_bits * math.log(4) / self.weight))
-        )
         sign_tensor = tensor.sign()
         sign_tensor = numpy.packbits(
             ((sign_tensor + 1) / 2).to(dtype=torch.bool, device="cpu").numpy()
         )
+
         normalized_abs_tensor = tensor.abs() / norm
+
+        quantization_level = int(
+            max(1, math.sqrt(norm * element_bits * math.log(4) / self.weight))
+        )
         tmp = normalized_abs_tensor * quantization_level
         slot_tensor = tmp.round()
+        compression_ratio = math.ceil(math.log2(quantization_level + 1)) / element_bits
 
         if quantization_level < 2**8:
             new_dtype = numpy.uint8
@@ -81,8 +83,7 @@ class AdaptiveDeterministicQuant:
             "quantized_tensor": slot_tensor,
             "quantization_level": quantization_level,
             "offset": offset,
-            "compression_ratio": math.ceil(math.log2(quantization_level + 1))
-            / element_bits,
+            "compression_ratio": compression_ratio,
         }
 
 
