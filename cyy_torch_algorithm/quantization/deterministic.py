@@ -8,11 +8,17 @@ from cyy_naive_lib.log import get_logger
 
 class AdaptiveDeterministicQuant:
     def __init__(
-        self, weight: float, use_l2_norm: bool = False, normalization: bool = True
+        self,
+        weight: float,
+        use_l2_norm: bool = False,
+        use_new_offset=False,
     ):
         self.weight = weight
         self.use_l2_norm = use_l2_norm
-        self.normalization = normalization
+        self.use_new_offset = use_new_offset
+
+    def __get_offset(self, tensor, use_new_offset):
+        return -tensor.mean()
 
     def __call__(self, tensor):
         device = tensor.device
@@ -25,11 +31,8 @@ class AdaptiveDeterministicQuant:
         else:
             tensor = tensor.to(dtype=torch.float64, non_blocking=True)
         tensor = tensor.view(-1)
-        if self.normalization:
-            mean = tensor.mean()
-            tensor = tensor - mean
-        else:
-            mean = None
+        offset = self.__get_offset(tensor, use_new_offset=self.use_new_offset)
+        tensor = tensor + offset
 
         norm = None
         if self.use_l2_norm:
@@ -40,7 +43,7 @@ class AdaptiveDeterministicQuant:
             return {
                 "device": device,
                 "dtype": dtype,
-                "mean": mean,
+                "offset": offset,
                 "tensor_shape": old_tensor_shape,
                 "compression_ratio": 0,
                 "quantization_level": 0,
@@ -75,7 +78,7 @@ class AdaptiveDeterministicQuant:
             "sign_tensor": sign_tensor,
             "quantized_tensor": slot_tensor,
             "quantization_level": quantization_level,
-            "mean": mean,
+            "offset": offset,
             "compression_ratio": math.ceil(math.log2(quantization_level + 1))
             / element_bits,
         }
@@ -85,13 +88,13 @@ class AdaptiveDeterministicDequant:
     def __call__(self, quantized_dict: dict) -> torch.Tensor:
         device = quantized_dict["device"]
         dtype = quantized_dict["dtype"]
-        mean = quantized_dict["mean"]
+        offset = quantized_dict["offset"]
         if "tensor_shape" in quantized_dict:
             quantized_tensor = torch.zeros(
                 quantized_dict["tensor_shape"], dtype=torch.float64
             ).to(device=device)
-            if mean is not None:
-                quantized_tensor += mean.to(device=device)
+            if offset is not None:
+                quantized_tensor -= offset.to(device=device)
             return quantized_tensor.to(dtype=dtype)
 
         sign_tensor = quantized_dict["sign_tensor"]
@@ -99,7 +102,7 @@ class AdaptiveDeterministicDequant:
         norm = quantized_dict["norm"]
         quantized_tensor = torch.from_numpy(
             quantized_dict["quantized_tensor"].astype(dtype=numpy.int64)
-        ).to(dtype=torch.float64,device=norm.device)
+        ).to(dtype=torch.float64, device=norm.device)
         quantized_tensor *= norm
         sign_tensor = (torch.from_numpy(numpy.unpackbits(sign_tensor)).float() * 2 - 1)[
             : numpy.prod(quantized_tensor.shape)
@@ -109,8 +112,8 @@ class AdaptiveDeterministicDequant:
             * sign_tensor.to(quantized_tensor.device)
             / quantization_level
         )
-        if mean is not None:
-            res = res + mean
+        if offset is not None:
+            res = res - offset
         return res.to(dtype=dtype, device=device)
 
 
@@ -181,13 +184,11 @@ class NeuralNetworkAdaptiveDeterministicDequant(AdaptiveDeterministicDequant):
 def NNADQ(
     weight: float = None,
     use_l2_norm: bool = False,
-    normalization: bool = True,
 ) -> Tuple[Callable, Callable]:
     return (
         NeuralNetworkAdaptiveDeterministicQuant(
             weight=weight,
             use_l2_norm=use_l2_norm,
-            normalization=normalization,
         ),
         NeuralNetworkAdaptiveDeterministicDequant(),
     )
@@ -196,13 +197,11 @@ def NNADQ(
 def ADQ(
     weight: float,
     use_l2_norm: bool = False,
-    normalization: bool = True,
 ) -> Tuple[Callable, Callable]:
     return (
         AdaptiveDeterministicQuant(
             weight=weight,
             use_l2_norm=use_l2_norm,
-            normalization=normalization,
         ),
         AdaptiveDeterministicDequant(),
     )
