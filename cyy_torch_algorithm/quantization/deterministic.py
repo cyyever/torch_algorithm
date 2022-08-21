@@ -17,8 +17,18 @@ class AdaptiveDeterministicQuant:
         self.use_l2_norm = use_l2_norm
         self.use_new_offset = use_new_offset
 
-    def __get_offset(self, tensor, use_new_offset):
-        return -tensor.mean()
+    def __get_offset(self, tensor):
+        if not self.use_new_offset:
+            return -tensor.mean()
+        max_value = tensor.max().item()
+        min_value = tensor.min().item()
+        if min_value >= 0:
+            return -(min_value + max_value) / 2
+        if max_value <= 0:
+            return (min_value + max_value) / 2
+        if max_value >= -min_value:
+            return -(max_value - math.fabs(min_value)) / 2
+        return (math.fabs(min_value) - max_value) / 2
 
     def __call__(self, tensor):
         device = tensor.device
@@ -31,7 +41,7 @@ class AdaptiveDeterministicQuant:
         else:
             tensor = tensor.to(dtype=torch.float64, non_blocking=True)
         tensor = tensor.view(-1)
-        offset = self.__get_offset(tensor, use_new_offset=self.use_new_offset)
+        offset = self.__get_offset(tensor)
         tensor = tensor + offset
 
         norm = None
@@ -180,26 +190,24 @@ class NeuralNetworkAdaptiveDeterministicDequant(AdaptiveDeterministicDequant):
 
 
 def NNADQ(
-    weight: float = None,
-    use_l2_norm: bool = False,
+    weight: float = None, use_l2_norm: bool = False, use_new_offset: bool = False
 ) -> Tuple[Callable, Callable]:
     return (
         NeuralNetworkAdaptiveDeterministicQuant(
             weight=weight,
             use_l2_norm=use_l2_norm,
+            use_new_offset=use_new_offset
         ),
         NeuralNetworkAdaptiveDeterministicDequant(),
     )
 
 
 def ADQ(
-    weight: float,
-    use_l2_norm: bool = False,
+    weight: float, use_l2_norm: bool = False, use_new_offset=False
 ) -> Tuple[Callable, Callable]:
     return (
         AdaptiveDeterministicQuant(
-            weight=weight,
-            use_l2_norm=use_l2_norm,
+            weight=weight, use_l2_norm=use_l2_norm, use_new_offset=use_new_offset
         ),
         AdaptiveDeterministicDequant(),
     )
