@@ -61,7 +61,7 @@ class AdaptiveDeterministicQuant:
         quantization_level = int(
             max(1, math.sqrt(norm * element_bits * math.log(4) / self.weight))
         )
-        slot_tensor = (normalized_abs_tensor * quantization_level).round()
+        quantized_tensor = (normalized_abs_tensor * quantization_level).round()
         compression_ratio = math.ceil(math.log2(quantization_level + 1)) / element_bits
         if quantization_level < 2**8:
             new_dtype = numpy.uint8
@@ -71,15 +71,18 @@ class AdaptiveDeterministicQuant:
             new_dtype = numpy.uint32
         else:
             raise RuntimeError(f"invalid quantization level {quantization_level}")
-        slot_tensor = (
-            slot_tensor.reshape(old_tensor_shape).cpu().numpy().astype(dtype=new_dtype)
+        quantized_tensor = (
+            quantized_tensor.reshape(old_tensor_shape)
+            .cpu()
+            .numpy()
+            .astype(dtype=new_dtype)
         )
         return {
             "device": device,
             "dtype": dtype,
             "norm": norm,
             "sign_tensor": sign_tensor,
-            "quantized_tensor": slot_tensor,
+            "quantized_tensor": quantized_tensor,
             "quantization_level": quantization_level,
             "offset": offset,
             "compression_ratio": compression_ratio,
