@@ -107,12 +107,12 @@ class AdaptiveDeterministicDequant:
         quantized_tensor = torch.from_numpy(
             quantized_dict["quantized_tensor"].astype(dtype=numpy.int64)
         ).to(dtype=torch.float64, device=norm.device)
-        quantized_tensor *= norm
         sign_tensor = (torch.from_numpy(numpy.unpackbits(sign_tensor)).float() * 2 - 1)[
             : numpy.prod(quantized_tensor.shape)
         ].reshape(quantized_tensor.shape)
         res = (
             quantized_tensor
+            * norm
             * sign_tensor.to(quantized_tensor.device)
             / quantization_level
         )
