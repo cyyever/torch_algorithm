@@ -22,6 +22,7 @@ class AdaptiveDeterministicQuant:
             return -(max_value - math.fabs(min_value)) / 2
         return (math.fabs(min_value) - max_value) / 2
 
+    @torch.no_grad()
     def __call__(self, tensor):
         device = tensor.device
         element_bits = None
@@ -60,10 +61,8 @@ class AdaptiveDeterministicQuant:
         quantization_level = int(
             max(1, math.sqrt(norm * element_bits * math.log(4) / self.weight))
         )
-        tmp = normalized_abs_tensor * quantization_level
-        slot_tensor = tmp.round()
+        slot_tensor = (normalized_abs_tensor * quantization_level).round()
         compression_ratio = math.ceil(math.log2(quantization_level + 1)) / element_bits
-
         if quantization_level < 2**8:
             new_dtype = numpy.uint8
         elif quantization_level < 2**16:
@@ -96,7 +95,7 @@ class AdaptiveDeterministicDequant:
             quantized_tensor = torch.zeros(
                 quantized_dict["tensor_shape"], dtype=torch.float64
             ).to(device=device)
-            quantized_tensor -= offset.to(device=device)
+            quantized_tensor -= offset
             return quantized_tensor.to(dtype=dtype)
 
         sign_tensor = quantized_dict["sign_tensor"]
