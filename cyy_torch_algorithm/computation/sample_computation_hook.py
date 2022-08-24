@@ -29,14 +29,30 @@ class SampleComputationHook(ComputationHook):
     def add_task(self, model_executor, sample_indices, inputs, input_features, targets):
         batch_dim = 0
         if model_executor.dataset_collection.dataset_type == DatasetType.Text:
-            if (
-                inputs.shape[0] != targets.shape[0]
-                and inputs.shape[1] == targets.shape[0]
-            ):
-                inputs = inputs.permute(1, 0)
-                if input_features is not None:
-                    input_features = input_features.permute(1, 0, 2)
-                batch_dim = 1
+            if "BatchEncoding" in type(inputs).__name__:
+                new_inputs = []
+                first_value = next(iter(inputs.values()))
+                assert isinstance(first_value, torch.Tensor)
+                for i in range(first_value.size(dim=0)):
+                    new_inputs.append({k: v[i] for k, v in inputs.items()})
+                inputs = new_inputs
+
+            if input_features is not None:
+                if (
+                    input_features.shape[0] != targets.shape[0]
+                    and input_features.shape[1] == targets.shape[0]
+                ):
+                    input_features = input_features.permute(1, 0)
+                    if isinstance(inputs, torch.Tensor):
+                        inputs = inputs.permute(1, 0)
+                    batch_dim = 1
+            else:
+                if (
+                    inputs.shape[0] != targets.shape[0]
+                    and inputs.shape[1] == targets.shape[0]
+                ):
+                    inputs = inputs.permute(1, 0)
+                    batch_dim = 1
         if input_features is None:
             input_features = [None] * len(sample_indices)
 
@@ -51,7 +67,8 @@ class SampleComputationHook(ComputationHook):
                 sample_index, sample_input
             ):
                 continue
-            sample_input = sample_input.unsqueeze(batch_dim)
+            if isinstance(sample_input, torch.Tensor):
+                sample_input = sample_input.unsqueeze(batch_dim)
             if input_feature is not None:
                 input_feature = input_feature.unsqueeze(batch_dim)
             sample_target = sample_target.unsqueeze(0)
