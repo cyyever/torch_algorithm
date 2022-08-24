@@ -42,7 +42,7 @@ class SampleComputationHook(ComputationHook):
                     input_features.shape[0] != targets.shape[0]
                     and input_features.shape[1] == targets.shape[0]
                 ):
-                    input_features = input_features.permute(1, 0)
+                    input_features = input_features.permute(1, 0, 2)
                     if isinstance(inputs, torch.Tensor):
                         inputs = inputs.permute(1, 0)
                     batch_dim = 1
