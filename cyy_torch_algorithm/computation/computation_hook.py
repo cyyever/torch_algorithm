@@ -89,11 +89,14 @@ class ComputationHook(Hook):
 
     def __get_task_queue(self, worker_fun) -> TorchProcessTaskQueue:
         if self.__task_queue is None:
+            worker_num = os.getenv("cuda_device_num", None)
+            if worker_num is not None:
+                worker_num = int(worker_num)
             self.__task_queue = TorchProcessTaskQueue(
                 worker_fun=worker_fun,
                 move_data_in_cpu=False,
                 use_manager=False,
-                worker_num=os.getenv("cuda_device_num", None),
+                worker_num=worker_num,
             )
             self.__task_queue.start()
             torch.cuda.empty_cache()
