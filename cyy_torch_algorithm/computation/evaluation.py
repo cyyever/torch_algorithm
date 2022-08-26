@@ -9,8 +9,8 @@ def eval_model(
     model_with_loss,
     phase=MachineLearningPhase.Training,
     non_blocking=True,
-    is_input_feature=False,
-    input_shape=None,
+    input_features=None,
+    real_inputs=None,
 ):
     model_util = model_with_loss.model_util
     model_util.load_parameter_list(
@@ -24,12 +24,11 @@ def eval_model(
         "non_blocking": non_blocking,
         "phase": phase,
     }
-    if input_shape is not None:
-        inputs = inputs.view(input_shape)
-    if is_input_feature:
-        kwargs["input_features"] = inputs
-        kwargs["inputs"] = None
-    else:
-        kwargs["inputs"] = inputs
-
+    if real_inputs is not None:
+        if input_features is not None:
+            real_inputs = real_inputs.view(input_features.shape)
+            input_features = real_inputs
+        else:
+            real_inputs = real_inputs.view(inputs.shape)
+            inputs = real_inputs
     return model_with_loss(**kwargs)["loss"]

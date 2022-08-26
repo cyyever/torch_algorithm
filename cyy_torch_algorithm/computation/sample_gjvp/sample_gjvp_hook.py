@@ -3,7 +3,8 @@ import functools
 import torch
 import torch.cuda
 from cyy_torch_algorithm.computation.evaluation import eval_model
-from cyy_torch_algorithm.computation.sample_computation_hook import SampleComputationHook
+from cyy_torch_algorithm.computation.sample_computation_hook import \
+    SampleComputationHook
 from cyy_torch_toolbox.device import put_data_to_device
 from functorch import grad, jvp, vmap
 
@@ -19,9 +20,11 @@ def sample_gjvp_worker_fun(
 ):
     parameter_list = model_with_loss.model_util.get_parameter_list(detach=False)
     vector = put_data_to_device(vector, device=worker_device, non_blocking=True)
-    is_input_feature = input_features[0] is not None
-    if is_input_feature:
-        inputs = input_features
+    if input_features is not None:
+        real_inputs = input_features
+    else:
+        real_inputs = inputs
+    input_shape = real_inputs[0].shape
 
     def jvp_wrapper(parameter_list, input_tensor, target):
         f = functools.partial(
@@ -29,8 +32,9 @@ def sample_gjvp_worker_fun(
             targets=target,
             device=worker_device,
             model_with_loss=model_with_loss,
-            input_shape=inputs[0].shape,
-            is_input_feature=is_input_feature,
+            inputs=inputs,
+            input_features=input_features,
+            real_inputs=input_tensor,
             non_blocking=True,
         )
 
@@ -41,8 +45,8 @@ def sample_gjvp_worker_fun(
 
     products = vmap(jvp_wrapper, in_dims=(None, 0, 0), randomness="same")(
         parameter_list,
-        torch.stack(inputs),
-        torch.stack(targets),
+        # torch.stack(real_inputs),
+        torch.LongTensor(list(range(targets.shape[0]))),
     )
     return dict(zip(sample_indices, products))
 

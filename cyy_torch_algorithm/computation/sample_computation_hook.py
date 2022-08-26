@@ -150,8 +150,8 @@ class SampleComputationHook(ComputationHook):
                 targets, device=worker_device, non_blocking=True
             )
 
-            is_input_feature = input_features[0] is not None
-            if is_input_feature:
+            has_input_feature = input_features[0] is not None
+            if has_input_feature:
                 input_features = put_data_to_device(
                     input_features, device=worker_device, non_blocking=True
                 )
