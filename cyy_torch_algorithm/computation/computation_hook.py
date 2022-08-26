@@ -1,3 +1,4 @@
+import os
 import threading
 from typing import Callable
 
@@ -62,7 +63,7 @@ class ComputationHook(Hook):
             case None:
                 self.__prevous_chunk = (1, False)
                 return self.__prevous_chunk[0]
-            case[size, fixed]:
+            case [size, fixed]:
                 if data_size <= size or fixed:
                     return size
                 pynvml.nvmlInit()
@@ -92,6 +93,7 @@ class ComputationHook(Hook):
                 worker_fun=worker_fun,
                 move_data_in_cpu=False,
                 use_manager=False,
+                worker_num=os.getenv("cuda_device_num", None),
             )
             self.__task_queue.start()
             torch.cuda.empty_cache()
