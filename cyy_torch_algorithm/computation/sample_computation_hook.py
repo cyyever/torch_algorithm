@@ -46,7 +46,7 @@ class SampleComputationHook(ComputationHook):
                     if isinstance(inputs, torch.Tensor):
                         inputs = inputs.permute(1, 0)
                     batch_dim = 1
-            else:
+            elif isinstance(inputs, torch.Tensor):
                 if (
                     inputs.shape[0] != targets.shape[0]
                     and inputs.shape[1] == targets.shape[0]
