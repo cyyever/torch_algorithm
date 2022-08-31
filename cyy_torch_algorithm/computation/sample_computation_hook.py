@@ -125,12 +125,11 @@ class SampleComputationHook(ComputationHook):
             )
 
     def _after_forward(
-        self, model_executor, inputs, input_features, targets, batch_info, **kwargs
+        self, model_executor, inputs, input_features, targets, sample_indices, **kwargs
     ):
-        sample_indices = [idx.data.item() for idx in batch_info["index"]]
         self.add_task(
             model_executor=model_executor,
-            sample_indices=sample_indices,
+            sample_indices=sample_indices.tolist(),
             inputs=inputs,
             input_features=input_features,
             targets=targets,

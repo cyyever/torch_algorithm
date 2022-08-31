@@ -40,9 +40,8 @@ class TracInHook(Hook):
         self._sample_grad_hook.set_computed_indices(self.__tracked_indices)
 
     @torch.no_grad()
-    def _before_batch(self, model_executor, batch, **kwargs):
-        *_, batch_info = batch
-        sample_indices = [idx.data.item() for idx in batch_info["index"]]
+    def _before_batch(self, model_executor, sample_indices, **kwargs):
+        sample_indices =sample_indices.tolist()
         if set(sample_indices).isdisjoint(self.__tracked_indices):
             return
 
