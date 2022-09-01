@@ -63,7 +63,7 @@ class ComputationHook(Hook):
             case None:
                 self.__prevous_chunk = (1, False)
                 return self.__prevous_chunk[0]
-            case [size, fixed]:
+            case[size, fixed]:
                 if data_size <= size or fixed:
                     return size
                 pynvml.nvmlInit()
@@ -87,9 +87,9 @@ class ComputationHook(Hook):
             zip(*(tuple(split_list_to_chunks(data, chunk_size)) for data in data_list))
         )
 
-    def __get_task_queue(self, worker_fun) -> TorchProcessTaskQueue:
+    def __get_task_queue(self, worker_fun: Callable) -> TorchProcessTaskQueue:
         if self.__task_queue is None:
-            worker_num = os.getenv("cuda_device_num", None)
+            worker_num: int | None | str = os.getenv("cuda_device_num", None)
             if worker_num is not None:
                 worker_num = int(worker_num)
             self.__task_queue = TorchProcessTaskQueue(
