@@ -40,6 +40,7 @@ def test_NLP_vjp():
     config.hyper_parameter_config.learning_rate = 0.1
     config.hyper_parameter_config.find_learning_rate = False
     trainer = config.create_trainer()
+    trainer.model_util.cache_buffer_names()
     trainer.model_util.freeze_modules(module_type=nn.Embedding)
     trainer.model_with_loss.need_input_features = True
     hook = SampleGradientVJPHook()

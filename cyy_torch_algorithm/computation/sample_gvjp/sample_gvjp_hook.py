@@ -3,7 +3,8 @@ import functools
 import torch
 import torch.cuda
 from cyy_torch_algorithm.computation.evaluation import eval_model
-from cyy_torch_algorithm.computation.sample_computation_hook import SampleComputationHook
+from cyy_torch_algorithm.computation.sample_computation_hook import \
+    SampleComputationHook
 from cyy_torch_toolbox.device import put_data_to_device
 from functorch import grad, vjp, vmap
 
@@ -17,7 +18,9 @@ def sample_gvjp_worker_fun(
     targets,
     worker_device,
 ):
-    parameter_list = model_with_loss.model_util.get_parameter_list(detach=False)
+    parameter_list = model_with_loss.model_util.get_parameter_list(detach=False).to(
+        device=worker_device, non_blocking=True
+    )
     vector = put_data_to_device(vector, device=worker_device, non_blocking=True)
     is_input_feature = input_features[0] is not None
     if is_input_feature:

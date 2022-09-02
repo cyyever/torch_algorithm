@@ -144,7 +144,6 @@ class SampleComputationHook(ComputationHook):
         model_with_loss, sample_indices, inputs, input_features, targets = task
 
         with torch.cuda.stream(worker_stream):
-            model_with_loss.to(device=worker_device, non_blocking=True)
             targets = put_data_to_device(
                 targets, device=worker_device, non_blocking=True
             )

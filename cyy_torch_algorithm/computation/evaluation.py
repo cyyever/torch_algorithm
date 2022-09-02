@@ -12,9 +12,16 @@ def eval_model(
     is_input_feature=False,
     input_shape=None,
 ):
-    model_util = model_with_loss.model_util
-    model_util.load_parameter_list(
-        parameter_list.to(device),
+    if model_with_loss.model_util.cached_buffer_names is not None:
+        for name in model_with_loss.model_util.cached_buffer_names:
+            buf = model_with_loss.model_util.get_attr(name)
+            model_with_loss.model_util.set_attr(
+                name,
+                buf.to(device=device, non_blocking=non_blocking),
+                as_parameter=False,
+            )
+    model_with_loss.model_util.load_parameter_list(
+        parameter_list.to(device, non_blocking=non_blocking),
         check_parameter=False,
         as_parameter=False,
     )
@@ -23,6 +30,7 @@ def eval_model(
         "device": device,
         "non_blocking": non_blocking,
         "phase": phase,
+        "model_to_device": False,
     }
     if input_shape is not None:
         inputs = inputs.view(input_shape)
@@ -31,5 +39,6 @@ def eval_model(
         kwargs["inputs"] = None
     else:
         kwargs["inputs"] = inputs
+        kwargs["input_features"] = None
 
     return model_with_loss(**kwargs)["loss"]
