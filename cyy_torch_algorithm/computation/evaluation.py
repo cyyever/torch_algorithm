@@ -30,7 +30,6 @@ def eval_model(
         "device": device,
         "non_blocking": non_blocking,
         "phase": phase,
-        "model_to_device": False,
     }
     if input_shape is not None:
         inputs = inputs.view(input_shape)
