@@ -7,7 +7,6 @@ from cyy_torch_algorithm.computation.computation_hook import ComputationHook
 # from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_toolbox.device import put_data_to_device
 from cyy_torch_toolbox.hooks.add_index_to_dataset import AddIndexToDataset
-from cyy_torch_toolbox.ml_type import DatasetType
 
 
 class SampleComputationHook(ComputationHook):
@@ -27,32 +26,15 @@ class SampleComputationHook(ComputationHook):
         self.set_sample_selector(lambda sample_index, *args: sample_index in indices)
 
     def add_task(self, model_executor, sample_indices, inputs, input_features, targets):
-        batch_dim = 0
-        if model_executor.dataset_collection.dataset_type == DatasetType.Text:
-            if "BatchEncoding" in type(inputs).__name__:
-                new_inputs = []
-                first_value = next(iter(inputs.values()))
-                assert isinstance(first_value, torch.Tensor)
-                for i in range(first_value.size(dim=0)):
-                    new_inputs.append({k: v[i] for k, v in inputs.items()})
-                inputs = new_inputs
-
-            if input_features is not None:
-                if (
-                    input_features.shape[0] != targets.shape[0]
-                    and input_features.shape[1] == targets.shape[0]
-                ):
-                    input_features = input_features.permute(1, 0, 2)
-                    if isinstance(inputs, torch.Tensor):
-                        inputs = inputs.permute(1, 0)
-                    batch_dim = 1
-            elif isinstance(inputs, torch.Tensor):
-                if (
-                    inputs.shape[0] != targets.shape[0]
-                    and inputs.shape[1] == targets.shape[0]
-                ):
-                    inputs = inputs.permute(1, 0)
-                    batch_dim = 1
+        inputs, batch_dim = model_executor.split_batch_input(
+            inputs=inputs, targets=targets
+        )
+        if (
+            batch_dim != 0
+            and input_features is not None
+            and isinstance(input_features, torch.Tensor)
+        ):
+            input_features = input_features.permute(batch_dim, 0, 2)
         if input_features is None:
             input_features = [None] * len(sample_indices)
 
