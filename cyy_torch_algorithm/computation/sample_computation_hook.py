@@ -124,6 +124,7 @@ class SampleComputationHook(ComputationHook):
             args["device"]
         )
         model_with_loss, sample_indices, inputs, input_features, targets = task
+        res = None
 
         with torch.cuda.stream(worker_stream):
             targets = put_data_to_device(
@@ -158,12 +159,16 @@ class SampleComputationHook(ComputationHook):
                         input_feature=input_feature,
                         target=target,
                     )
-            for k, v in res.items():
-                if isinstance(v, torch.Tensor):
-                    if v.numel() == 1:
-                        res[k] = v.item()
-            # get_logger().error("use %s ms", counter.elapsed_milliseconds())
-            return res
+        for k, v in res.items():
+            if isinstance(v, torch.Tensor):
+                if v.numel() == 1:
+                    res[k] = v.item()
+            if isinstance(v, dict):
+                for k2, v2 in v.items():
+                    if v2.numel() == 1:
+                        v[k2] = v2.item()
+        # get_logger().error("use %s ms", counter.elapsed_milliseconds())
+        return res
 
 
 def sample_dot_product(
