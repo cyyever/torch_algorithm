@@ -1,7 +1,6 @@
 import json
 import os
 import pickle
-import shutil
 import traceback
 
 import torch
@@ -47,7 +46,7 @@ class HyDRAHook(Hook):
 
         self._approx_hyper_gradient_dict = None
 
-    def _before_batch(self, model_executor, batch, **kwargs):
+    def _before_batch(self, model_executor, inputs, targets, **kwargs):
         trainer = model_executor
         if self._trainer is None:
             self._trainer = trainer
@@ -55,13 +54,12 @@ class HyDRAHook(Hook):
             self._training_set_size = trainer.dataset_size
 
         if self.use_hessian:
-            sample_inputs, sample_targets, other_info = batch
             assert not self._hessian_computation_arguments
             self._hessian_computation_arguments = {}
             self._hvp_arguments = {
                 "model_executor": trainer,
-                "inputs": sample_inputs,
-                "targets": sample_targets,
+                "inputs": inputs,
+                "targets": targets,
             }
 
     @property
@@ -159,10 +157,9 @@ class HyDRAHook(Hook):
         )
         return tensor_dict
 
-    def __prepare_hook(self, **kwargs):
-        batch = kwargs["batch"]
+    def __prepare_hook(self, sample_indices, **kwargs):
         if self.use_approximation:
-            instance_indices = {idx.data.item() for idx in batch[2]["index"]}
+            instance_indices = {idx.data.item() for idx in sample_indices}
             batch_gradient_indices: set = instance_indices & self._computed_indices
             if batch_gradient_indices:
                 self._get_hyper_gradient_dict(self.use_approximation).prefetch(

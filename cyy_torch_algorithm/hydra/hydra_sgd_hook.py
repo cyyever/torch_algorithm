@@ -3,7 +3,7 @@ from cyy_torch_algorithm.hydra.hydra_hook import HyDRAHook
 
 
 class HyDRASGDHook(HyDRAHook):
-    def _before_batch(self, **kwargs):
+    def _before_batch(self, batch_size, **kwargs):
         super()._before_batch(**kwargs)
         trainer = kwargs["model_executor"]
 
@@ -12,7 +12,6 @@ class HyDRASGDHook(HyDRAHook):
         if not isinstance(optimizer, torch.optim.SGD):
             raise RuntimeError("optimizer is not SGD")
 
-        batch_size = kwargs["batch_size"]
         momentum = optimizer.param_groups[0]["momentum"]
         lr = optimizer.param_groups[0]["lr"]
         weight_decay = optimizer.param_groups[0]["weight_decay"]
