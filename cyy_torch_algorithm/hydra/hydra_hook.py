@@ -21,7 +21,7 @@ from cyy_torch_toolbox.ml_type import (MachineLearningPhase,
 class HyDRAHook(Hook):
     def __init__(self, cache_size, **kwargs):
         super().__init__(stripable=True)
-        self.__sample_gradient_hook = SampleGradientHook()
+        self._sample_gradient_hook = SampleGradientHook()
         self._cache_size = cache_size
         self.__save_dir = None
         self._trainer = None
@@ -64,7 +64,7 @@ class HyDRAHook(Hook):
 
     @property
     def sample_gradient_dict(self):
-        return self.__sample_gradient_hook.result_dict
+        return self._sample_gradient_hook.result_dict
 
     def get_save_dir(self, trainer=None):
         if self.__save_dir is None:
@@ -118,7 +118,7 @@ class HyDRAHook(Hook):
 
     def set_computed_indices(self, computed_indices):
         self._computed_indices = set(computed_indices)
-        self.__sample_gradient_hook.set_computed_indices(computed_indices)
+        self._sample_gradient_hook.set_computed_indices(computed_indices)
 
     def _after_execute(self, **kwargs):
         get_logger().info("end hyper-gradient tracking")
@@ -140,7 +140,7 @@ class HyDRAHook(Hook):
                 test_gradient,
                 use_approximation=False,
             )
-        self.__sample_gradient_hook.release_queue()
+        self._sample_gradient_hook.release_queue()
         if self.use_hessian:
             self._hvp_hook.release_queue()
 

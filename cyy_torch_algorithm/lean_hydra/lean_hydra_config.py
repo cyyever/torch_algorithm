@@ -27,8 +27,8 @@ class LeanHyDRAConfig(DefaultConfig):
         optimizer = self.deterministic_training.last_trainer.get_optimizer()
         if isinstance(optimizer, torch.optim.SGD):
             hydra_hook = LeanHyDRASGDHook(test_gradient=test_gradient)
-        elif isinstance(optimizer, torch.optim.Adam):
-            hydra_hook = LeanHyDRAAdamHook(test_gradient=test_gradient)
+        # elif isinstance(optimizer, torch.optim.Adam):
+        #     hydra_hook = LeanHyDRAAdamHook(test_gradient=test_gradient)
         else:
             raise NotImplementedError(
                 f"Unsupported optimizer {self.deterministic_training.last_trainer.hyper_parameter.optimizer_name}"
