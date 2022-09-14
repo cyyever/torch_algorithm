@@ -35,9 +35,9 @@ class LeanHyDRAHook(Hook):
             os.makedirs(self.__save_dir, exist_ok=True)
         return self.__save_dir
 
-    def _before_execute(self, **kwargs):
-        trainer = kwargs["model_executor"]
-        self._training_set_size = len(trainer.dataset)
+    def _before_execute(self, model_executor, **kwargs):
+        trainer = model_executor
+        self._training_set_size = len(trainer.dataset_util)
 
         if not self._computed_indices:
             self._computed_indices = set(range(self._training_set_size))
