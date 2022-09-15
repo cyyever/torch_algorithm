@@ -5,7 +5,7 @@ from cyy_torch_algorithm.retraining import DeterministicTraining
 from cyy_torch_toolbox.default_config import DefaultConfig
 from cyy_torch_toolbox.ml_type import MachineLearningPhase
 
-from .lean_hydra_adam_hook import LeanHyDRAAdamHook
+# from .lean_hydra_adam_hook import LeanHyDRAAdamHook
 from .lean_hydra_sgd_hook import LeanHyDRASGDHook
 
 
@@ -17,13 +17,14 @@ class LeanHyDRAConfig(DefaultConfig):
     def create_deterministic_trainer(self):
         return self.deterministic_training.create_deterministic_trainer()
 
-    def recreate_trainer_and_hook(self):
-        tester = self.deterministic_training.last_trainer.get_inferencer(
-            phase=MachineLearningPhase.Test, copy_model=False
-        )
-        tester.disable_logger()
-        test_gradient = tester.get_gradient()
-        del tester
+    def recreate_trainer_and_hook(self, test_gradient=None):
+        if test_gradient is None:
+            tester = self.deterministic_training.last_trainer.get_inferencer(
+                phase=MachineLearningPhase.Test, copy_model=False
+            )
+            tester.disable_logger()
+            test_gradient = tester.get_gradient()
+            del tester
         optimizer = self.deterministic_training.last_trainer.get_optimizer()
         if isinstance(optimizer, torch.optim.SGD):
             hydra_hook = LeanHyDRASGDHook(test_gradient=test_gradient)

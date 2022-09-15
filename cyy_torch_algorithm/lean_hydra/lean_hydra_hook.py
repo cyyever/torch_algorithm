@@ -65,9 +65,10 @@ class LeanHyDRAHook(Hook):
             mode="wt",
             encoding="utf-8",
         ) as f:
-            json.dump(self._contributions.cpu().tolist(), f)
-        with open(
-            os.path.join(self.__get_save_dir(trainer), "training_set_size"), "wb"
-        ) as f:
-            pickle.dump(self._training_set_size, f)
+            contributions = self._contributions.cpu().tolist()
+            json.dump({idx: contributions[idx] for idx in self._computed_indices}, f)
+        # with open(
+        #     os.path.join(self.__get_save_dir(trainer), "training_set_size"), "wb"
+        # ) as f:
+        #     pickle.dump(self._training_set_size, f)
         self.sample_gradient_hook.release_queue()
