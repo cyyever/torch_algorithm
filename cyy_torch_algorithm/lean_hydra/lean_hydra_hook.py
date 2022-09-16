@@ -43,11 +43,11 @@ class LeanHyDRAHook(Hook):
             self._computed_indices = set(range(self._training_set_size))
         else:
             get_logger().info("only compute %s indices", len(self._computed_indices))
-        with open(
-            os.path.join(self.__get_save_dir(trainer), "tracking_indices.json"),
-            mode="wb",
-        ) as f:
-            pickle.dump(self._computed_indices, f)
+        # with open(
+        #     os.path.join(self.__get_save_dir(trainer), "tracking_indices.json"),
+        #     mode="wb",
+        # ) as f:
+        #     pickle.dump(self._computed_indices, f)
         self._contributions = torch.zeros(self._training_set_size).to(
             trainer.device, non_blocking=True
         )
