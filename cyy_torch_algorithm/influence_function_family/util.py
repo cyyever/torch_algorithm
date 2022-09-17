@@ -73,8 +73,15 @@ def compute_perturbation_gradient_difference(
                     perturbation_dict[perturbation_index] + v
                 )
 
+    def sample_selector2(sample_index, sample_input):
+        res = perturbation_idx_fun(sample_index=sample_index, sample_input=sample_input)
+        if res:
+            return True
+        return False
+
     get_sample_gradient_dict(
         inferencer=inferencer,
+        sample_selector=sample_selector2,
         input_transform=perturbation_fun,
         result_transform=result_transform,
         result_collection_fun=collect_result2,
