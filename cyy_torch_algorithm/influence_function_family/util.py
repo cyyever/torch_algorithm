@@ -5,8 +5,8 @@ from cyy_torch_algorithm.computation.sample_gradient.sample_gradient_hook import
     get_sample_gradient_dict
 from cyy_torch_algorithm.data_structure.synced_tensor_dict import \
     SyncedTensorDict
-from cyy_torch_toolbox.device import put_data_to_device
 from cyy_torch_toolbox.ml_type import MachineLearningPhase
+from cyy_torch_toolbox.tensor import tensor_to
 from cyy_torch_toolbox.trainer import Trainer
 
 
@@ -42,7 +42,7 @@ def compute_perturbation_gradient_difference(
         nonlocal sample_to_perturbations
         nonlocal inferencer
         for sample_idx, v in result_dict.items():
-            v = put_data_to_device(v, device=inferencer.device, non_blocking=True)
+            v = tensor_to(v, device=inferencer.device, non_blocking=True)
             for perturbation_idx in sample_to_perturbations[sample_idx]:
                 if perturbation_idx not in sample_dict:
                     sample_dict[perturbation_idx] = v
@@ -65,7 +65,7 @@ def compute_perturbation_gradient_difference(
         nonlocal inferencer
         for k, v in result_dict.items():
             sample_index, perturbation_index = k
-            v = put_data_to_device(v, device=inferencer.device, non_blocking=True)
+            v = tensor_to(v, device=inferencer.device, non_blocking=True)
             if perturbation_index not in perturbation_dict:
                 perturbation_dict[perturbation_index] = v
             else:

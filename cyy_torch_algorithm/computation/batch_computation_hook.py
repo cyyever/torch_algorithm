@@ -4,7 +4,7 @@ from typing import Callable
 import torch
 from cyy_naive_lib.algorithm.mapping_op import get_mapping_values_by_key_order
 from cyy_torch_algorithm.computation.computation_hook import ComputationHook
-from cyy_torch_toolbox.device import put_data_to_device
+from cyy_torch_toolbox.tensor import tensor_to
 
 
 class BatchComputationHook(ComputationHook):
@@ -62,11 +62,9 @@ class BatchComputationHook(ComputationHook):
         model_with_loss, inputs, targets, data_idx, data = task
         with torch.cuda.stream(worker_stream):
             model_with_loss.to(device=worker_device, non_blocking=True)
-            inputs = put_data_to_device(inputs, device=worker_device, non_blocking=True)
-            targets = put_data_to_device(
-                targets, device=worker_device, non_blocking=True
-            )
-            data = put_data_to_device(data, device=worker_device, non_blocking=True)
+            inputs = tensor_to(inputs, device=worker_device, non_blocking=True)
+            targets = tensor_to(targets, device=worker_device, non_blocking=True)
+            data = tensor_to(data, device=worker_device, non_blocking=True)
             res = worker_fun(
                 model_with_loss=model_with_loss,
                 inputs=inputs,
