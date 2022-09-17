@@ -33,7 +33,7 @@ def compute_perturbation_gradient_difference(
         return False
 
     if result_transform is None:
-        sample_dict = SyncedTensorDict.create(cache_size=128)
+        sample_dict = SyncedTensorDict.create(cache_size=128, key_type=None)
     else:
         sample_dict: dict = {}
 
@@ -56,7 +56,7 @@ def compute_perturbation_gradient_difference(
         result_collection_fun=collect_result,
     )
     if result_transform is None:
-        perturbation_dict = SyncedTensorDict.create(cache_size=128)
+        perturbation_dict = SyncedTensorDict.create(cache_size=128, key_type=None)
     else:
         perturbation_dict: dict = {}
 
@@ -87,7 +87,7 @@ def compute_perturbation_gradient_difference(
         result_collection_fun=collect_result2,
     )
     if result_transform is None:
-        result = SyncedTensorDict.create(cache_size=128)
+        result = SyncedTensorDict.create(cache_size=128, key_type=None)
     else:
         result: dict = {}
     assert len(sample_dict) == len(perturbation_dict)

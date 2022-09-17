@@ -54,10 +54,16 @@ class SyncedTensorDict(MutableMapping):
         return key
 
     def __keys(self) -> set:
-        return {self.__key_type(k) for k in self.__tensor_dict.keys()}
+        return {self.__eval_key(k) for k in self.__tensor_dict.keys()}
 
     def __in_memory_keys(self) -> set:
-        return {self.__key_type(k) for k in self.__tensor_dict.in_memory_keys()}
+        return {self.__eval_key(k) for k in self.__tensor_dict.in_memory_keys()}
+
+    def __eval_key(self, k):
+        if self.__key_type is None:
+            return eval(k)
+        else:
+            return self.__key_type(k)
 
     def prefetch(self, keys: list) -> None:
         self.__tensor_dict.prefetch([str(k) for k in keys])
@@ -72,13 +78,13 @@ class SyncedTensorDict(MutableMapping):
             keys = {str(k) for k in keys}
         in_memory_keys = set(self.__in_memory_keys()) & keys
         for k in in_memory_keys:
-            yield (self.__key_type(k), self.__tensor_dict[k])
+            yield (self.__eval_key(k), self.__tensor_dict[k])
         remain_keys = list(keys - in_memory_keys)
         cache_size = self.__tensor_dict.get_in_memory_number()
         for chunk in split_list_to_chunks(remain_keys, cache_size // 2):
             self.__tensor_dict.prefetch(chunk)
             for k in chunk:
-                yield (self.__key_type(k), self.__tensor_dict[k])
+                yield (self.__eval_key(k), self.__tensor_dict[k])
 
     @classmethod
     def create(
