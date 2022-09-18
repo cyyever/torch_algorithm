@@ -83,9 +83,8 @@ def get_sample_gradient_dict(
         hook.set_result_collection_fun(result_collection_fun)
     tmp_inferencer.append_hook(hook)
     tmp_inferencer.inference()
-    gradients = None
+    gradients = hook.result_dict
     if result_collection_fun is None:
-        gradients = hook.result_dict
         assert gradients
     hook.release_queue()
     return gradients

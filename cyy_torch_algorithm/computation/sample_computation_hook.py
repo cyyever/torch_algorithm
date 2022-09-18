@@ -126,7 +126,7 @@ class SampleComputationHook(ComputationHook):
         model_with_loss, sample_indices, inputs, input_features, targets = task
         res = None
 
-        with torch.cuda.stream(worker_stream):
+        with (torch.cuda.device(worker_device), torch.cuda.stream(worker_stream)):
             targets = tensor_to(targets, device=worker_device, non_blocking=True)
 
             is_input_feature = input_features[0] is not None

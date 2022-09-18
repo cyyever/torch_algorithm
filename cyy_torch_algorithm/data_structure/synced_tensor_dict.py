@@ -21,7 +21,7 @@ class SyncedTensorDict(MutableMapping):
         return self.__tensor_dict.__getitem__(str(key))
 
     def __setitem__(self, key, value):
-        self.__tensor_dict.__setitem__(str(key), value)
+        self.__tensor_dict.__setitem__(str(key), value.detach().cpu())
 
     def __delitem__(self, key):
         self.__tensor_dict.__delitem__(str(key))
@@ -34,6 +34,9 @@ class SyncedTensorDict(MutableMapping):
 
     def get_storage_dir(self) -> str:
         return self.__tensor_dict.get_storage_dir()
+
+    def flush_all(self) -> None:
+        return self.__tensor_dict.flush_all(wait=True)
 
     def __len__(self):
         return len(self.__tensor_dict)

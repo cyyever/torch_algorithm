@@ -19,6 +19,7 @@ def compute_perturbation_gradient_difference(
     inferencer = trainer.get_inferencer(
         phase=MachineLearningPhase.Training, copy_model=True
     )
+    trainer.offload_from_gpu()
 
     sample_to_perturbations: dict = {}
 
@@ -40,9 +41,8 @@ def compute_perturbation_gradient_difference(
     def collect_result(result_dict):
         nonlocal sample_dict
         nonlocal sample_to_perturbations
-        nonlocal inferencer
         for sample_idx, v in result_dict.items():
-            v = tensor_to(v, device=inferencer.device, non_blocking=True)
+            v = tensor_to(v, device="cpu", non_blocking=True)
             for perturbation_idx in sample_to_perturbations[sample_idx]:
                 if perturbation_idx not in sample_dict:
                     sample_dict[perturbation_idx] = v
@@ -62,10 +62,9 @@ def compute_perturbation_gradient_difference(
 
     def collect_result2(result_dict):
         nonlocal perturbation_dict
-        nonlocal inferencer
         for k, v in result_dict.items():
             sample_index, perturbation_index = k
-            v = tensor_to(v, device=inferencer.device, non_blocking=True)
+            v = tensor_to(v, device="cpu", non_blocking=True)
             if perturbation_index not in perturbation_dict:
                 perturbation_dict[perturbation_index] = v
             else:
