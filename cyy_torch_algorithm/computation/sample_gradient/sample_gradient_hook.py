@@ -16,19 +16,39 @@ def sample_gradient_worker_fun(
     targets,
     worker_device,
 ):
-    gradient_lists = vmap(
-        grad(
-            functools.partial(
-                eval_model, device=worker_device, model_with_loss=model_with_loss
+    match inputs[0]:
+        case torch.Tensor():
+            gradient_lists = vmap(
+                grad(
+                    functools.partial(
+                        eval_model,
+                        device=worker_device,
+                        model_with_loss=model_with_loss,
+                    )
+                ),
+                in_dims=(None, 0, 0),
+                randomness="same",
+            )(
+                model_with_loss.model_util.get_parameter_list(detach=False),
+                torch.stack(inputs),
+                torch.stack(targets),
             )
-        ),
-        in_dims=(None, 0, 0),
-        randomness="same",
-    )(
-        model_with_loss.model_util.get_parameter_list(detach=False),
-        torch.stack(inputs),
-        torch.stack(targets),
-    )
+        case _:
+            parameter_list = model_with_loss.model_util.get_parameter_list(detach=True)
+            gradient_lists = [
+                grad(
+                    functools.partial(
+                        eval_model,
+                        device=worker_device,
+                        model_with_loss=model_with_loss,
+                    )
+                )(
+                    copy.deepcopy(parameter_list),
+                    input,
+                    target,
+                )
+                for input, target in zip(inputs, targets)
+            ]
     return dict(zip(sample_indices, gradient_lists))
 
 

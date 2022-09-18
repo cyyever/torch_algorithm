@@ -29,3 +29,28 @@ def test_CV_sample_gradient():
     )
     trainer.train()
     hook.release_queue()
+
+
+def test_huggingface_sample_gradient():
+    config = DefaultConfig("IMDB", "sequence_classification_distilbert-base-cased")
+    config.hyper_parameter_config.epoch = 1
+    config.hyper_parameter_config.batch_size = 8
+    config.hyper_parameter_config.learning_rate = 0.01
+    config.hyper_parameter_config.find_learning_rate = False
+    config.model_config.model_kwargs = {"n_layers": 1}
+    config.dc_config.dataset_kwargs = {"max_len": 100}
+    trainer = config.create_trainer()
+    hook = SampleGradientHook()
+    hook.set_computed_indices(set(range(10)))
+    trainer.append_hook(hook)
+
+    def print_sample_gradients(**kwargs):
+        if hook.result_dict:
+            print(hook.result_dict)
+            raise StopExecutingException()
+
+    trainer.append_named_hook(
+        ModelExecutorHookPoint.AFTER_FORWARD, "check gradients", print_sample_gradients
+    )
+    trainer.train()
+    hook.release_queue()
