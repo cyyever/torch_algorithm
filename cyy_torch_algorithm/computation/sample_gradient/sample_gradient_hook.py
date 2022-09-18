@@ -5,6 +5,7 @@ import torch
 from cyy_torch_algorithm.computation.evaluation import eval_model
 from cyy_torch_algorithm.computation.sample_computation_hook import (
     SampleComputationHook, sample_dot_product)
+from cyy_torch_toolbox.tensor import tensor_to
 from functorch import grad, vmap
 
 
@@ -16,6 +17,8 @@ def sample_gradient_worker_fun(
     targets,
     worker_device,
 ):
+    if input_features is not None:
+        inputs = tensor_to(inputs, device=worker_device, non_blocking=True)
     match inputs[0]:
         case torch.Tensor():
             gradient_lists = vmap(
