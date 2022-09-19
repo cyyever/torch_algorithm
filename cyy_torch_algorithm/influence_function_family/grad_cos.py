@@ -19,6 +19,7 @@ def compute_perturbation_grad_cos(
             phase=MachineLearningPhase.Test, copy_model=True
         )
         test_gradient = inferencer.get_gradient()
+        del inferencer
 
     diff = compute_perturbation_gradient_difference(
         trainer=trainer,

@@ -27,6 +27,7 @@ def compute_influence_function(
             phase=MachineLearningPhase.Test, copy_model=True
         )
         test_gradient = inferencer.get_gradient()
+        del inferencer
 
     inferencer = trainer.get_inferencer(
         phase=MachineLearningPhase.Training, copy_model=True
