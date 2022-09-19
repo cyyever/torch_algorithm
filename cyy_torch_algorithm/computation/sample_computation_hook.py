@@ -127,15 +127,10 @@ class SampleComputationHook(ComputationHook):
         res = None
 
         with (torch.cuda.device(worker_device), torch.cuda.stream(worker_stream)):
-            targets = tensor_to(targets, device=worker_device, non_blocking=True)
+            targets = tensor_to(
+                targets, device=worker_device, non_blocking=True, check_pin=True
+            )
 
-            is_input_feature = input_features[0] is not None
-            if is_input_feature:
-                input_features = tensor_to(
-                    input_features, device=worker_device, non_blocking=True
-                )
-            else:
-                inputs = tensor_to(inputs, device=worker_device, non_blocking=True)
             res = worker_fun(
                 model_with_loss=model_with_loss,
                 sample_indices=sample_indices,

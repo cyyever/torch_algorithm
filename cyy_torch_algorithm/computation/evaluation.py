@@ -15,7 +15,6 @@ def eval_model(
     # if model_with_loss.model_util.cached_buffer_names is not None:
     #     for name in model_with_loss.model_util.cached_buffer_names:
     #         buf = model_with_loss.model_util.get_attr(name)
-    #         print("convert buf", name)
     #         model_with_loss.model_util.set_attr(
     #             name,
     #             buf.to(device=device, non_blocking=non_blocking),
