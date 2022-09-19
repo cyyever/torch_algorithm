@@ -17,40 +17,49 @@ def sample_gradient_worker_fun(
     targets,
     worker_device,
 ):
+    def wrapper(parameter_list, target, *args, input_keys=None):
+        input_kwargs = {}
+        if input_keys is not None:
+            input_kwargs = dict(zip(input_keys, args))
+        else:
+            assert len(args) == 1
+            input_kwargs["inputs"] = args[0]
+
+        f = functools.partial(
+            eval_model,
+            targets=target,
+            device=worker_device,
+            model_with_loss=model_with_loss,
+            non_blocking=True,
+            **input_kwargs
+        )
+        return grad(f, argnums=0)(parameter_list).view(-1)
+
     inputs = tensor_to(inputs, device=worker_device, non_blocking=True, check_pin=True)
     match inputs[0]:
         case torch.Tensor():
+            gradient_lists = vmap(wrapper, in_dims=(None, 0, 0), randomness="same",)(
+                model_with_loss.model_util.get_parameter_list(detach=False),
+                torch.stack(targets),
+                torch.stack(inputs),
+            )
+        case dict():
+            input_keys = list(inputs[0].keys())
+            dict_inputs = []
+            for k in input_keys:
+                dict_inputs.append(torch.stack([a[k] for a in inputs]))
+            in_dims = [0] * (len(dict_inputs) + 2)
+            in_dims[0] = None
             gradient_lists = vmap(
-                grad(
-                    functools.partial(
-                        eval_model,
-                        device=worker_device,
-                        model_with_loss=model_with_loss,
-                    )
-                ),
-                in_dims=(None, 0, 0),
+                functools.partial(wrapper, input_keys=input_keys),
+                in_dims=tuple(in_dims),
                 randomness="same",
             )(
                 model_with_loss.model_util.get_parameter_list(detach=False),
-                torch.stack(inputs),
                 torch.stack(targets),
+                *dict_inputs
             )
-        case _:
-            parameter_list = model_with_loss.model_util.get_parameter_list(detach=True)
-            gradient_lists = [
-                grad(
-                    functools.partial(
-                        eval_model,
-                        device=worker_device,
-                        model_with_loss=model_with_loss,
-                    )
-                )(
-                    tensor_clone(parameter_list),
-                    input,
-                    target,
-                )
-                for input, target in zip(inputs, targets)
-            ]
+
     return dict(zip(sample_indices, gradient_lists))
 
 

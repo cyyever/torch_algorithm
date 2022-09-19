@@ -41,7 +41,7 @@ def sample_gjvp_worker_fun(
         )
 
         def grad_f(input_tensor):
-            return grad(f, argnums=0)(parameter_list, input_tensor).view(-1)
+            return grad(f, argnums=0)(parameter_list, inputs=input_tensor).view(-1)
 
         return jvp(grad_f, (input_tensor.view(-1),), (vector,))[1]
 
