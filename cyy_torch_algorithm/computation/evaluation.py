@@ -32,6 +32,7 @@ def eval_model(
             inputs = inputs.view(input_shape)
         if is_input_feature:
             kwargs["input_features"] = inputs
+            kwargs["inputs"] = None
         else:
             kwargs["inputs"] = inputs
 

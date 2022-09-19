@@ -32,6 +32,7 @@ def sample_gjvp_worker_fun(
     def jvp_wrapper(parameter_list, input_tensor, target):
         f = functools.partial(
             eval_model,
+            inputs=input_tensor,
             targets=target,
             device=worker_device,
             model_with_loss=model_with_loss,
@@ -41,7 +42,7 @@ def sample_gjvp_worker_fun(
         )
 
         def grad_f(input_tensor):
-            return grad(f, argnums=0)(parameter_list, inputs=input_tensor).view(-1)
+            return grad(f, argnums=0)(parameter_list).view(-1)
 
         return jvp(grad_f, (input_tensor.view(-1),), (vector,))[1]
 
