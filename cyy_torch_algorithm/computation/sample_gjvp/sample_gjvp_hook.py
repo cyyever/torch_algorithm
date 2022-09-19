@@ -3,8 +3,9 @@ import functools
 import torch
 import torch.cuda
 from cyy_torch_algorithm.computation.evaluation import eval_model
-from cyy_torch_algorithm.computation.sample_computation_hook import SampleComputationHook
-from cyy_torch_toolbox.device import put_data_to_device
+from cyy_torch_algorithm.computation.sample_computation_hook import \
+    SampleComputationHook
+from cyy_torch_toolbox.tensor import tensor_to
 from functorch import grad, jvp, vmap
 
 
@@ -18,14 +19,20 @@ def sample_gjvp_worker_fun(
     worker_device,
 ):
     parameter_list = model_with_loss.model_util.get_parameter_list(detach=False)
-    vector = put_data_to_device(vector, device=worker_device, non_blocking=True)
+    vector = tensor_to(vector, device=worker_device, non_blocking=True)
     is_input_feature = input_features[0] is not None
     if is_input_feature:
+        input_features = tensor_to(
+            input_features, device=worker_device, non_blocking=True
+        )
         inputs = input_features
+    else:
+        inputs = tensor_to(inputs, device=worker_device, non_blocking=True)
 
     def jvp_wrapper(parameter_list, input_tensor, target):
         f = functools.partial(
             eval_model,
+            inputs=input_tensor,
             targets=target,
             device=worker_device,
             model_with_loss=model_with_loss,
@@ -35,7 +42,7 @@ def sample_gjvp_worker_fun(
         )
 
         def grad_f(input_tensor):
-            return grad(f, argnums=0)(parameter_list, input_tensor).view(-1)
+            return grad(f, argnums=0)(parameter_list).view(-1)
 
         return jvp(grad_f, (input_tensor.view(-1),), (vector,))[1]
 

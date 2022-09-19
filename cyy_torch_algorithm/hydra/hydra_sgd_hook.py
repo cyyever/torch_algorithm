@@ -1,20 +1,25 @@
-import torch
 from cyy_torch_algorithm.hydra.hydra_hook import HyDRAHook
 
 
 class HyDRASGDHook(HyDRAHook):
-    def _before_batch(self, batch_size, **kwargs):
-        super()._before_batch(**kwargs)
-        trainer = kwargs["model_executor"]
+    __momentum = None
+    __lr = None
+    __weight_decay = None
 
+    def _before_batch(self, model_executor, **kwargs):
+        trainer = model_executor
         optimizer = trainer.get_optimizer()
         assert len(optimizer.param_groups) == 1
-        if not isinstance(optimizer, torch.optim.SGD):
-            raise RuntimeError("optimizer is not SGD")
 
-        momentum = optimizer.param_groups[0]["momentum"]
-        lr = optimizer.param_groups[0]["lr"]
-        weight_decay = optimizer.param_groups[0]["weight_decay"]
+        self.__momentum = optimizer.param_groups[0]["momentum"]
+        self.__lr = optimizer.param_groups[0]["lr"]
+        self.__weight_decay = optimizer.param_groups[0]["weight_decay"]
+        super()._before_batch(model_executor=model_executor, **kwargs)
+
+    def _after_optimizer_step(self, model_executor, batch_size, step_skipped, **kwargs):
+        if step_skipped:
+            self._sample_gradient_hook.reset_result()
+            return
 
         for idx in self._computed_indices:
             instance_gradient = self.sample_gradient_dict.get(idx, None)
@@ -24,7 +29,12 @@ class HyDRASGDHook(HyDRAHook):
                     * self._training_set_size
                     / batch_size
                 )
-            arguments = (momentum, weight_decay, lr, instance_gradient)
+            arguments = (
+                self.__momentum,
+                self.__weight_decay,
+                self.__lr,
+                instance_gradient,
+            )
             if self.use_hessian:
                 self._hessian_computation_arguments[idx] = [arguments]
             if self.use_approximation:
@@ -35,6 +45,7 @@ class HyDRASGDHook(HyDRAHook):
                     self._do_delayed_computation(use_approximation=True, index=idx)
         if self.use_hessian:
             self._do_computation_with_hessian()
+        self._sample_gradient_hook.reset_result()
 
     def _do_delayed_computation(
         self, use_approximation: bool, index, hessian_vector_product=None

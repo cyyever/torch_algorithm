@@ -22,6 +22,7 @@ def compute_perturbation_grad_dot(
             phase=MachineLearningPhase.Test, copy_model=True
         )
         test_gradient = inferencer.get_gradient()
+        del inferencer
 
     if grad_diff is not None:
         test_gradient = test_gradient.cpu()

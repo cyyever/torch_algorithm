@@ -1,3 +1,4 @@
+import copy
 from typing import Callable, Optional
 
 import numpy as np
@@ -12,6 +13,7 @@ class GTGShapleyValue(ShapleyValue):
             worker_number=worker_number, last_round_metric=last_round_metric
         )
         self.shapley_values: dict = {}
+        self.shapley_values_S: dict = {}
 
         self.eps = 0.001
         self.round_trunc_threshold = 0.001
@@ -49,10 +51,14 @@ class GTGShapleyValue(ShapleyValue):
             self.shapley_values[self.round_number] = {
                 i: 0 for i in range(self.worker_number)
             }
+            self.shapley_values_S[self.round_number] = {
+                i: 0 for i in range(self.worker_number)
+            }
             if self.save_fun is not None:
                 self.save_fun(
                     self.round_number,
                     self.shapley_values[self.round_number],
+                    self.shapley_values_S[self.round_number],
                 )
             get_logger().info(
                 "skip round %s, this_round_metric %s last_round_metric %s round_trunc_threshold %s",
@@ -63,7 +69,10 @@ class GTGShapleyValue(ShapleyValue):
             )
             self.last_round_metric = this_round_metric
             return
-        metrics = {}
+        metrics = dict()
+
+        # for best_S
+        perm_records = dict()
 
         index = 0
         contribution_records: list = []
@@ -108,28 +117,65 @@ class GTGShapleyValue(ShapleyValue):
                     # update SV
                     marginal_contribution[perturbed_indices[j - 1]] = v[j] - v[j - 1]
                 contribution_records.append(marginal_contribution)
+                # for best_S
+                perm_records[tuple(perturbed_indices.tolist())] = marginal_contribution
+
+        # for best_S
+        subset_rank = sorted(
+            metrics.items(), key=lambda x: (x[1], -len(x[0])), reverse=True
+        )
+        best_S: tuple = None
+        if subset_rank[0][0]:
+            best_S = subset_rank[0][0]
+        else:
+            best_S = subset_rank[1][0]
+
+        contrib_S = [
+            v for k, v in perm_records.items() if set(k[: len(best_S)]) == set(best_S)
+        ]
+        SV_calc_temp = np.sum(contrib_S, 0) / len(contrib_S)
+        round_marginal_gain_S = metrics[best_S] - self.last_round_metric
+        round_SV_S: dict = dict()
+        for client_id in best_S:
+            round_SV_S[client_id] = float(SV_calc_temp[client_id])
+
+        self.shapley_values_S[
+            self.round_number
+        ] = ShapleyValue.normalize_shapley_values(round_SV_S, round_marginal_gain_S)
 
         # calculating fullset SV
-        round_shapley_values = np.sum(contribution_records, 0) / len(
-            contribution_records
-        )
-        assert len(round_shapley_values) == self.worker_number
+        # shapley value calculation
+        if set(best_S) == set(range(self.worker_number)):
+            self.shapley_values[self.round_number] = copy.deepcopy(
+                self.shapley_values_S[self.round_number]
+            )
+        else:
+            round_shapley_values = np.sum(contribution_records, 0) / len(
+                contribution_records
+            )
+            assert len(round_shapley_values) == self.worker_number
 
-        round_marginal_gain = this_round_metric - self.last_round_metric
-        round_shapley_value_dict = {}
-        for idx, value in enumerate(round_shapley_values):
-            round_shapley_value_dict[idx] = float(value)
+            round_marginal_gain = this_round_metric - self.last_round_metric
+            round_shapley_value_dict = dict()
+            for idx, value in enumerate(round_shapley_values):
+                round_shapley_value_dict[idx] = float(value)
 
-        self.shapley_values[self.round_number] = ShapleyValue.normalize_shapley_values(
-            round_shapley_value_dict, round_marginal_gain
-        )
+            self.shapley_values[
+                self.round_number
+            ] = ShapleyValue.normalize_shapley_values(
+                round_shapley_value_dict, round_marginal_gain
+            )
 
         if self.save_fun is not None:
             self.save_fun(
                 self.round_number,
                 self.shapley_values[self.round_number],
+                self.shapley_values_S[self.round_number],
             )
         get_logger().info("shapley_value %s", self.shapley_values[self.round_number])
+        get_logger().info(
+            "shapley_value_S %s", self.shapley_values_S[self.round_number]
+        )
         self.last_round_metric = this_round_metric
 
     def not_convergent(self, index, contribution_records):
