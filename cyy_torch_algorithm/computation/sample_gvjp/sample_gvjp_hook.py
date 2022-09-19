@@ -24,7 +24,12 @@ def sample_gvjp_worker_fun(
     vector = tensor_to(vector, device=worker_device, non_blocking=True)
     is_input_feature = input_features[0] is not None
     if is_input_feature:
+        input_features = tensor_to(
+            input_features, device=worker_device, non_blocking=True
+        )
         inputs = input_features
+    else:
+        inputs = tensor_to(inputs, device=worker_device, non_blocking=True)
 
     def vjp_wrapper(parameter_list, input_tensor, target):
         f = functools.partial(

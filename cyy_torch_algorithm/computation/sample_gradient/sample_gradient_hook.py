@@ -17,8 +17,7 @@ def sample_gradient_worker_fun(
     targets,
     worker_device,
 ):
-    if input_features is not None:
-        inputs = tensor_to(inputs, device=worker_device, non_blocking=True)
+    inputs = tensor_to(inputs, device=worker_device, non_blocking=True, check_pin=True)
     match inputs[0]:
         case torch.Tensor():
             gradient_lists = vmap(
