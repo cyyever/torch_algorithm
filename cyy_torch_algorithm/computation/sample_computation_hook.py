@@ -1,3 +1,4 @@
+import copy
 import functools
 from typing import Callable
 
@@ -94,7 +95,7 @@ class SampleComputationHook(ComputationHook):
         model_with_loss.model.share_memory()
         worker_fun = functools.partial(
             SampleComputationHook.common_worker_fun,
-            self._result_transform,
+            copy.deepcopy(self._result_transform),
             self._get_worker_fun(),
         )
         for task in self._split_data(
@@ -140,6 +141,31 @@ class SampleComputationHook(ComputationHook):
                 worker_device=worker_device,
             )
             if result_transform is not None:
+                if isinstance(result_transform, functools.partial):
+                    if not hasattr(ComputationHook._local_data, "result_transform"):
+                        tmp_args = tensor_to(
+                            result_transform.args,
+                            device=worker_device,
+                            non_blocking=True,
+                        )
+                        tmp_keywords = tensor_to(
+                            result_transform.keywords,
+                            device=worker_device,
+                            non_blocking=True,
+                        )
+                        result_transform = functools.partial(
+                            result_transform.func, *tmp_args, **tmp_keywords
+                        )
+                        setattr(
+                            ComputationHook._local_data,
+                            "result_transform",
+                            result_transform,
+                        )
+                    else:
+                        result_transform = getattr(
+                            ComputationHook._local_data, "result_transform"
+                        )
+
                 for sample_index, input_tensor, input_feature, target in zip(
                     sample_indices, inputs, input_features, targets
                 ):
@@ -165,5 +191,4 @@ class SampleComputationHook(ComputationHook):
 def sample_dot_product(
     sample_index, result, input_tensor, input_feature, target, vector
 ):
-    vector = tensor_to(vector, device=result.device, non_blocking=True)
     return result.dot(vector)
