@@ -5,7 +5,7 @@ import torch
 from cyy_torch_algorithm.computation.evaluation import eval_model
 from cyy_torch_algorithm.computation.sample_computation_hook import (
     SampleComputationHook, sample_dot_product)
-from cyy_torch_toolbox.tensor import tensor_to
+from cyy_torch_toolbox.tensor import tensor_clone, tensor_to
 from functorch import grad, vmap
 
 
@@ -45,7 +45,7 @@ def sample_gradient_worker_fun(
                         model_with_loss=model_with_loss,
                     )
                 )(
-                    copy.deepcopy(parameter_list),
+                    tensor_clone(parameter_list),
                     input,
                     target,
                 )

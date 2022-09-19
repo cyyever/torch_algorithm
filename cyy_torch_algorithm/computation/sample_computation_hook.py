@@ -3,7 +3,6 @@ from typing import Callable
 
 import torch
 from cyy_torch_algorithm.computation.computation_hook import ComputationHook
-# from cyy_naive_lib.log import get_logger
 # from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_toolbox.hooks.add_index_to_dataset import AddIndexToDataset
 from cyy_torch_toolbox.tensor import tensor_to
@@ -130,6 +129,7 @@ class SampleComputationHook(ComputationHook):
             targets = tensor_to(
                 targets, device=worker_device, non_blocking=True, check_pin=True
             )
+            model_with_loss.to(device=worker_device, non_blocking=True)
 
             res = worker_fun(
                 model_with_loss=model_with_loss,
