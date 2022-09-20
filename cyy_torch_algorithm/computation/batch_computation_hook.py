@@ -40,7 +40,7 @@ class BatchComputationHook(ComputationHook):
         model_with_loss = model_executor.model_with_loss
         if model_with_loss.model.training:
             model_with_loss = model_executor.copy_model_with_loss(deepcopy=True)
-            model_with_loss.model.zero_grad(set_to_none=True)
+        model_with_loss.model.zero_grad(set_to_none=True)
         model_with_loss.model.requires_grad_(requires_grad=False)
         model_with_loss.model.share_memory()
         worker_fun = functools.partial(
