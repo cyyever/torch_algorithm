@@ -96,7 +96,7 @@ class SampleComputationHook(ComputationHook):
         worker_fun = functools.partial(
             SampleComputationHook.common_worker_fun,
             copy.deepcopy(self._result_transform),
-            self._get_worker_fun(),
+            copy.deepcopy(self._get_worker_fun()),
         )
         for task in self._split_data(
             [processed_indices, processed_inputs, processed_features, processed_targets]
@@ -132,6 +132,21 @@ class SampleComputationHook(ComputationHook):
             )
             model_with_loss.to(device=worker_device, non_blocking=True)
 
+            if isinstance(worker_fun, functools.partial):
+                if not hasattr(ComputationHook._local_data, "worker_fun"):
+                    worker_fun = tensor_to(
+                        worker_fun,
+                        device=worker_device,
+                        non_blocking=True,
+                    )
+                    setattr(
+                        ComputationHook._local_data,
+                        "worker_fun",
+                        worker_fun,
+                    )
+                else:
+                    worker_fun = getattr(ComputationHook._local_data, "worker_fun")
+
             res = worker_fun(
                 model_with_loss=model_with_loss,
                 sample_indices=sample_indices,
@@ -143,18 +158,10 @@ class SampleComputationHook(ComputationHook):
             if result_transform is not None:
                 if isinstance(result_transform, functools.partial):
                     if not hasattr(ComputationHook._local_data, "result_transform"):
-                        tmp_args = tensor_to(
-                            result_transform.args,
+                        result_transform = tensor_to(
+                            result_transform,
                             device=worker_device,
                             non_blocking=True,
-                        )
-                        tmp_keywords = tensor_to(
-                            result_transform.keywords,
-                            device=worker_device,
-                            non_blocking=True,
-                        )
-                        result_transform = functools.partial(
-                            result_transform.func, *tmp_args, **tmp_keywords
                         )
                         setattr(
                             ComputationHook._local_data,

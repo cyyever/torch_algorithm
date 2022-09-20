@@ -19,7 +19,6 @@ def sample_gjvp_worker_fun(
     worker_device,
 ):
     parameter_list = model_with_loss.model_util.get_parameter_list(detach=False)
-    vector = tensor_to(vector, device=worker_device, non_blocking=True)
     is_input_feature = input_features[0] is not None
     if is_input_feature:
         input_features = tensor_to(
