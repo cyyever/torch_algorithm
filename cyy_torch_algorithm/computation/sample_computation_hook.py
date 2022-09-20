@@ -109,7 +109,6 @@ class SampleComputationHook(ComputationHook):
         tasks = self._split_data(
             [processed_indices, processed_inputs, processed_features, processed_targets]
         )
-        print("task chunk num", len(tasks))
         for task in tasks:
             self._add_task(
                 worker_fun=worker_fun,
