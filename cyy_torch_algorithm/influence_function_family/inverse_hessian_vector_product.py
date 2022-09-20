@@ -32,11 +32,16 @@ def stochastic_inverse_hessian_vector_product(
 
     vectors = torch.stack(vectors)
 
-    def iteration() -> torch.Tensor:
-        nonlocal vectors
+    def iteration(inferencer, vectors) -> torch.Tensor:
         cur_products = copy.deepcopy(vectors)
         iteration_num = 0
         hook = BatchHVPHook()
+
+        tmp_inferencer = copy.deepcopy(inferencer)
+        tmp_inferencer.disable_logger()
+        tmp_inferencer.disable_performance_metric_logger()
+        cur_products = tensor_to(cur_products, device=tmp_inferencer.device)
+        vectors = tensor_to(vectors, device=tmp_inferencer.device)
 
         results = None
 
@@ -44,12 +49,11 @@ def stochastic_inverse_hessian_vector_product(
             nonlocal cur_products
             nonlocal results
             nonlocal iteration_num
-            get_logger().error("result_dict values are %s", hook.result_dict[0])
-            assert hook.result_dict[0].shape[0] == vectors.shape[0]
+            nonlocal vectors
             next_products = (
                 vectors
                 + (1 - dampling_term) * cur_products
-                - hook.result_dict[0] / scale
+                - tensor_to(hook.result_dict[0], device=vectors.device) / scale
             )
             hook.reset_result()
             diffs = torch.tensor(
@@ -72,10 +76,6 @@ def stochastic_inverse_hessian_vector_product(
                 results = cur_products / scale
                 raise StopExecutingException()
 
-        tmp_inferencer = copy.deepcopy(inferencer)
-        tmp_inferencer.disable_logger()
-        tmp_inferencer.disable_performance_metric_logger()
-        cur_products = tensor_to(device=tmp_inferencer.device)
         hook.set_data_fun(lambda: cur_products)
         tmp_inferencer.append_hook(hook)
         tmp_inferencer.append_named_hook(
@@ -94,6 +94,5 @@ def stochastic_inverse_hessian_vector_product(
         hook.release_queue()
         return results.cpu()
 
-    product_list = [iteration() for _ in range(repeated_num)]
-    # print("product_list is ", product_list)
+    product_list = [iteration(inferencer, vectors) for _ in range(repeated_num)]
     return sum(product_list) / len(product_list)

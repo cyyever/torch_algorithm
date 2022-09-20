@@ -13,7 +13,7 @@ from cyy_torch_toolbox.trainer import Trainer
 
 
 def get_default_inverse_hvp_arguments() -> dict:
-    return {"dampling_term": 0.01, "scale": 10000, "epsilon": 0.03, "repeated_num": 3}
+    return {"dampling_term": 0.01, "scale": 100000, "epsilon": 0.03, "repeated_num": 3}
 
 
 def compute_influence_function(

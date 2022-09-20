@@ -12,7 +12,7 @@ from cyy_torch_toolbox.hook import Hook
 
 
 class ComputationHook(Hook):
-    __local_data = threading.local()
+    _local_data = threading.local()
 
     def __init__(self, **kwargs):
         if "stripable" not in kwargs:
@@ -63,7 +63,7 @@ class ComputationHook(Hook):
             case None:
                 self.__prevous_chunk = (1, False)
                 return self.__prevous_chunk[0]
-            case[size, fixed]:
+            case [size, fixed]:
                 if data_size <= size or fixed:
                     return size
                 pynvml.nvmlInit()
@@ -124,12 +124,12 @@ class ComputationHook(Hook):
 
     @classmethod
     def _setup_cuda_device(cls, advised_device):
-        worker_device = getattr(cls.__local_data, "worker_device", None)
+        worker_device = getattr(cls._local_data, "worker_device", None)
         if worker_device is None:
             worker_device = advised_device
-            cls.__local_data.worker_device = worker_device
-        worker_stream = getattr(cls.__local_data, "worker_stream", None)
+            cls._local_data.worker_device = worker_device
+        worker_stream = getattr(cls._local_data, "worker_stream", None)
         if worker_stream is None:
             worker_stream = torch.cuda.Stream(device=worker_device)
-            cls.__local_data.worker_stream = worker_stream
+            cls._local_data.worker_stream = worker_stream
         return worker_device, worker_stream
