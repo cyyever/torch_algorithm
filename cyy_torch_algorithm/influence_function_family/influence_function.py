@@ -77,7 +77,7 @@ def compute_perturbation_influence_function(
     if grad_diff is not None:
         res = {}
         for (perturbation_idx, v) in grad_diff.items():
-            res[perturbation_idx] = v.dot(product).item()
+            res[perturbation_idx] = v.cpu().dot(product).item()
         return res
 
     return compute_perturbation_gradient_difference(
