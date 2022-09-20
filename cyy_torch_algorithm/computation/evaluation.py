@@ -14,14 +14,12 @@ def eval_model(
     parameter_shapes=None,
     **kwargs
 ):
-    print("parameter_shapes", parameter_shapes)
     model_with_loss.model_util.load_parameter_list(
         parameter_list.to(device, non_blocking=non_blocking),
         check_parameter=False,
         as_parameter=False,
         parameter_shapes=parameter_shapes,
     )
-    print("model_with_loss",model_with_loss.model.state_dict())
     input_kwargs = kwargs
     kwargs = {
         "targets": targets,
