@@ -66,6 +66,8 @@ def compute_perturbation_influence_function(
     if inverse_hvp_arguments is None:
         inverse_hvp_arguments = get_default_inverse_hvp_arguments()
 
+    trainer.offload_from_gpu()
+
     product = (
         -stochastic_inverse_hessian_vector_product(
             inferencer, vectors=[test_gradient], **inverse_hvp_arguments
