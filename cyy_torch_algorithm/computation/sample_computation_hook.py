@@ -135,6 +135,42 @@ class SampleComputationHook(ComputationHook):
         )
 
     @classmethod
+    def get_cached_model(cls, model_with_loss, batch_index, worker_device) -> tuple:
+        if (
+            not hasattr(ComputationHook._local_data, "batch_index")
+            or ComputationHook._local_data.batch_index != batch_index
+        ):
+            model_with_loss.to(device=worker_device, non_blocking=True)
+            parameter_list = model_with_loss.model_util.get_parameter_list(detach=True)
+            parameter_shapes = model_with_loss.model_util.get_parameter_shapes()
+
+            setattr(
+                ComputationHook._local_data,
+                "batch_index",
+                batch_index,
+            )
+            setattr(
+                ComputationHook._local_data,
+                "model_with_loss",
+                model_with_loss,
+            )
+            setattr(
+                ComputationHook._local_data,
+                "parameter_list",
+                parameter_list,
+            )
+            setattr(
+                ComputationHook._local_data,
+                "parameter_shapes",
+                parameter_shapes,
+            )
+        else:
+            model_with_loss = getattr(ComputationHook._local_data, "model_with_loss")
+            parameter_list = getattr(ComputationHook._local_data, "parameter_list")
+            parameter_shapes = getattr(ComputationHook._local_data, "parameter_shapes")
+        return model_with_loss, parameter_list, parameter_shapes
+
+    @classmethod
     def common_worker_fun(cls, result_transform, worker_fun, task, args):
         # counter = TimeCounter()
         worker_device, worker_stream = ComputationHook._setup_cuda_device(
@@ -151,44 +187,12 @@ class SampleComputationHook(ComputationHook):
         res = None
 
         with (torch.cuda.device(worker_device), torch.cuda.stream(worker_stream)):
-            if (
-                not hasattr(ComputationHook._local_data, "batch_index")
-                or ComputationHook._local_data.batch_index != batch_index
-            ):
-                model_with_loss.to(device=worker_device, non_blocking=True)
-                parameter_list = model_with_loss.model_util.get_parameter_list(
-                    detach=True
-                )
-                parameter_shapes = model_with_loss.model_util.get_parameter_shapes()
+            model_with_loss, parameter_list, parameter_shapes = cls.get_cached_model(
+                model_with_loss=model_with_loss,
+                batch_index=batch_index,
+                worker_device=worker_device,
+            )
 
-                setattr(
-                    ComputationHook._local_data,
-                    "batch_index",
-                    batch_index,
-                )
-                setattr(
-                    ComputationHook._local_data,
-                    "model_with_loss",
-                    model_with_loss,
-                )
-                setattr(
-                    ComputationHook._local_data,
-                    "parameter_list",
-                    parameter_list,
-                )
-                setattr(
-                    ComputationHook._local_data,
-                    "parameter_shapes",
-                    parameter_shapes,
-                )
-            else:
-                model_with_loss = getattr(
-                    ComputationHook._local_data, "model_with_loss"
-                )
-                parameter_list = getattr(ComputationHook._local_data, "parameter_list")
-                parameter_shapes = getattr(
-                    ComputationHook._local_data, "parameter_shapes"
-                )
             targets = tensor_to(
                 targets, device=worker_device, non_blocking=True, check_pin=True
             )
