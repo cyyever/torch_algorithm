@@ -25,7 +25,15 @@ class SampleComputationHook(ComputationHook):
     def set_computed_indices(self, indices):
         self.set_sample_selector(lambda sample_index, *args: sample_index in indices)
 
-    def add_task(self, model_executor, sample_indices, inputs, input_features, targets):
+    def add_task(
+        self,
+        model_executor,
+        batch_index,
+        sample_indices,
+        inputs,
+        input_features,
+        targets,
+    ):
         inputs, batch_dim = model_executor.split_batch_input(
             inputs=inputs, targets=targets
         )
@@ -98,19 +106,29 @@ class SampleComputationHook(ComputationHook):
             copy.deepcopy(self._result_transform),
             copy.deepcopy(self._get_worker_fun()),
         )
-        for task in self._split_data(
+        tasks = self._split_data(
             [processed_indices, processed_inputs, processed_features, processed_targets]
-        ):
+        )
+        print("task chunk num", len(tasks))
+        for task in tasks:
             self._add_task(
                 worker_fun=worker_fun,
-                task=(model_with_loss, *task),
+                task=(batch_index, model_with_loss, *task),
             )
 
     def _after_forward(
-        self, model_executor, inputs, input_features, targets, sample_indices, **kwargs
+        self,
+        model_executor,
+        batch_index,
+        inputs,
+        input_features,
+        targets,
+        sample_indices,
+        **kwargs
     ):
         self.add_task(
             model_executor=model_executor,
+            batch_index=batch_index,
             sample_indices=sample_indices.tolist(),
             inputs=inputs,
             input_features=input_features,
@@ -123,14 +141,58 @@ class SampleComputationHook(ComputationHook):
         worker_device, worker_stream = ComputationHook._setup_cuda_device(
             args["device"]
         )
-        model_with_loss, sample_indices, inputs, input_features, targets = task
+        (
+            batch_index,
+            model_with_loss,
+            sample_indices,
+            inputs,
+            input_features,
+            targets,
+        ) = task
         res = None
 
         with (torch.cuda.device(worker_device), torch.cuda.stream(worker_stream)):
+            if (
+                not hasattr(ComputationHook._local_data, "batch_index")
+                or ComputationHook._local_data.batch_index != batch_index
+            ):
+                model_with_loss.to(device=worker_device, non_blocking=True)
+                parameter_list = model_with_loss.model_util.get_parameter_list(
+                    detach=True
+                )
+                parameter_shapes = model_with_loss.model_util.get_parameter_shapes()
+
+                setattr(
+                    ComputationHook._local_data,
+                    "batch_index",
+                    batch_index,
+                )
+                setattr(
+                    ComputationHook._local_data,
+                    "model_with_loss",
+                    model_with_loss,
+                )
+                setattr(
+                    ComputationHook._local_data,
+                    "parameter_list",
+                    parameter_list,
+                )
+                setattr(
+                    ComputationHook._local_data,
+                    "parameter_shapes",
+                    parameter_shapes,
+                )
+            else:
+                model_with_loss = getattr(
+                    ComputationHook._local_data, "model_with_loss"
+                )
+                parameter_list = getattr(ComputationHook._local_data, "parameter_list")
+                parameter_shapes = getattr(
+                    ComputationHook._local_data, "parameter_shapes"
+                )
             targets = tensor_to(
                 targets, device=worker_device, non_blocking=True, check_pin=True
             )
-            model_with_loss.to(device=worker_device, non_blocking=True)
 
             if isinstance(worker_fun, functools.partial):
                 if not hasattr(ComputationHook._local_data, "worker_fun"):
@@ -149,6 +211,8 @@ class SampleComputationHook(ComputationHook):
 
             res = worker_fun(
                 model_with_loss=model_with_loss,
+                parameter_list=parameter_list,
+                parameter_shapes=parameter_shapes,
                 sample_indices=sample_indices,
                 inputs=inputs,
                 input_features=input_features,

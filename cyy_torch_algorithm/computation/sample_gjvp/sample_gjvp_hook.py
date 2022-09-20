@@ -12,13 +12,14 @@ from functorch import grad, jvp, vmap
 def sample_gjvp_worker_fun(
     vector,
     model_with_loss,
+    parameter_list,
+    parameter_shapes,
     sample_indices,
     inputs,
     input_features,
     targets,
     worker_device,
 ):
-    parameter_list = model_with_loss.model_util.get_parameter_list(detach=False)
     is_input_feature = input_features[0] is not None
     if is_input_feature:
         input_features = tensor_to(
@@ -36,6 +37,7 @@ def sample_gjvp_worker_fun(
             device=worker_device,
             model_with_loss=model_with_loss,
             input_shape=inputs[0].shape,
+            parameter_shapes=parameter_shapes,
             is_input_feature=is_input_feature,
             non_blocking=True,
         )

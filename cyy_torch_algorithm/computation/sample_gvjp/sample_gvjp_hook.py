@@ -12,13 +12,14 @@ from functorch import grad, vjp, vmap
 def sample_gvjp_worker_fun(
     vector,
     model_with_loss,
+    parameter_list,
+    parameter_shapes,
     sample_indices,
     inputs,
     input_features,
     targets,
     worker_device,
 ):
-    parameter_list = model_with_loss.model_util.get_parameter_list(detach=False)
     is_input_feature = input_features[0] is not None
     if is_input_feature:
         input_features = tensor_to(
@@ -37,6 +38,7 @@ def sample_gvjp_worker_fun(
             input_shape=inputs[0].shape,
             is_input_feature=is_input_feature,
             non_blocking=True,
+            parameter_shapes=parameter_shapes,
         )
 
         def grad_f(input_tensor):

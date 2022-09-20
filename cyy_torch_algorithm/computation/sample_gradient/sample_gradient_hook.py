@@ -11,6 +11,8 @@ from functorch import grad, vmap
 
 def sample_gradient_worker_fun(
     model_with_loss,
+    parameter_list,
+    parameter_shapes,
     sample_indices,
     inputs,
     input_features,
@@ -18,6 +20,7 @@ def sample_gradient_worker_fun(
     worker_device,
 ):
     def wrapper(parameter_list, target, *args, input_keys=None):
+        nonlocal parameter_shapes
         input_kwargs = {}
         if input_keys is not None:
             input_kwargs = dict(zip(input_keys, args))
@@ -30,6 +33,7 @@ def sample_gradient_worker_fun(
             targets=target,
             device=worker_device,
             model_with_loss=model_with_loss,
+            parameter_shapes=parameter_shapes,
             non_blocking=True,
             **input_kwargs
         )
@@ -39,7 +43,7 @@ def sample_gradient_worker_fun(
     match inputs[0]:
         case torch.Tensor():
             gradient_lists = vmap(wrapper, in_dims=(None, 0, 0), randomness="same",)(
-                model_with_loss.model_util.get_parameter_list(detach=False),
+                parameter_list,
                 torch.stack(targets),
                 torch.stack(inputs),
             )
@@ -54,11 +58,7 @@ def sample_gradient_worker_fun(
                 functools.partial(wrapper, input_keys=input_keys),
                 in_dims=tuple(in_dims),
                 randomness="same",
-            )(
-                model_with_loss.model_util.get_parameter_list(detach=False),
-                torch.stack(targets),
-                *dict_inputs
-            )
+            )(parameter_list, torch.stack(targets), *dict_inputs)
 
     return dict(zip(sample_indices, gradient_lists))
 
