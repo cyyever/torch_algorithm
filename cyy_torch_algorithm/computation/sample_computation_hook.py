@@ -194,7 +194,7 @@ class SampleComputationHook(ComputationHook):
             )
 
             targets = tensor_to(
-                targets, device=worker_device, non_blocking=True, check_pin=True
+                targets, device=worker_device, non_blocking=True, check_slowdown=True
             )
 
             if isinstance(worker_fun, functools.partial):
