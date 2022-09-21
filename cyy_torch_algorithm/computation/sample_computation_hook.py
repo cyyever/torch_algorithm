@@ -103,8 +103,8 @@ class SampleComputationHook(ComputationHook):
         model_with_loss.model.share_memory()
         worker_fun = functools.partial(
             SampleComputationHook.common_worker_fun,
-            copy.deepcopy(self._result_transform),
-            copy.deepcopy(self._get_worker_fun()),
+            self._result_transform,
+            self._get_worker_fun(),
         )
         tasks = self._split_data(
             [processed_indices, processed_inputs, processed_features, processed_targets]
@@ -196,7 +196,10 @@ class SampleComputationHook(ComputationHook):
             is_input_feature = input_features[0] is not None
             if is_input_feature:
                 input_features = tensor_to(
-                    input_features, device=worker_device, non_blocking=True, check_slowdown=True
+                    input_features,
+                    device=worker_device,
+                    non_blocking=True,
+                    check_slowdown=True,
                 )
                 inputs = input_features
             else:

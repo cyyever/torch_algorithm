@@ -87,7 +87,9 @@ class ComputationHook(Hook):
             zip(*(tuple(split_list_to_chunks(data, chunk_size)) for data in data_list))
         )
 
-    def __get_task_queue(self, worker_fun: Callable) -> TorchProcessTaskQueue:
+    def __get_task_queue(
+        self, worker_fun: None | Callable = None
+    ) -> TorchProcessTaskQueue:
         if self.__task_queue is None:
             worker_num: int | None | str = os.getenv("cuda_device_num", None)
             if worker_num is not None:
@@ -102,7 +104,7 @@ class ComputationHook(Hook):
             torch.cuda.empty_cache()
         return self.__task_queue
 
-    def _add_task(self, worker_fun, task) -> None:
+    def _add_task(self, task, worker_fun: None | Callable = None) -> None:
         self.__prev_tasks.append(task)
         self.__get_task_queue(worker_fun).add_task(task)
 
