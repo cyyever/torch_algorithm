@@ -39,9 +39,6 @@ def sample_gradient_worker_fun(
         )
         return grad(f, argnums=0)(parameter_list).view(-1)
 
-    inputs = tensor_to(
-        inputs, device=worker_device, non_blocking=True, check_slowdown=True
-    )
     match inputs[0]:
         case torch.Tensor():
             gradient_lists = vmap(wrapper, in_dims=(None, 0, 0), randomness="same",)(

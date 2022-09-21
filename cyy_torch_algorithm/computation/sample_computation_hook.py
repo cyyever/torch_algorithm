@@ -193,6 +193,17 @@ class SampleComputationHook(ComputationHook):
                 worker_device=worker_device,
             )
 
+            is_input_feature = input_features[0] is not None
+            if is_input_feature:
+                input_features = tensor_to(
+                    input_features, device=worker_device, non_blocking=True, check_slowdown=True
+                )
+                inputs = input_features
+            else:
+                inputs = tensor_to(
+                    inputs, device=worker_device, non_blocking=True, check_slowdown=True
+                )
+
             targets = tensor_to(
                 targets, device=worker_device, non_blocking=True, check_slowdown=True
             )
