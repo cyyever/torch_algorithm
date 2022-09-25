@@ -4,6 +4,7 @@ from typing import Any, Callable, Tuple
 import numpy
 import torch
 from cyy_naive_lib.log import get_logger
+from cyy_torch_toolbox.tensor import tensor_to
 
 
 class AdaptiveDeterministicQuant:
@@ -29,10 +30,10 @@ class AdaptiveDeterministicQuant:
         dtype = tensor.dtype
         element_bits = tensor.element_size() * 8
         old_tensor_shape = tensor.shape
-        if torch.cuda.is_available():
-            tensor = tensor.to(dtype=torch.float64, device="cuda:0", non_blocking=True)
-        else:
-            tensor = tensor.to(dtype=torch.float64, non_blocking=True)
+        # if torch.cuda.is_available():
+        #     tensor = tensor.to(dtype=torch.float64, device="cuda:0", non_blocking=True)
+        # else:
+        tensor = tensor_to(tensor, dtype=torch.float64, non_blocking=True)
         tensor = tensor.view(-1)
         offset = self.__get_offset(tensor)
         tensor = tensor + offset
@@ -96,8 +97,8 @@ class AdaptiveDeterministicDequant:
         offset = quantized_dict["offset"]
         if "tensor_shape" in quantized_dict:
             quantized_tensor = torch.zeros(
-                quantized_dict["tensor_shape"], dtype=torch.float64
-            ).to(device=device)
+                quantized_dict["tensor_shape"], dtype=torch.float64, device=device
+            )
             quantized_tensor -= offset
             return quantized_tensor.to(dtype=dtype)
 
@@ -113,7 +114,7 @@ class AdaptiveDeterministicDequant:
         res = (
             quantized_tensor
             * norm
-            * sign_tensor.to(quantized_tensor.device)
+            * sign_tensor.to(device=quantized_tensor.device)
             / quantization_level
         )
         res = res - offset
