@@ -55,10 +55,8 @@ class BatchComputationHook(ComputationHook):
             )
 
     @classmethod
-    def common_worker_fun(cls, result_transform, worker_fun, task, args):
-        worker_device, worker_stream = ComputationHook._setup_cuda_device(
-            args["device"]
-        )
+    def common_worker_fun(cls, result_transform, worker_fun, task, device, **kwargs):
+        worker_device, worker_stream = ComputationHook._setup_cuda_device(device)
         model_with_loss, inputs, targets, data_idx, data = task
         with torch.cuda.stream(worker_stream):
             model_with_loss.to(device=worker_device, non_blocking=True)

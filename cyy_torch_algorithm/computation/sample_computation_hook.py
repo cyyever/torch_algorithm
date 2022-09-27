@@ -1,4 +1,3 @@
-import copy
 import functools
 from typing import Callable
 
@@ -171,10 +170,10 @@ class SampleComputationHook(ComputationHook):
         return model_with_loss, parameter_list, parameter_shapes
 
     @classmethod
-    def common_worker_fun(cls, result_transform, worker_fun, task, args):
+    def common_worker_fun(cls, result_transform, worker_fun, task, device, **kwargs):
         # counter = TimeCounter()
         worker_device, worker_stream = ComputationHook._setup_cuda_device(
-            args["device"]
+            device,
         )
         (
             batch_index,
