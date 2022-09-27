@@ -96,7 +96,7 @@ class ComputationHook(Hook):
                 worker_num = int(worker_num)
             self.__task_queue = TorchProcessTaskQueue(
                 worker_fun=worker_fun,
-                move_data_in_cpu=False,
+                send_tensor_in_cpu=False,
                 use_manager=False,
                 worker_num=worker_num,
             )
