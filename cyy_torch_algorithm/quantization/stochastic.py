@@ -4,8 +4,8 @@ import numpy
 import torch
 from cyy_naive_lib.algorithm.mapping_op import get_mapping_values_by_key_order
 from cyy_torch_toolbox.device import get_cpu_device
-from cyy_torch_toolbox.tensor import (cat_tensors_to_vector,
-                                      split_tensor_to_dict)
+from cyy_torch_toolbox.tensor import (assemble_tensors, cat_tensors_to_vector,
+                                      disassemble_tensor, split_tensor_to_dict)
 
 
 class StochasticQuant:
@@ -14,19 +14,19 @@ class StochasticQuant:
         self.use_l2_norm = use_l2_norm
 
     def __call__(self, data):
-        name_and_shapes = None
+        if not data:
+            return data
         match data:
-            case torch.Tensor():
-                tensor = data
+            case tuple():
+                if not isinstance(data[0], torch.Tensor):
+                    return tuple(self.__call__(v) for v in data)
+            case list():
+                if not isinstance(data[0], torch.Tensor):
+                    return [self.__call__(v) for v in data]
             case dict():
                 if not isinstance(next(iter(data.values())), torch.Tensor):
                     return {k: self.__call__(v) for k, v in data.items()}
-                name_and_shapes = []
-                for k in sorted(data.keys()):
-                    name_and_shapes.append((k, data[k].shape))
-                tensor = cat_tensors_to_vector(get_mapping_values_by_key_order(data))
-            case _:
-                return data
+        tensor, shapes = assemble_tensors(data)
 
         old_tensor_shape = tensor.shape
         tensor = tensor.reshape(-1)
@@ -55,7 +55,7 @@ class StochasticQuant:
             "sign": sign_tensor,
             "slot": slot_tensor,
             "quantization_level": self.quantization_level,
-            "name_and_shapes": name_and_shapes,
+            "name_and_shapes": shapes,
         }
 
 
@@ -84,9 +84,7 @@ class StochasticDequant:
             / quantization_level
         )
 
-        if name_and_shapes is not None:
-            res = split_tensor_to_dict(name_and_shapes, res)
-        return res
+        return disassemble_tensor(res, name_and_shapes)
 
 
 def stochastic_quantization(

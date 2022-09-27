@@ -9,7 +9,7 @@ from cyy_torch_toolbox.tensor import cat_tensors_to_vector
 from transformers import BertModel
 
 
-def test_model_stochastic_quantization():
+def test_model_quantization():
     model = BertModel.from_pretrained("bert-large-cased")
     model_util = ModelUtil(model)
     model_dict = model_util.get_parameter_dict()
@@ -26,7 +26,7 @@ def test_model_stochastic_quantization():
     )
 
     print(
-        "layer by layer relative diff",
+        "relative diff",
         torch.linalg.norm(quantized_model_vect - model_vect)
         / torch.linalg.norm(model_vect),
     )
