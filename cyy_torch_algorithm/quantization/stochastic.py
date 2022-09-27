@@ -2,10 +2,8 @@ from typing import Callable, Tuple
 
 import numpy
 import torch
-from cyy_naive_lib.algorithm.mapping_op import get_mapping_values_by_key_order
 from cyy_torch_toolbox.device import get_cpu_device
-from cyy_torch_toolbox.tensor import (assemble_tensors, cat_tensors_to_vector,
-                                      disassemble_tensor, split_tensor_to_dict)
+from cyy_torch_toolbox.tensor import assemble_tensors, disassemble_tensor
 
 
 class StochasticQuant:
