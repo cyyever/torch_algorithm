@@ -63,7 +63,7 @@ class ComputationHook(Hook):
             case None:
                 self.__prevous_chunk = (1, False)
                 return self.__prevous_chunk[0]
-            case [size, fixed]:
+            case[size, fixed]:
                 if data_size <= size or fixed:
                     return size
                 pynvml.nvmlInit()
@@ -134,4 +134,5 @@ class ComputationHook(Hook):
         if worker_stream is None:
             worker_stream = torch.cuda.Stream(device=worker_device)
             cls._local_data.worker_stream = worker_stream
+        torch.cuda.set_device(worker_device)
         return worker_device, worker_stream

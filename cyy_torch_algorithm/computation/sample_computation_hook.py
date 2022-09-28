@@ -185,7 +185,7 @@ class SampleComputationHook(ComputationHook):
         ) = task
         res = None
 
-        with (torch.cuda.device(worker_device), torch.cuda.stream(worker_stream)):
+        with torch.cuda.stream(worker_stream):
             model_with_loss, parameter_list, parameter_shapes = cls.get_cached_model(
                 model_with_loss=model_with_loss,
                 batch_index=batch_index,
