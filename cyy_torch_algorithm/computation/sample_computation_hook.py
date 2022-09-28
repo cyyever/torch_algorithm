@@ -108,10 +108,16 @@ class SampleComputationHook(ComputationHook):
         tasks = self._split_data(
             [processed_indices, processed_inputs, processed_features, processed_targets]
         )
+        assert tasks
         for task in tasks:
             self._add_task(
                 worker_fun=worker_fun,
-                task=(batch_index, model_with_loss, *task),
+                task=(batch_index, *task),
+            )
+        task_queue = self._get_task_queue()
+        for worker_id in range(task_queue.worker_num):
+            task_queue.get_worker_queue(worker_id=worker_id).put(
+                (batch_index, model_with_loss)
             )
 
     def _after_forward(
@@ -134,11 +140,16 @@ class SampleComputationHook(ComputationHook):
         )
 
     @classmethod
-    def get_cached_model(cls, model_with_loss, batch_index, worker_device) -> tuple:
+    def get_cached_model(cls, batch_index, worker_device, worker_queue) -> tuple:
         if (
             not hasattr(ComputationHook._local_data, "batch_index")
             or ComputationHook._local_data.batch_index != batch_index
         ):
+            while True:
+                res = worker_queue.get()
+                if res[0] == batch_index:
+                    model_with_loss = res[1]
+                    break
             model_with_loss.to(device=worker_device, non_blocking=True)
             parameter_list = model_with_loss.model_util.get_parameter_list(detach=True)
             parameter_shapes = model_with_loss.model_util.get_parameter_shapes()
@@ -170,14 +181,15 @@ class SampleComputationHook(ComputationHook):
         return model_with_loss, parameter_list, parameter_shapes
 
     @classmethod
-    def common_worker_fun(cls, result_transform, worker_fun, task, device, **kwargs):
+    def common_worker_fun(
+        cls, result_transform, worker_fun, task, device, worker_queue, **kwargs
+    ):
         # counter = TimeCounter()
         worker_device, worker_stream = ComputationHook._setup_cuda_device(
             device,
         )
         (
             batch_index,
-            model_with_loss,
             sample_indices,
             inputs,
             input_features,
@@ -187,9 +199,9 @@ class SampleComputationHook(ComputationHook):
 
         with torch.cuda.stream(worker_stream):
             model_with_loss, parameter_list, parameter_shapes = cls.get_cached_model(
-                model_with_loss=model_with_loss,
                 batch_index=batch_index,
                 worker_device=worker_device,
+                worker_queue=worker_queue,
             )
 
             is_input_feature = input_features[0] is not None
