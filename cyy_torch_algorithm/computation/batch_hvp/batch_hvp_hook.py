@@ -19,9 +19,10 @@ def batch_hvp_worker_fun(
     data_idx,
     data,
     worker_device,
+    parameter_list,
+    parameter_shapes,
 ):
     # time_counter = TimeCounter()
-    parameter_list = model_with_loss.model_util.get_parameter_list(detach=True)
     vectors = data
 
     def hvp_wrapper(vector):
@@ -32,6 +33,7 @@ def batch_hvp_worker_fun(
             device=worker_device,
             model_with_loss=model_with_loss,
             phase=MachineLearningPhase.Test,
+            parameter_shapes=parameter_shapes,
             non_blocking=True,
         )
 

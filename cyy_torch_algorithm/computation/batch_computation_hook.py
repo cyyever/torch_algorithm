@@ -26,16 +26,20 @@ class BatchComputationHook(ComputationHook):
             )
         }
 
-    def _after_forward(self, model_executor, inputs, targets, **kwargs):
+    def _after_forward(self, model_executor, inputs, targets, batch_index, **kwargs):
         assert self.__data_fun is not None
         data = self.__data_fun()
         if data is None:
             return
         self.add_task(
-            model_executor=model_executor, inputs=inputs, targets=targets, data=data
+            model_executor=model_executor,
+            inputs=inputs,
+            targets=targets,
+            data=data,
+            batch_index=batch_index,
         )
 
-    def add_task(self, model_executor, inputs, targets, data):
+    def add_task(self, model_executor, inputs, targets, data, batch_index):
         assert not self.has_unfetched_result()
         model_with_loss = model_executor.model_with_loss
         if model_with_loss.model.training:
@@ -51,15 +55,25 @@ class BatchComputationHook(ComputationHook):
         for data_idx, data_piece in enumerate(self._split_data([data])):
             self._add_task(
                 worker_fun=worker_fun,
-                task=(model_with_loss, inputs, targets, data_idx, *data_piece),
+                task=(batch_index, inputs, targets, data_idx, *data_piece),
             )
+        task_queue = self._get_task_queue()
+        for worker_id in range(task_queue.worker_num):
+            worker_queue = task_queue.get_worker_queue(worker_id=worker_id)
+            worker_queue.put((batch_index, model_with_loss))
 
     @classmethod
-    def common_worker_fun(cls, result_transform, worker_fun, task, device, **kwargs):
+    def common_worker_fun(
+        cls, result_transform, worker_fun, task, device, worker_queue, **kwargs
+    ):
         worker_device, worker_stream = ComputationHook._setup_cuda_device(device)
-        model_with_loss, inputs, targets, data_idx, data = task
+        batch_index, inputs, targets, data_idx, data = task
         with torch.cuda.stream(worker_stream):
-            model_with_loss.to(device=worker_device, non_blocking=True)
+            model_with_loss, parameter_list, parameter_shapes = cls.get_cached_model(
+                batch_index=batch_index,
+                worker_device=worker_device,
+                worker_queue=worker_queue,
+            )
             inputs = tensor_to(inputs, device=worker_device, non_blocking=True)
             targets = tensor_to(targets, device=worker_device, non_blocking=True)
             data = tensor_to(data, device=worker_device, non_blocking=True)
@@ -70,6 +84,8 @@ class BatchComputationHook(ComputationHook):
                 data_idx=data_idx,
                 data=data,
                 worker_device=worker_device,
+                parameter_list=parameter_list,
+                parameter_shapes=parameter_shapes,
             )
             assert result_transform is None
             return res
