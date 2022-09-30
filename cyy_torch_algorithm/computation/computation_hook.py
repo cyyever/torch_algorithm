@@ -63,7 +63,7 @@ class ComputationHook(Hook):
             case None:
                 self.__prevous_chunk = (1, False)
                 return self.__prevous_chunk[0]
-            case[size, fixed]:
+            case [size, fixed]:
                 if data_size <= size or fixed:
                     return size
                 pynvml.nvmlInit()
@@ -87,15 +87,13 @@ class ComputationHook(Hook):
             zip(*(tuple(split_list_to_chunks(data, chunk_size)) for data in data_list))
         )
 
-    def _get_task_queue(
-        self, worker_fun: None | Callable = None
-    ) -> TorchProcessTaskQueue:
+    def _get_task_queue(self) -> TorchProcessTaskQueue:
         if self.__task_queue is None:
             worker_num: int | None | str = os.getenv("cuda_device_num", None)
             if worker_num is not None:
                 worker_num = int(worker_num)
             self.__task_queue = TorchProcessTaskQueue(
-                worker_fun=worker_fun,
+                worker_fun=self._get_worker_fun(),
                 send_tensor_in_cpu=False,
                 use_manager=False,
                 worker_num=worker_num,
@@ -105,9 +103,21 @@ class ComputationHook(Hook):
             torch.cuda.empty_cache()
         return self.__task_queue
 
-    def _add_task(self, task, worker_fun: None | Callable = None) -> None:
+    def _add_task(self, task) -> None:
         self.__prev_tasks.append(task)
-        self._get_task_queue(worker_fun).add_task(task)
+        self._get_task_queue().add_task(task)
+
+    def _broadcast_model(self, model_executor, batch_index):
+        model_with_loss = model_executor.model_with_loss
+        if model_with_loss.model.training:
+            model_with_loss = model_executor.copy_model_with_loss(deepcopy=True)
+        model_with_loss.model.zero_grad(set_to_none=True)
+        model_with_loss.model.requires_grad_(requires_grad=False)
+        model_with_loss.model.share_memory()
+        task_queue = self._get_task_queue()
+        for worker_id in range(task_queue.worker_num):
+            worker_queue = task_queue.get_worker_queue(worker_id=worker_id)
+            worker_queue.put((batch_index, model_with_loss))
 
     def _before_execute(self, **_):
         self.reset_result()

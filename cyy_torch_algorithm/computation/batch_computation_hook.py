@@ -39,28 +39,23 @@ class BatchComputationHook(ComputationHook):
             batch_index=batch_index,
         )
 
-    def add_task(self, model_executor, inputs, targets, data, batch_index):
-        assert not self.has_unfetched_result()
-        model_with_loss = model_executor.model_with_loss
-        if model_with_loss.model.training:
-            model_with_loss = model_executor.copy_model_with_loss(deepcopy=True)
-        model_with_loss.model.zero_grad(set_to_none=True)
-        model_with_loss.model.requires_grad_(requires_grad=False)
-        model_with_loss.model.share_memory()
-        worker_fun = functools.partial(
+    def _get_batch_computation_fun(self):
+        raise NotImplementedError()
+
+    def _get_worker_fun(self):
+        return functools.partial(
             BatchComputationHook.common_worker_fun,
             self._result_transform,
-            self._get_worker_fun(),
+            self._get_batch_computation_fun(),
         )
+
+    def add_task(self, model_executor, inputs, targets, data, batch_index):
+        assert not self.has_unfetched_result()
         for data_idx, data_piece in enumerate(self._split_data([data])):
             self._add_task(
-                worker_fun=worker_fun,
                 task=(batch_index, inputs, targets, data_idx, *data_piece),
             )
-        task_queue = self._get_task_queue()
-        for worker_id in range(task_queue.worker_num):
-            worker_queue = task_queue.get_worker_queue(worker_id=worker_id)
-            worker_queue.put((batch_index, model_with_loss))
+        self._broadcast_model(model_executor=model_executor, batch_index=batch_index)
 
     @classmethod
     def common_worker_fun(

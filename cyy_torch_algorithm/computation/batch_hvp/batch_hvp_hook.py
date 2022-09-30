@@ -58,5 +58,5 @@ class BatchHVPHook(BatchComputationHook):
     def set_vectors(self, vectors):
         self.set_data_fun(lambda: vectors)
 
-    def _get_worker_fun(self):
+    def _get_batch_computation_fun(self):
         return batch_hvp_worker_fun

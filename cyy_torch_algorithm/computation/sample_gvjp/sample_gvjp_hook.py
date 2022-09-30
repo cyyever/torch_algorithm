@@ -58,5 +58,5 @@ class SampleGradientVJPHook(SampleComputationHook):
     def set_vector(self, vector):
         self.__vector = vector
 
-    def _get_worker_fun(self):
+    def _get_sample_computation_fun(self):
         return functools.partial(sample_gvjp_worker_fun, self.__vector)

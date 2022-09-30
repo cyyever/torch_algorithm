@@ -100,24 +100,25 @@ class SampleComputationHook(ComputationHook):
         model_with_loss.model.zero_grad(set_to_none=True)
         model_with_loss.model.requires_grad_(requires_grad=False)
         model_with_loss.model.share_memory()
-        worker_fun = functools.partial(
-            SampleComputationHook.common_worker_fun,
-            self._result_transform,
-            self._get_worker_fun(),
-        )
         tasks = self._split_data(
             [processed_indices, processed_inputs, processed_features, processed_targets]
         )
         assert tasks
         for task in tasks:
             self._add_task(
-                worker_fun=worker_fun,
                 task=(batch_index, *task),
             )
-        task_queue = self._get_task_queue()
-        for worker_id in range(task_queue.worker_num):
-            worker_queue = task_queue.get_worker_queue(worker_id=worker_id)
-            worker_queue.put((batch_index, model_with_loss))
+        self._broadcast_model(model_executor=model_executor, batch_index=batch_index)
+
+    def _get_sample_computation_fun(self):
+        raise NotImplementedError()
+
+    def _get_worker_fun(self):
+        return functools.partial(
+            SampleComputationHook.common_worker_fun,
+            self._result_transform,
+            self._get_sample_computation_fun(),
+        )
 
     def _after_forward(
         self,
@@ -153,7 +154,6 @@ class SampleComputationHook(ComputationHook):
             input_features,
             targets,
         ) = task
-        res = None
 
         with torch.cuda.stream(worker_stream):
             model_with_loss, parameter_list, parameter_shapes = cls.get_cached_model(
