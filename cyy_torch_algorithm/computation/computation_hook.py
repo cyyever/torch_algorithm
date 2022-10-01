@@ -100,9 +100,6 @@ class ComputationHook(Hook):
     def _before_execute(self, **_):
         self.reset_result()
 
-    def _after_execute(self, **_):
-        self.reset_result()
-
     def __del__(self):
         self.release_queue()
 
