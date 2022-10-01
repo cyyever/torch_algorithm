@@ -44,7 +44,7 @@ def stochastic_inverse_hessian_vector_product(
         cur_products = tensor_to(cur_products, device=tmp_inferencer.device)
         vectors = tensor_to(vectors, device=tmp_inferencer.device)
 
-        results = None
+        results: None | torch.Tensor = None
 
         def compute_product(epoch, **kwargs) -> None:
             nonlocal cur_products
@@ -91,11 +91,13 @@ def stochastic_inverse_hessian_vector_product(
         )
         epoch = 1
         while results is None:
-            tmp_inferencer.inference(use_grad=False, epoch=epoch)
-            epoch += 1
             get_logger().debug(
                 "stochastic_inverse_hessian_vector_product epoch is %s", epoch
             )
+            normal_stop = tmp_inferencer.inference(use_grad=False, epoch=epoch)
+            if not normal_stop:
+                break
+            epoch += 1
         del cur_products
         hook.release_queue()
         return results.cpu()
