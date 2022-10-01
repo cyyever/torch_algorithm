@@ -158,8 +158,7 @@ class SampleComputationHook(ComputationHook):
         ) = task
 
         with torch.cuda.stream(worker_stream):
-            # model_with_loss, parameter_list, parameter_shapes 
-            model_data= cls.get_cached_one_shot_data(
+            model_data = cls.get_cached_one_shot_data(
                 batch_index=batch_index,
                 worker_device=worker_device,
                 worker_queue=worker_queue,

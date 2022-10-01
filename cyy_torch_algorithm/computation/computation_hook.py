@@ -1,6 +1,6 @@
 import os
 import threading
-from typing import Callable
+from typing import Any, Callable
 
 import pynvml
 import torch
@@ -104,23 +104,13 @@ class ComputationHook(Hook):
             torch.cuda.empty_cache()
         return self.__task_queue
 
-    def _add_task(self, task) -> None:
+    def _add_task(self, task: Any) -> None:
         self.__prev_tasks.append(task)
         self._get_task_queue().add_task(task)
 
-    def _broadcast_model(self, model_executor, batch_index):
-        model_with_loss = model_executor.model_with_loss
-        if model_with_loss.model.training:
-            model_with_loss = model_executor.copy_model_with_loss(deepcopy=True)
-        model_with_loss.model.zero_grad(set_to_none=True)
-        model_with_loss.model.requires_grad_(requires_grad=False)
-        model_with_loss.model.share_memory()
-        task_queue = self._get_task_queue()
-        for worker_id in range(task_queue.worker_num):
-            worker_queue = task_queue.get_worker_queue(worker_id=worker_id)
-            worker_queue.put((batch_index, model_with_loss))
-
-    def _broadcast_one_shot_data(self, batch_index, model_executor, **kwargs):
+    def _broadcast_one_shot_data(
+        self, batch_index: int, model_executor, **kwargs
+    ) -> None:
         model_with_loss = model_executor.model_with_loss
         if model_with_loss.model.training:
             model_with_loss = model_executor.copy_model_with_loss(deepcopy=True)
@@ -196,44 +186,3 @@ class ComputationHook(Hook):
         else:
             data = getattr(ComputationHook._local_data, "data")
         return data
-
-    @classmethod
-    def get_cached_model(cls, batch_index, worker_device, worker_queue) -> tuple:
-        if (
-            not hasattr(ComputationHook._local_data, "batch_index")
-            or ComputationHook._local_data.batch_index != batch_index
-        ):
-            while True:
-                res = worker_queue.get()
-                if res[0] == batch_index:
-                    model_with_loss = res[1]
-                    break
-            model_with_loss.to(device=worker_device, non_blocking=True)
-            parameter_list = model_with_loss.model_util.get_parameter_list(detach=True)
-            parameter_shapes = model_with_loss.model_util.get_parameter_shapes()
-
-            setattr(
-                ComputationHook._local_data,
-                "batch_index",
-                batch_index,
-            )
-            setattr(
-                ComputationHook._local_data,
-                "model_with_loss",
-                model_with_loss,
-            )
-            setattr(
-                ComputationHook._local_data,
-                "parameter_list",
-                parameter_list,
-            )
-            setattr(
-                ComputationHook._local_data,
-                "parameter_shapes",
-                parameter_shapes,
-            )
-        else:
-            model_with_loss = getattr(ComputationHook._local_data, "model_with_loss")
-            parameter_list = getattr(ComputationHook._local_data, "parameter_list")
-            parameter_shapes = getattr(ComputationHook._local_data, "parameter_shapes")
-        return model_with_loss, parameter_list, parameter_shapes
