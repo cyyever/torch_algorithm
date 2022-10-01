@@ -107,7 +107,7 @@ class ComputationHook(Hook):
         self.release_queue()
 
     def release_queue(self) -> None:
-        assert not self.__prev_tasks
+        assert not self.has_unfetched_result()
         self.reset_result()
         if self.__task_queue is not None:
             self.__task_queue.release()
