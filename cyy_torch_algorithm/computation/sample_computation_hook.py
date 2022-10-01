@@ -100,13 +100,17 @@ class SampleComputationHook(ComputationHook):
         model_with_loss.model.zero_grad(set_to_none=True)
         model_with_loss.model.requires_grad_(requires_grad=False)
         model_with_loss.model.share_memory()
-        tasks = self._split_data(
-            [processed_indices, processed_inputs, processed_features, processed_targets]
-        )
-        assert tasks
-        for task in tasks:
+        for sample_index, sample_input, sample_input_feature, targrt in zip(
+            processed_indices, processed_inputs, processed_features, processed_targets
+        ):
             self._add_task(
-                task=(batch_index, *task),
+                task=(
+                    batch_index,
+                    sample_index,
+                    sample_input,
+                    sample_input_feature,
+                    targrt,
+                ),
             )
         self._broadcast_one_shot_data(
             model_executor=model_executor, batch_index=batch_index
@@ -143,19 +147,19 @@ class SampleComputationHook(ComputationHook):
 
     @classmethod
     def common_worker_fun(
-        cls, result_transform, worker_fun, task, device, worker_queue, **kwargs
+        cls, result_transform, worker_fun, tasks, device, worker_queue, **kwargs
     ):
         # counter = TimeCounter()
         worker_device, worker_stream = ComputationHook._setup_cuda_device(
             device,
         )
-        (
-            batch_index,
-            sample_indices,
-            inputs,
-            input_features,
-            targets,
-        ) = task
+
+        batch_index = tasks[0][0]
+        batch_size = len(tasks)
+        sample_indices = [task[1] for task in tasks]
+        inputs = [task[2] for task in tasks]
+        input_features = [task[3] for task in tasks]
+        targets = [task[4] for task in tasks]
 
         with torch.cuda.stream(worker_stream):
             model_data = cls.get_cached_one_shot_data(
@@ -242,7 +246,7 @@ class SampleComputationHook(ComputationHook):
                     if v2.numel() == 1:
                         v[k2] = v2.item()
         # get_logger().error("use %s ms", counter.elapsed_milliseconds())
-        return res
+        return batch_size, res
 
 
 def sample_dot_product(

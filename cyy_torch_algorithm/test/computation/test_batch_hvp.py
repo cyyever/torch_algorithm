@@ -32,10 +32,15 @@ def test_CV_jvp():
 
     def print_products(**kwargs):
         if hook.result_dict:
-            products = hook.result_dict[0]
-            assert products.shape[0] == 100
+            products = hook.result_dict
+            assert len(products) == 100
             get_logger().error("use time %s", time_counter.elapsed_milliseconds())
-            assert torch.linalg.vector_norm(products[0] * 2 - products[1]).item() < 0.05
+            assert (
+                torch.linalg.vector_norm(
+                    products[0].cpu() * 2 - products[1].cpu()
+                ).item()
+                < 0.05
+            )
             raise StopExecutingException()
 
     trainer.append_named_hook(

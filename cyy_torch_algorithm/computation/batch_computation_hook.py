@@ -15,17 +15,6 @@ class BatchComputationHook(ComputationHook):
     def set_data_fun(self, data_fun):
         self.__data_fun = data_fun
 
-    def _fetch_result(self) -> dict:
-        res = super()._fetch_result()
-        if not res:
-            return {}
-        result_list = list(get_mapping_values_by_key_order(res))
-        return {
-            0: torch.concat(
-                [a.to(device="cuda:0", non_blocking=True) for a in result_list]
-            )
-        }
-
     def _after_forward(self, model_executor, inputs, targets, batch_index, **kwargs):
         assert self.__data_fun is not None
         data = self.__data_fun()
@@ -51,9 +40,9 @@ class BatchComputationHook(ComputationHook):
 
     def add_task(self, model_executor, inputs, targets, data, batch_index):
         assert not self.has_unfetched_result()
-        for data_idx, data_piece in enumerate(self._split_data([data])):
+        for data_idx, data_piece in enumerate(data):
             self._add_task(
-                task=(batch_index, data_idx, *data_piece),
+                task=(batch_index, data_idx, data_piece),
             )
         self._broadcast_one_shot_data(
             batch_index=batch_index,
@@ -64,10 +53,13 @@ class BatchComputationHook(ComputationHook):
 
     @classmethod
     def common_worker_fun(
-        cls, result_transform, worker_fun, task, device, worker_queue, **kwargs
+        cls, result_transform, worker_fun, tasks, device, worker_queue, **kwargs
     ):
+        batch_size = len(tasks)
         worker_device, worker_stream = ComputationHook._setup_cuda_device(device)
-        batch_index, data_idx, data = task
+        batch_index = tasks[0][0]
+        data_indices = [task[1] for task in tasks]
+        data = [task[2] for task in tasks]
         with torch.cuda.stream(worker_stream):
             one_shot_data = cls.get_cached_one_shot_data(
                 batch_index=batch_index,
@@ -75,11 +67,6 @@ class BatchComputationHook(ComputationHook):
                 worker_queue=worker_queue,
             )
             data = tensor_to(data, device=worker_device, non_blocking=True)
-            res = worker_fun(
-                data_idx=data_idx,
-                data=data,
-                worker_device=worker_device,
-                **one_shot_data
-            )
+            res = worker_fun(data=data, worker_device=worker_device, **one_shot_data)
             assert result_transform is None
-            return res
+            return batch_size, dict(zip(data_indices, res))

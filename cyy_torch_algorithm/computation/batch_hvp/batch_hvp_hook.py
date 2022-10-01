@@ -16,7 +16,6 @@ def batch_hvp_worker_fun(
     model_with_loss,
     inputs,
     targets,
-    data_idx,
     data,
     worker_device,
     parameter_list,
@@ -49,9 +48,7 @@ def batch_hvp_worker_fun(
     if not isinstance(vectors, torch.Tensor):
         vectors = torch.stack(vectors)
 
-    products = vmap(hvp_wrapper, randomness="same")(vectors)
-    # get_logger().error("use %s ms", time_counter.elapsed_milliseconds())
-    return {data_idx: products}
+    return vmap(hvp_wrapper, randomness="same")(vectors)
 
 
 class BatchHVPHook(BatchComputationHook):

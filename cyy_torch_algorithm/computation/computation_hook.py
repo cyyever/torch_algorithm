@@ -2,12 +2,9 @@ import os
 import threading
 from typing import Any, Callable
 
-import pynvml
 import torch
-from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
 from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
     TorchProcessTaskQueue
-from cyy_torch_toolbox.device import get_cuda_devices
 from cyy_torch_toolbox.hook import Hook
 from cyy_torch_toolbox.tensor import tensor_to
 
@@ -22,9 +19,9 @@ class ComputationHook(Hook):
         self.__result_dict = {}
         self.__task_queue = None
         self._result_transform: Callable | None = None
+        self.__pending_task_cnt: int = 0
         self.__prev_tasks = []
         self.__result_collection_fun: Callable | None = None
-        self.__prevous_chunk = None
 
     def set_result_transform(self, f: Callable) -> None:
         self._result_transform = f
@@ -47,46 +44,20 @@ class ComputationHook(Hook):
         return self.__result_dict
 
     def has_unfetched_result(self):
-        return bool(self.__prev_tasks)
+        return self.__pending_task_cnt != 0
 
     def _fetch_result(self) -> dict:
         results: dict = {}
-        for _ in self.__prev_tasks:
+        while self.has_unfetched_result():
+            res = self.__task_queue.get_data()
+            self.__pending_task_cnt -= res[0]
+            assert self.__pending_task_cnt >= 0
             if self.__result_collection_fun is not None:
-                self.__result_collection_fun(self.__task_queue.get_result())
+                self.__result_collection_fun(res[1])
             else:
-                results |= self.__task_queue.get_result()
+                results |= res[1]
         self.__prev_tasks = []
         return results
-
-    def __get_chunk_size(self, data_size):
-        match self.__prevous_chunk:
-            case None:
-                self.__prevous_chunk = (1, False)
-                return self.__prevous_chunk[0]
-            case [size, fixed]:
-                if data_size <= size or fixed:
-                    return size
-                pynvml.nvmlInit()
-                free_resource_ratios = []
-                for device in get_cuda_devices():
-                    h = pynvml.nvmlDeviceGetHandleByIndex(device.index)
-                    info = pynvml.nvmlDeviceGetMemoryInfo(h)
-                    free_resource_ratios.append(info.free / info.total)
-                pynvml.nvmlShutdown()
-                if all(r >= 0.2 for r in free_resource_ratios):
-                    self.__prevous_chunk = (size + 1, False)
-                else:
-                    self.__prevous_chunk = (size, True)
-                return self.__prevous_chunk[0]
-            case _:
-                raise NotImplementedError()
-
-    def _split_data(self, data_list: list) -> list:
-        chunk_size = self.__get_chunk_size(len(data_list[0]))
-        return list(
-            zip(*(tuple(split_list_to_chunks(data, chunk_size)) for data in data_list))
-        )
 
     def _get_task_queue(self) -> TorchProcessTaskQueue:
         if self.__task_queue is None:
@@ -99,6 +70,7 @@ class ComputationHook(Hook):
                 use_manager=False,
                 worker_num=worker_num,
                 use_worker_queue=True,
+                batch_process=True,
             )
             self.__task_queue.start()
             torch.cuda.empty_cache()
@@ -106,6 +78,7 @@ class ComputationHook(Hook):
 
     def _add_task(self, task: Any) -> None:
         self.__prev_tasks.append(task)
+        self.__pending_task_cnt += 1
         self._get_task_queue().add_task(task)
 
     def _broadcast_one_shot_data(
