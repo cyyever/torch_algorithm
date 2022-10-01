@@ -3,13 +3,14 @@
 import copy
 
 import torch
+from cyy_naive_lib.algorithm.mapping_op import get_mapping_values_by_key_order
 from cyy_naive_lib.log import get_logger
 from cyy_torch_algorithm.computation.batch_hvp.batch_hvp_hook import \
     BatchHVPHook
 from cyy_torch_toolbox.inferencer import Inferencer
 from cyy_torch_toolbox.ml_type import (ModelExecutorHookPoint,
                                        StopExecutingException)
-from cyy_torch_toolbox.tensor import tensor_to
+from cyy_torch_toolbox.tensor import cat_tensors_to_vector, tensor_to
 
 
 def stochastic_inverse_hessian_vector_product(
@@ -53,7 +54,12 @@ def stochastic_inverse_hessian_vector_product(
             next_products = (
                 vectors
                 + (1 - dampling_term) * cur_products
-                - tensor_to(hook.result_dict[0], device=vectors.device) / scale
+                - cat_tensors_to_vector(
+                    get_mapping_values_by_key_order(
+                        tensor_to(hook.result_dict, device=vectors.device)
+                    )
+                )
+                / scale
             )
             hook.reset_result()
             diffs = torch.tensor(
