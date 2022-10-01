@@ -9,6 +9,7 @@ from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
     TorchProcessTaskQueue
 from cyy_torch_toolbox.device import get_cuda_devices
 from cyy_torch_toolbox.hook import Hook
+from cyy_torch_toolbox.tensor import tensor_to
 
 
 class ComputationHook(Hook):
@@ -119,6 +120,20 @@ class ComputationHook(Hook):
             worker_queue = task_queue.get_worker_queue(worker_id=worker_id)
             worker_queue.put((batch_index, model_with_loss))
 
+    def _broadcast_one_shot_data(self, batch_index, model_executor, **kwargs):
+        model_with_loss = model_executor.model_with_loss
+        if model_with_loss.model.training:
+            model_with_loss = model_executor.copy_model_with_loss(deepcopy=True)
+        model_with_loss.model.zero_grad(set_to_none=True)
+        model_with_loss.model.requires_grad_(requires_grad=False)
+        model_with_loss.model.share_memory()
+        task_queue = self._get_task_queue()
+        for worker_id in range(task_queue.worker_num):
+            worker_queue = task_queue.get_worker_queue(worker_id=worker_id)
+            worker_queue.put(
+                (batch_index, kwargs | {"model_with_loss": model_with_loss})
+            )
+
     def _before_execute(self, **_):
         self.reset_result()
 
@@ -147,6 +162,40 @@ class ComputationHook(Hook):
             cls._local_data.worker_stream = worker_stream
         torch.cuda.set_device(worker_device)
         return worker_device, worker_stream
+
+    @classmethod
+    def get_cached_one_shot_data(cls, batch_index, worker_device, worker_queue) -> dict:
+        if (
+            not hasattr(ComputationHook._local_data, "batch_index")
+            or ComputationHook._local_data.batch_index != batch_index
+        ):
+            while True:
+                res = worker_queue.get()
+                if res[0] == batch_index:
+                    data = res[1]
+                    assert isinstance(data, dict)
+                    break
+            if "model_with_loss" in data:
+                data["model_with_loss"].to(device=worker_device, non_blocking=True)
+                data["parameter_list"] = data[
+                    "model_with_loss"
+                ].model_util.get_parameter_list(detach=True)
+                data["parameter_shapes"] = data[
+                    "model_with_loss"
+                ].model_util.get_parameter_shapes()
+            if "inputs" in data:
+                data["inputs"] = tensor_to(
+                    data["inputs"], device=worker_device, non_blocking=True
+                )
+            if "targets" in data:
+                data["targets"] = tensor_to(
+                    data["targets"], device=worker_device, non_blocking=True
+                )
+            setattr(ComputationHook._local_data, "batch_index", batch_index)
+            setattr(ComputationHook._local_data, "data", data)
+        else:
+            data = getattr(ComputationHook._local_data, "data")
+        return data
 
     @classmethod
     def get_cached_model(cls, batch_index, worker_device, worker_queue) -> tuple:

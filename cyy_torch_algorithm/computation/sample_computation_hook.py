@@ -108,7 +108,9 @@ class SampleComputationHook(ComputationHook):
             self._add_task(
                 task=(batch_index, *task),
             )
-        self._broadcast_model(model_executor=model_executor, batch_index=batch_index)
+        self._broadcast_one_shot_data(
+            model_executor=model_executor, batch_index=batch_index
+        )
 
     def _get_sample_computation_fun(self):
         raise NotImplementedError()
@@ -156,7 +158,8 @@ class SampleComputationHook(ComputationHook):
         ) = task
 
         with torch.cuda.stream(worker_stream):
-            model_with_loss, parameter_list, parameter_shapes = cls.get_cached_model(
+            # model_with_loss, parameter_list, parameter_shapes 
+            model_data= cls.get_cached_one_shot_data(
                 batch_index=batch_index,
                 worker_device=worker_device,
                 worker_queue=worker_queue,
@@ -196,14 +199,12 @@ class SampleComputationHook(ComputationHook):
                     worker_fun = getattr(ComputationHook._local_data, "worker_fun")
 
             res = worker_fun(
-                model_with_loss=model_with_loss,
-                parameter_list=parameter_list,
-                parameter_shapes=parameter_shapes,
                 sample_indices=sample_indices,
                 inputs=inputs,
                 input_features=input_features,
                 targets=targets,
                 worker_device=worker_device,
+                **model_data,
             )
             if result_transform is not None:
                 if isinstance(result_transform, functools.partial):
