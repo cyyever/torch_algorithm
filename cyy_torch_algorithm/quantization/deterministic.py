@@ -40,9 +40,9 @@ class AdaptiveDeterministicQuant:
 
         norm = None
         if self.use_l2_norm:
-            norm = torch.linalg.norm(tensor)
+            norm = torch.linalg.norm(tensor).item()
         else:
-            norm = torch.linalg.norm(tensor, ord=float("inf"))
+            norm = torch.linalg.norm(tensor, ord=float("inf")).item()
         if norm == 0.0:
             return {
                 "device": device,
@@ -107,18 +107,15 @@ class AdaptiveDeterministicDequant:
         norm = quantized_dict["norm"]
         quantized_tensor = torch.from_numpy(
             quantized_dict["quantized_tensor"].astype(dtype=numpy.int64)
-        ).to(dtype=torch.float64, device=norm.device)
+        ).to(dtype=torch.float64, device=device)
         sign_tensor = (torch.from_numpy(numpy.unpackbits(sign_tensor)).float() * 2 - 1)[
             : numpy.prod(quantized_tensor.shape)
         ].reshape(quantized_tensor.shape)
         res = (
-            quantized_tensor
-            * norm
-            * sign_tensor.to(device=quantized_tensor.device)
-            / quantization_level
+            quantized_tensor * norm * sign_tensor.to(device=device) / quantization_level
         )
         res = res - offset
-        return res.to(dtype=dtype, device=device)
+        return res.to(dtype=dtype)
 
 
 class NeuralNetworkAdaptiveDeterministicQuant(AdaptiveDeterministicQuant):
