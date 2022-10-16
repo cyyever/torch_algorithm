@@ -36,11 +36,7 @@ class SampleComputationHook(ComputationHook):
         inputs, batch_dim = model_executor.split_batch_input(
             inputs=inputs, targets=targets
         )
-        if (
-            batch_dim != 0
-            and input_features is not None
-            and isinstance(input_features, torch.Tensor)
-        ):
+        if batch_dim != 0 and isinstance(input_features, torch.Tensor):
             input_features = input_features.permute(batch_dim, 0, 2)
         if input_features is None:
             input_features = [None] * len(sample_indices)
@@ -75,13 +71,16 @@ class SampleComputationHook(ComputationHook):
                             processed_indices.append(
                                 new_input.get("sample_index", sample_index)
                             )
-                            if "sample_input" in new_input:
-                                processed_inputs.append(new_input["sample_input"])
-                            else:
-                                processed_inputs.append(sample_input.clone())
                             processed_features.append(
                                 new_input.get("input_feature", None)
                             )
+                            if processed_features[-1] is None:
+                                if "sample_input" in new_input:
+                                    processed_inputs.append(new_input["sample_input"])
+                                else:
+                                    processed_inputs.append(sample_input.clone())
+                            else:
+                                processed_inputs.append(None)
                             processed_targets.append(sample_target.clone())
                     case _:
                         raise NotImplementedError()
@@ -93,7 +92,8 @@ class SampleComputationHook(ComputationHook):
         if not processed_indices:
             return
 
-        self._fetch_result()
+        # fectch pending results
+        self.result_dict
         model_with_loss = model_executor.model_with_loss
         if model_with_loss.model.training:
             model_with_loss = model_executor.copy_model_with_loss(deepcopy=True)
@@ -115,6 +115,10 @@ class SampleComputationHook(ComputationHook):
         self._broadcast_one_shot_data(
             model_executor=model_executor, batch_index=batch_index
         )
+
+    def _after_optimizer_step(self, step_skipped: bool, **kwargs) -> None:
+        if step_skipped:
+            self._drop_result()
 
     def _get_sample_computation_fun(self):
         raise NotImplementedError()

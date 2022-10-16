@@ -34,14 +34,14 @@ class TracInHook(Hook):
         return save_dir
 
     @torch.no_grad()
-    def _before_execute(self, model_executor, **kwargs):
+    def _before_execute(self, **kwargs):
         self.__influence_values = {}
         get_logger().info("track %s indices", len(self.__tracked_indices))
         self._sample_grad_hook.set_computed_indices(self.__tracked_indices)
 
     @torch.no_grad()
     def _before_batch(self, model_executor, sample_indices, **kwargs):
-        sample_indices =sample_indices.tolist()
+        sample_indices = sample_indices.tolist()
         if set(sample_indices).isdisjoint(self.__tracked_indices):
             return
 

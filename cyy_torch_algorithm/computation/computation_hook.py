@@ -33,29 +33,33 @@ class ComputationHook(Hook):
         raise NotImplementedError()
 
     def reset_result(self) -> None:
-        self._fetch_result()
+        self.__fetch_result()
         del self.__result_dict
         self.__result_dict = {}
 
     @property
     def result_dict(self) -> dict:
-        results = self._fetch_result()
+        results = self.__fetch_result()
         self.__result_dict |= results
         return self.__result_dict
 
     def has_unfetched_result(self):
         return self.__pending_task_cnt != 0
 
-    def _fetch_result(self) -> dict:
+    def _drop_result(self) -> None:
+        self.__fetch_result(drop=True)
+
+    def __fetch_result(self, drop: bool = False) -> dict:
         results: dict = {}
         while self.has_unfetched_result():
             res = self.__task_queue.get_data()
             self.__pending_task_cnt -= res[0]
             assert self.__pending_task_cnt >= 0
-            if self.__result_collection_fun is not None:
-                self.__result_collection_fun(res[1])
-            else:
-                results |= res[1]
+            if not drop:
+                if self.__result_collection_fun is not None:
+                    self.__result_collection_fun(res[1])
+                else:
+                    results |= res[1]
         self.__prev_tasks = []
         return results
 
