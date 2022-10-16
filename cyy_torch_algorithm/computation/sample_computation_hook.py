@@ -158,14 +158,17 @@ class SampleComputationHook(ComputationHook):
             device,
         )
 
-        batch_index = tasks[0][0]
-        batch_size = len(tasks)
-        sample_indices = [task[1] for task in tasks]
-        inputs = [task[2] for task in tasks]
-        input_features = [task[3] for task in tasks]
-        targets = [task[4] for task in tasks]
-
         with torch.cuda.stream(worker_stream):
+            tasks = tensor_to(
+                tasks, device=worker_device, non_blocking=True, check_slowdown=True
+            )
+
+            batch_index = tasks[0][0]
+            batch_size = len(tasks)
+            sample_indices = [task[1] for task in tasks]
+            inputs = [task[2] for task in tasks]
+            input_features = [task[3] for task in tasks]
+            targets = [task[4] for task in tasks]
             model_data = cls.get_cached_one_shot_data(
                 batch_index=batch_index,
                 worker_device=worker_device,
@@ -174,37 +177,10 @@ class SampleComputationHook(ComputationHook):
 
             is_input_feature = input_features[0] is not None
             if is_input_feature:
-                input_features = tensor_to(
-                    input_features,
-                    device=worker_device,
-                    non_blocking=True,
-                    check_slowdown=True,
-                )
                 inputs = input_features
-            else:
-                inputs = tensor_to(
-                    inputs, device=worker_device, non_blocking=True, check_slowdown=True
-                )
-
-            targets = tensor_to(
-                targets, device=worker_device, non_blocking=True, check_slowdown=True
+            worker_fun = ComputationHook.get_cached_function(
+                "worker_fun", worker_fun, worker_device=worker_device
             )
-
-            if isinstance(worker_fun, functools.partial):
-                if not hasattr(ComputationHook._local_data, "worker_fun"):
-                    worker_fun = tensor_to(
-                        worker_fun,
-                        device=worker_device,
-                        non_blocking=True,
-                    )
-                    setattr(
-                        ComputationHook._local_data,
-                        "worker_fun",
-                        worker_fun,
-                    )
-                else:
-                    worker_fun = getattr(ComputationHook._local_data, "worker_fun")
-
             res = worker_fun(
                 sample_indices=sample_indices,
                 inputs=inputs,
@@ -213,24 +189,10 @@ class SampleComputationHook(ComputationHook):
                 worker_device=worker_device,
                 **model_data,
             )
+            result_transform = ComputationHook.get_cached_function(
+                "result_transform", result_transform, worker_device=worker_device
+            )
             if result_transform is not None:
-                if isinstance(result_transform, functools.partial):
-                    if not hasattr(ComputationHook._local_data, "result_transform"):
-                        result_transform = tensor_to(
-                            result_transform,
-                            device=worker_device,
-                            non_blocking=True,
-                        )
-                        setattr(
-                            ComputationHook._local_data,
-                            "result_transform",
-                            result_transform,
-                        )
-                    else:
-                        result_transform = getattr(
-                            ComputationHook._local_data, "result_transform"
-                        )
-
                 for sample_index, input_tensor, input_feature, target in zip(
                     sample_indices, inputs, input_features, targets
                 ):

@@ -38,6 +38,7 @@ class BatchComputationHook(ComputationHook):
         )
 
     def add_task(self, model_executor, inputs, targets, data, batch_index):
+        assert data
         assert not self.has_unfetched_result()
         for data_idx, data_piece in enumerate(data):
             self._add_task(
@@ -49,6 +50,10 @@ class BatchComputationHook(ComputationHook):
             inputs=inputs,
             targets=targets,
         )
+
+    def _after_optimizer_step(self, step_skipped: bool, **kwargs) -> None:
+        if step_skipped:
+            self._drop_result()
 
     @classmethod
     def common_worker_fun(
@@ -66,6 +71,9 @@ class BatchComputationHook(ComputationHook):
                 worker_queue=worker_queue,
             )
             data = tensor_to(data, device=worker_device, non_blocking=True)
+            worker_fun = ComputationHook.get_cached_function(
+                "worker_fun", worker_fun, worker_device=worker_device
+            )
             res = worker_fun(data=data, worker_device=worker_device, **one_shot_data)
             assert result_transform is None
             return batch_size, dict(zip(data_indices, res))

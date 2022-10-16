@@ -128,6 +128,19 @@ class ComputationHook(Hook):
         return worker_device, worker_stream
 
     @classmethod
+    def get_cached_function(cls, name: str, fun: Callable, worker_device) -> Callable:
+        if not hasattr(cls._local_data, name):
+            fun = tensor_to(
+                fun,
+                device=worker_device,
+                non_blocking=True,
+            )
+            setattr(cls._local_data, name, fun)
+            return fun
+        else:
+            return getattr(cls._local_data, name)
+
+    @classmethod
     def get_cached_one_shot_data(cls, batch_index, worker_device, worker_queue) -> dict:
         if (
             not hasattr(ComputationHook._local_data, "batch_index")
