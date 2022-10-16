@@ -12,9 +12,13 @@ from cyy_torch_toolbox.ml_type import MachineLearningPhase
 
 
 class TracInHook(Hook):
-    def __init__(self, test_sample_indices: set | None = None):
+    def __init__(
+        self, test_sample_indices: set | None = None, check_point_gap: int | None = None
+    ):
         super().__init__(stripable=True)
         self._sample_grad_hook: SampleGradientHook = SampleGradientHook()
+
+        self.__check_point_gap = check_point_gap
         self.__test_sample_indices = test_sample_indices
         self.__test_sample_grad_dict = SyncedTensorDict.create()
 
@@ -34,17 +38,13 @@ class TracInHook(Hook):
         return save_dir
 
     @torch.no_grad()
-    def _before_execute(self, **kwargs):
+    def _before_execute(self, model_executor, **kwargs):
         self.__influence_values = {}
         get_logger().info("track %s indices", len(self.__tracked_indices))
         self._sample_grad_hook.set_computed_indices(self.__tracked_indices)
+        self.__compute_test_sample_gradients(model_executor=model_executor)
 
-    @torch.no_grad()
-    def _before_batch(self, model_executor, sample_indices, **kwargs):
-        sample_indices = sample_indices.tolist()
-        if set(sample_indices).isdisjoint(self.__tracked_indices):
-            return
-
+    def __compute_test_sample_gradients(self, model_executor):
         inferencer = model_executor.get_inferencer(phase=MachineLearningPhase.Test)
         if self.__test_sample_indices is None:
             self.__test_sample_grad_dict[-1] = inferencer.get_gradient()
@@ -60,20 +60,27 @@ class TracInHook(Hook):
                 result_collection_fun=collect_result,
             )
 
-    def _after_batch(self, model_executor, batch_size, **kwargs):
-        if not self.__test_sample_grad_dict:
+    @torch.no_grad()
+    def _before_batch(self, model_executor, batch_index, **kwargs):
+        if self.__check_point_gap is None or batch_index // self.__check_point_gap == 0:
+            self.__compute_test_sample_gradients(model_executor=model_executor)
+
+    def _after_optimizer_step(self, model_executor, step_skipped, batch_size, **kwargs):
+        if step_skipped:
             return
+        assert self.__test_sample_grad_dict
         trainer = model_executor
         optimizer = trainer.get_optimizer()
         assert len(optimizer.param_groups) == 1
         if not isinstance(optimizer, torch.optim.SGD):
             raise RuntimeError("optimizer is not SGD")
-
-        momentum = optimizer.param_groups[0]["momentum"]
-        assert momentum == 0
         lr = optimizer.param_groups[0]["lr"]
-        weight_decay = optimizer.param_groups[0]["weight_decay"]
-        assert weight_decay == 0
+        # momentum = optimizer.param_groups[0]["momentum"]
+        # assert momentum == 0
+        # lr = optimizer.param_groups[0]["lr"]
+        # weight_decay = optimizer.param_groups[0]["weight_decay"]
+        # assert weight_decay == 0
+
         for k, test_grad in self.__test_sample_grad_dict.items():
             if k not in self.__influence_values:
                 self.__influence_values[k] = {}
