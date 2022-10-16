@@ -27,6 +27,7 @@ class TracInHook(Hook):
 
     def set_tracked_indices(self, tracked_indices: set) -> None:
         self.__tracked_indices = set(tracked_indices)
+        get_logger().info("track %s indices", len(self.__tracked_indices))
 
     @property
     def influence_values(self) -> dict:
@@ -40,12 +41,14 @@ class TracInHook(Hook):
     @torch.no_grad()
     def _before_execute(self, model_executor, **kwargs):
         self.__influence_values = {}
-        get_logger().info("track %s indices", len(self.__tracked_indices))
-        self._sample_grad_hook.set_computed_indices(self.__tracked_indices)
+        if self.__tracked_indices is not None:
+            self._sample_grad_hook.set_computed_indices(self.__tracked_indices)
         self.__compute_test_sample_gradients(model_executor=model_executor)
 
     def __compute_test_sample_gradients(self, model_executor):
         inferencer = model_executor.get_inferencer(phase=MachineLearningPhase.Test)
+        inferencer.disable_logger()
+        inferencer.disable_performance_metric_logger()
         if self.__test_sample_indices is None:
             self.__test_sample_grad_dict[-1] = inferencer.get_gradient()
         else:
@@ -62,7 +65,7 @@ class TracInHook(Hook):
 
     @torch.no_grad()
     def _before_batch(self, model_executor, batch_index, **kwargs):
-        if self.__check_point_gap is None or batch_index // self.__check_point_gap == 0:
+        if self.__check_point_gap is None or batch_index % self.__check_point_gap == 0:
             self.__compute_test_sample_gradients(model_executor=model_executor)
 
     def _after_optimizer_step(self, model_executor, step_skipped, batch_size, **kwargs):
@@ -81,6 +84,7 @@ class TracInHook(Hook):
         # weight_decay = optimizer.param_groups[0]["weight_decay"]
         # assert weight_decay == 0
 
+        assert self.__test_sample_grad_dict
         for k, test_grad in self.__test_sample_grad_dict.items():
             if k not in self.__influence_values:
                 self.__influence_values[k] = {}
@@ -90,7 +94,7 @@ class TracInHook(Hook):
                 self.__influence_values[k][k2] += (
                     test_grad.cpu().dot(sample_grad.cpu()).item() * lr / batch_size
                 )
-        self.__test_sample_grad_dict.clear()
+        self._sample_grad_hook.reset_result()
 
     def _after_execute(self, model_executor, **kwargs):
         if -1 in self.__influence_values:
