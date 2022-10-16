@@ -25,7 +25,7 @@ class TracInHook(Hook):
         self.__tracked_indices = set(tracked_indices)
 
     @property
-    def influence_values(self):
+    def influence_values(self) -> dict:
         return self.__influence_values
 
     def get_save_dir(self, trainer):
