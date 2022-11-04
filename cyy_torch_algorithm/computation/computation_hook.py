@@ -1,3 +1,4 @@
+import copy
 import os
 import threading
 from typing import Any, Callable
@@ -86,14 +87,14 @@ class ComputationHook(Hook):
         self._get_task_queue().add_task(task)
 
     def _broadcast_one_shot_data(
-        self, batch_index: int, model_executor, **kwargs
+        self, batch_index: int, model_with_loss, **kwargs
     ) -> None:
-        model_with_loss = model_executor.model_with_loss
         if model_with_loss.model.training:
-            model_with_loss = model_executor.copy_model_with_loss(deepcopy=True)
+            model_with_loss = copy.deepcopy(model_with_loss)
         model_with_loss.model.zero_grad(set_to_none=True)
         model_with_loss.model.requires_grad_(requires_grad=False)
         model_with_loss.model.share_memory()
+
         task_queue = self._get_task_queue()
         for worker_id in range(task_queue.worker_num):
             worker_queue = task_queue.get_worker_queue(worker_id=worker_id)

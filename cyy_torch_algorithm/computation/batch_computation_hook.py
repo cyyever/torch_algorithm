@@ -46,7 +46,7 @@ class BatchComputationHook(ComputationHook):
             )
         self._broadcast_one_shot_data(
             batch_index=batch_index,
-            model_executor=model_executor,
+            model_with_loss=model_executor.model_with_loss,
             inputs=inputs,
             targets=targets,
         )

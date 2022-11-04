@@ -26,18 +26,14 @@ class SampleComputationHook(ComputationHook):
 
     def add_task(
         self,
-        model_executor,
+        model_with_loss,
         batch_index,
         sample_indices,
         inputs,
-        input_features,
         targets,
+        input_features=None,
+        batch_dim=0,
     ):
-        inputs, batch_dim = model_executor.split_batch_input(
-            inputs=inputs, targets=targets
-        )
-        if batch_dim != 0 and isinstance(input_features, torch.Tensor):
-            input_features = input_features.permute(batch_dim, 0, 2)
         if input_features is None:
             input_features = [None] * len(sample_indices)
 
@@ -94,12 +90,6 @@ class SampleComputationHook(ComputationHook):
 
         # fectch pending results
         self.result_dict
-        model_with_loss = model_executor.model_with_loss
-        if model_with_loss.model.training:
-            model_with_loss = model_executor.copy_model_with_loss(deepcopy=True)
-        model_with_loss.model.zero_grad(set_to_none=True)
-        model_with_loss.model.requires_grad_(requires_grad=False)
-        model_with_loss.model.share_memory()
         for sample_index, sample_input, sample_input_feature, targrt in zip(
             processed_indices, processed_inputs, processed_features, processed_targets
         ):
@@ -113,7 +103,7 @@ class SampleComputationHook(ComputationHook):
                 ),
             )
         self._broadcast_one_shot_data(
-            model_executor=model_executor, batch_index=batch_index
+            batch_index=batch_index, model_with_loss=model_with_loss
         )
 
     def _after_optimizer_step(self, step_skipped: bool, **kwargs) -> None:
@@ -140,13 +130,17 @@ class SampleComputationHook(ComputationHook):
         sample_indices,
         **kwargs
     ):
+        inputs, batch_dim, input_features = model_executor.split_batch_input(
+            inputs=inputs, targets=targets, input_features=input_features
+        )
         self.add_task(
-            model_executor=model_executor,
+            model_with_loss=model_executor.model_with_loss,
             batch_index=batch_index,
             sample_indices=sample_indices.tolist(),
             inputs=inputs,
             input_features=input_features,
             targets=targets,
+            batch_dim=batch_dim,
         )
 
     @classmethod
