@@ -14,6 +14,7 @@ class SampleComputationHook(ComputationHook):
         self.dataset_index_hook = AddIndexToDataset()
         self.__sample_selector = None
         self.__input_transform: Callable | None = None
+        self.__batch_index = 0
 
     def set_sample_selector(self, selector: Callable) -> None:
         self.__sample_selector = selector
@@ -27,7 +28,6 @@ class SampleComputationHook(ComputationHook):
     def add_task(
         self,
         model_with_loss,
-        batch_index,
         sample_indices,
         inputs,
         targets,
@@ -95,7 +95,7 @@ class SampleComputationHook(ComputationHook):
         ):
             self._add_task(
                 task=(
-                    batch_index,
+                    self.__batch_index,
                     sample_index,
                     sample_input,
                     sample_input_feature,
@@ -103,8 +103,9 @@ class SampleComputationHook(ComputationHook):
                 ),
             )
         self._broadcast_one_shot_data(
-            batch_index=batch_index, model_with_loss=model_with_loss
+            batch_index=self.__batch_index, model_with_loss=model_with_loss
         )
+        self.__batch_index += 1
 
     def _after_optimizer_step(self, step_skipped: bool, **kwargs) -> None:
         if step_skipped:
@@ -121,21 +122,13 @@ class SampleComputationHook(ComputationHook):
         )
 
     def _after_forward(
-        self,
-        model_executor,
-        batch_index,
-        inputs,
-        input_features,
-        targets,
-        sample_indices,
-        **kwargs
+        self, model_executor, inputs, input_features, targets, sample_indices, **kwargs
     ):
         inputs, batch_dim, input_features = model_executor.split_batch_input(
             inputs=inputs, targets=targets, input_features=input_features
         )
         self.add_task(
             model_with_loss=model_executor.model_with_loss,
-            batch_index=batch_index,
             sample_indices=sample_indices.tolist(),
             inputs=inputs,
             input_features=input_features,
