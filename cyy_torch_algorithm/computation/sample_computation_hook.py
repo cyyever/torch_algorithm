@@ -152,8 +152,9 @@ class SampleComputationHook(ComputationHook):
 
         with torch.cuda.stream(worker_stream):
             tasks = tensor_to(
-                tasks, device=worker_device, non_blocking=True, check_slowdown=True
+                tasks, device=worker_device, non_blocking=True, check_slowdown=False
             )
+            # check_slowdown=True
 
             batch_index = tasks[0][0]
             batch_size = len(tasks)
