@@ -16,6 +16,11 @@ class SampleComputationHook(ComputationHook):
         self.__input_transform: Callable | None = None
         self.__batch_index = 0
 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state["_SampleComputationHook__sample_selector"] = None
+        return state
+
     def set_sample_selector(self, selector: Callable) -> None:
         self.__sample_selector = selector
 
