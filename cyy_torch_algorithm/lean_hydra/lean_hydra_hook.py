@@ -1,6 +1,5 @@
 import json
 import os
-import pickle
 
 import torch
 from cyy_naive_lib.log import get_logger
@@ -20,9 +19,7 @@ class LeanHyDRAHook(Hook):
         self._training_set_size = None
         self.sample_gradient_hook.set_result_transform(self._gradient_dot_product)
 
-    def _gradient_dot_product(
-        self, sample_index, result, input_tensor, input_feature, target
-    ):
+    def _gradient_dot_product(self, result, **kwargs):
         return self.__test_gradient.dot(result.cpu()).item()
 
     @property
