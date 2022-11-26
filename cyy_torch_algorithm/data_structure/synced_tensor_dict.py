@@ -26,17 +26,11 @@ class SyncedTensorDict(MutableMapping):
     def __delitem__(self, key):
         self.__tensor_dict.__delitem__(str(key))
 
-    def release(self) -> None:
-        self.__tensor_dict.release()
-
-    def __del__(self):
-        self.__tensor_dict.release()
-
     def get_storage_dir(self) -> str:
         return self.__tensor_dict.get_storage_dir()
 
-    def flush_all(self) -> None:
-        return self.__tensor_dict.flush_all(wait=True)
+    def flush(self) -> None:
+        return self.__tensor_dict.flush(wait=True)
 
     def __len__(self):
         return len(self.__tensor_dict)
@@ -105,5 +99,4 @@ class SyncedTensorDict(MutableMapping):
         if cache_size is not None:
             m.set_in_memory_number(cache_size)
         get_logger().info("tensor_dict use cache size %s", m.get_in_memory_number())
-        m.set_logging(False)
         return cls(tensor_dict=m, key_type=key_type)

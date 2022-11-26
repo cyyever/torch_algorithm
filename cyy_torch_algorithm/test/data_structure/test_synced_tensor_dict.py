@@ -13,4 +13,4 @@ for (key, tensor) in tensor_dict.items():
 for (key, tensor) in tensor_dict.iterate({"1", "2"}):
     assert 1 <= key <= 2
     assert tensor == torch.tensor([key])
-tensor_dict.flush_all()
+tensor_dict.flush()
