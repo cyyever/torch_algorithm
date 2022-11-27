@@ -13,6 +13,7 @@ class SyncedTensorDict(MutableMapping):
         self.__tensor_dict = tensor_dict
         self.__key_type = key_type
         self.__iterated_keys = None
+        self.__prefetch_size = None
 
     def __contains__(self, key):
         return self.__tensor_dict.__contains__(str(key))
@@ -26,12 +27,6 @@ class SyncedTensorDict(MutableMapping):
     def __delitem__(self, key):
         self.__tensor_dict.__delitem__(str(key))
 
-    def get_storage_dir(self) -> str:
-        return self.__tensor_dict.get_storage_dir()
-
-    def flush(self) -> None:
-        return self.__tensor_dict.flush(wait=True)
-
     def __len__(self):
         return len(self.__tensor_dict)
 
@@ -39,15 +34,18 @@ class SyncedTensorDict(MutableMapping):
         in_memory_keys = self.__in_memory_keys()
         keys = self.__keys()
         self.__iterated_keys = list(in_memory_keys) + list(keys - in_memory_keys)
-        self.prefetch(self.__iterated_keys[:10])
+        self.__prefetch_size = len(in_memory_keys)
         return self
 
     def __next__(self):
         if not self.__iterated_keys:
             raise StopIteration()
         key = self.__iterated_keys[0]
-        self.prefetch(self.__iterated_keys[:10])
         self.__iterated_keys = self.__iterated_keys[1:]
+        self.__prefetch_size -= 1
+        if self.__prefetch_size <= 0:
+            self.__prefetch_size = 16
+            self.prefetch(self.__iterated_keys[: self.__prefetch_size])
         return key
 
     def __keys(self) -> set:
@@ -59,8 +57,7 @@ class SyncedTensorDict(MutableMapping):
     def __eval_key(self, k):
         if self.__key_type is None:
             return eval(k)
-        else:
-            return self.__key_type(k)
+        return self.__key_type(k)
 
     def prefetch(self, keys: list) -> None:
         self.__tensor_dict.prefetch([str(k) for k in keys])
