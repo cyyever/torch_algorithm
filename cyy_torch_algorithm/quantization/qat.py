@@ -4,7 +4,7 @@ from cyy_torch_toolbox.hook import Hook
 from cyy_torch_toolbox.model_util import ModelUtil
 from cyy_torch_toolbox.trainer import Trainer
 from torch.ao.quantization.fuser_method_mappings import \
-    DEFAULT_OP_LIST_TO_FUSER_METHOD
+    _DEFAULT_OP_LIST_TO_FUSER_METHOD
 
 
 class QuantizationAwareTraining(Hook):
@@ -55,6 +55,6 @@ class QuantizationAwareTraining(Hook):
     def get_fused_modules(quantized_model) -> list:
         quantized_model_util = ModelUtil(quantized_model)
         module_blocks = quantized_model_util.get_module_blocks(
-            block_types=set(DEFAULT_OP_LIST_TO_FUSER_METHOD.keys())
+            block_types=set(_DEFAULT_OP_LIST_TO_FUSER_METHOD.keys())
         )
         return [[module[0] for module in block] for block in module_blocks]
