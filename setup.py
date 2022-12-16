@@ -13,10 +13,7 @@ setuptools.setup(
     url="https://github.com/cyyever/torch_algorithm",
     packages=[
         "cyy_torch_algorithm",
-        "cyy_torch_algorithm/hydra",
-        "cyy_torch_algorithm/lean_hydra",
         "cyy_torch_algorithm/quantization",
-        "cyy_torch_algorithm/influence_function_family",
         "cyy_torch_algorithm/computation",
         "cyy_torch_algorithm/computation/batch_hvp",
         "cyy_torch_algorithm/computation/sample_gjvp",
