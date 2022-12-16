@@ -93,8 +93,6 @@ class SampleComputationHook(ComputationHook):
         if not processed_indices:
             return
 
-        # fectch pending results
-        self.result_dict
         for sample_index, sample_input, sample_input_feature, targrt in zip(
             processed_indices, processed_inputs, processed_features, processed_targets
         ):
