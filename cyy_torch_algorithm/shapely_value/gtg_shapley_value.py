@@ -1,5 +1,5 @@
 import copy
-from typing import Callable, Optional
+from typing import Callable
 
 import numpy as np
 from cyy_naive_lib.log import get_logger
@@ -21,8 +21,8 @@ class GTGShapleyValue(ShapleyValue):
         self.converge_min = max(30, self.worker_number)
         self.last_k = 10
         self.converge_criteria = 0.05
-        self.metric_fun: Optional[Callable] = None
-        self.save_fun: Optional[Callable] = None
+        self.metric_fun: None | Callable = None
+        self.save_fun: None | Callable = None
 
         self.max_percentage = 0.8
         self.max_number = min(
