@@ -206,7 +206,5 @@ class SampleComputationHook(ComputationHook):
         return batch_size, res
 
 
-def sample_dot_product(
-    sample_index, result, input_tensor, input_feature, target, vector
-):
+def sample_dot_product(result, vector, **kwargs):
     return result.dot(vector)

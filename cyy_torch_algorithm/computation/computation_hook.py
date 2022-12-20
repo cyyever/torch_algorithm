@@ -1,9 +1,9 @@
-import copy
 import os
 import threading
 from typing import Any, Callable
 
 import torch
+from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
     TorchProcessTaskQueue
 from cyy_torch_toolbox.hook import Hook
@@ -18,7 +18,7 @@ class ComputationHook(Hook):
             kwargs["stripable"] = True
         super().__init__(**kwargs)
         self.__result_dict = {}
-        self.__task_queue = None
+        self.__task_queue: TorchProcessTaskQueue | None = None
         self._result_transform: Callable | None = None
         self.__pending_task_cnt: int = 0
         self.__prev_tasks = []
@@ -89,11 +89,9 @@ class ComputationHook(Hook):
     def _broadcast_one_shot_data(
         self, batch_index: int, model_with_loss, **kwargs
     ) -> None:
-        if model_with_loss.model.training:
-            model_with_loss = copy.deepcopy(model_with_loss)
-        model_with_loss.model.zero_grad(set_to_none=True)
-        model_with_loss.model.requires_grad_(requires_grad=False)
+        # with TimeCounter() as cnt:
         model_with_loss.model.share_memory()
+        # print("prepare use ", cnt.elapsed_milliseconds())
 
         task_queue = self._get_task_queue()
         for worker_id in range(task_queue.worker_num):
@@ -101,6 +99,7 @@ class ComputationHook(Hook):
             worker_queue.put(
                 (batch_index, kwargs | {"model_with_loss": model_with_loss})
             )
+        # print("_broadcast_one_shot_data use ", cnt.elapsed_milliseconds())
 
     def _before_execute(self, **_):
         self.reset_result()
@@ -138,8 +137,7 @@ class ComputationHook(Hook):
             )
             setattr(cls._local_data, name, fun)
             return fun
-        else:
-            return getattr(cls._local_data, name)
+        return getattr(cls._local_data, name)
 
     @classmethod
     def get_cached_one_shot_data(cls, batch_index, worker_device, worker_queue) -> dict:
@@ -154,7 +152,10 @@ class ComputationHook(Hook):
                     assert isinstance(data, dict)
                     break
             if "model_with_loss" in data:
-                data["model_with_loss"].to(device=worker_device, non_blocking=True)
+                model_with_loss = data["model_with_loss"]
+                model_with_loss.model.requires_grad_(requires_grad=False)
+                model_with_loss.to(device=worker_device, non_blocking=True)
+                data["model_with_loss"] = model_with_loss
                 data["parameter_list"] = data[
                     "model_with_loss"
                 ].model_util.get_parameter_list(detach=True)
