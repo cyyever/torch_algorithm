@@ -1,8 +1,10 @@
+import copy
 import os
 import threading
 from typing import Any, Callable
 
 import torch
+# from cyy_naive_lib.profiling import Profile
 from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
     TorchProcessTaskQueue
@@ -11,7 +13,7 @@ from cyy_torch_toolbox.tensor import tensor_to
 
 
 class ComputationHook(Hook):
-    _local_data = threading.local()
+    __local_data = threading.local()
 
     def __init__(self, **kwargs):
         if "stripable" not in kwargs:
@@ -23,6 +25,7 @@ class ComputationHook(Hook):
         self.__pending_task_cnt: int = 0
         self.__prev_tasks = []
         self.__result_collection_fun: Callable | None = None
+        self.__last_model_id = None
 
     def set_result_transform(self, f: Callable) -> None:
         self._result_transform = f
@@ -89,17 +92,22 @@ class ComputationHook(Hook):
     def _broadcast_one_shot_data(
         self, batch_index: int, model_with_loss, **kwargs
     ) -> None:
-        # with TimeCounter() as cnt:
-        model_with_loss.model.share_memory()
-        # print("prepare use ", cnt.elapsed_milliseconds())
-
-        task_queue = self._get_task_queue()
-        for worker_id in range(task_queue.worker_num):
-            worker_queue = task_queue.get_worker_queue(worker_id=worker_id)
-            worker_queue.put(
-                (batch_index, kwargs | {"model_with_loss": model_with_loss})
-            )
-        # print("_broadcast_one_shot_data use ", cnt.elapsed_milliseconds())
+        with TimeCounter() as cnt:
+            task_queue = self._get_task_queue()
+            new_kwargs = kwargs
+            print("prepare use ", cnt.elapsed_milliseconds())
+            if self.__last_model_id is None or self.__last_model_id != id(
+                model_with_loss
+            ):
+                model_with_loss.model.share_memory()
+                self.__last_model_id = id(model_with_loss)
+                new_kwargs |= {"model_with_loss": model_with_loss}
+            if not new_kwargs:
+                return
+            for worker_id in range(task_queue.worker_num):
+                worker_queue = task_queue.get_worker_queue(worker_id=worker_id)
+                worker_queue.put((batch_index, new_kwargs))
+            print("_broadcast_one_shot_data use ", cnt.elapsed_milliseconds())
 
     def _before_execute(self, **_):
         self.reset_result()
@@ -116,62 +124,93 @@ class ComputationHook(Hook):
 
     @classmethod
     def _setup_cuda_device(cls, advised_device):
-        worker_device = getattr(cls._local_data, "worker_device", None)
+        worker_device = getattr(cls.__local_data, "worker_device", None)
         if worker_device is None:
             worker_device = advised_device
-            cls._local_data.worker_device = worker_device
-        worker_stream = getattr(cls._local_data, "worker_stream", None)
+            cls.__local_data.worker_device = worker_device
+        worker_stream = getattr(cls.__local_data, "worker_stream", None)
         if worker_stream is None:
             worker_stream = torch.cuda.Stream(device=worker_device)
-            cls._local_data.worker_stream = worker_stream
+            cls.__local_data.worker_stream = worker_stream
         torch.cuda.set_device(worker_device)
         return worker_device, worker_stream
 
     @classmethod
+    def get_cached_item(cls, name: str, value: Any, worker_device) -> Callable:
+        if not hasattr(cls.__local_data, name):
+            value = tensor_to(
+                value,
+                device=worker_device,
+                non_blocking=True,
+            )
+            setattr(cls.__local_data, name, value)
+            return value
+        return getattr(cls.__local_data, name)
+
+    @classmethod
     def get_cached_function(cls, name: str, fun: Callable, worker_device) -> Callable:
-        if not hasattr(cls._local_data, name):
+        if not hasattr(cls.__local_data, name):
             fun = tensor_to(
                 fun,
                 device=worker_device,
                 non_blocking=True,
             )
-            setattr(cls._local_data, name, fun)
+            setattr(cls.__local_data, name, fun)
             return fun
-        return getattr(cls._local_data, name)
+        return getattr(cls.__local_data, name)
 
     @classmethod
     def get_cached_one_shot_data(cls, batch_index, worker_device, worker_queue) -> dict:
+        cnt = TimeCounter()
+        data = getattr(ComputationHook.__local_data, "data", {})
         if (
-            not hasattr(ComputationHook._local_data, "batch_index")
-            or ComputationHook._local_data.batch_index != batch_index
+            not hasattr(ComputationHook.__local_data, "batch_index")
+            or ComputationHook.__local_data.batch_index != batch_index
         ):
-            while True:
+            new_data = {}
+            model_with_loss = None
+            while not worker_queue.empty():
                 res = worker_queue.get()
-                if res[0] == batch_index:
-                    data = res[1]
-                    assert isinstance(data, dict)
-                    break
-            if "model_with_loss" in data:
-                model_with_loss = data["model_with_loss"]
-                model_with_loss.model.requires_grad_(requires_grad=False)
-                model_with_loss.to(device=worker_device, non_blocking=True)
-                data["model_with_loss"] = model_with_loss
+                new_data = res[1]
+                if "model_with_loss" in new_data:
+                    model_with_loss = new_data.pop("model_with_loss")
+                if res[0] < batch_index:
+                    continue
+                break
+            setattr(ComputationHook.__local_data, "batch_index", batch_index)
+            if model_with_loss is not None:
+                setattr(cls.__local_data, "shared_model_with_loss", model_with_loss)
+            assert next(
+                iter(cls.__local_data.shared_model_with_loss.model.parameters())
+            ).is_shared()
+            data["model_with_loss"] = copy.deepcopy(
+                cls.__local_data.shared_model_with_loss
+            )
+            data["model_with_loss"].model.requires_grad_(requires_grad=False)
+            print("copy model_with_loss", cnt.elapsed_milliseconds())
+            # with Profile() as c:
+            if "parameter_shapes" not in data:
+                data[
+                    "parameter_shapes"
+                ] = model_with_loss.model_util.get_parameter_shapes()
+            if "parameter_list" not in data:
                 data["parameter_list"] = data[
                     "model_with_loss"
-                ].model_util.get_parameter_list(detach=True)
-                data["parameter_shapes"] = data[
-                    "model_with_loss"
-                ].model_util.get_parameter_shapes()
-            if "inputs" in data:
-                data["inputs"] = tensor_to(
-                    data["inputs"], device=worker_device, non_blocking=True
-                )
-            if "targets" in data:
-                data["targets"] = tensor_to(
-                    data["targets"], device=worker_device, non_blocking=True
-                )
-            setattr(ComputationHook._local_data, "batch_index", batch_index)
-            setattr(ComputationHook._local_data, "data", data)
-        else:
-            data = getattr(ComputationHook._local_data, "data")
+                ].model_util.get_parameter_list(detach=False)
+            else:
+                a = data["parameter_list"]
+                bias = 0
+                for parameter in data["model_with_loss"].model_util.get_parameter_seq(
+                    detach=False
+                ):
+                    param_element_num = parameter.numel()
+                    a[bias: bias + param_element_num] = parameter.view(-1)
+                    bias += param_element_num
+
+            print("parameter list", cnt.elapsed_milliseconds())
+            if new_data:
+                data |= tensor_to(new_data, device=worker_device, non_blocking=True)
+
+            if data:
+                setattr(ComputationHook.__local_data, "data", data)
         return data
