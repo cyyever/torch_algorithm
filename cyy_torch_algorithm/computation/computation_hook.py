@@ -187,12 +187,14 @@ class ComputationHook(Hook):
                 cls.__local_data.shared_model_with_loss
             )
             data["model_with_loss"].model.requires_grad_(requires_grad=False)
+            data["model_with_loss"].to(device=worker_device)
             print("copy model_with_loss", cnt.elapsed_milliseconds())
             # with Profile() as c:
             if "parameter_shapes" not in data:
                 data[
                     "parameter_shapes"
                 ] = model_with_loss.model_util.get_parameter_shapes()
+
             if "parameter_list" not in data:
                 data["parameter_list"] = data[
                     "model_with_loss"
