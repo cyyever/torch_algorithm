@@ -14,6 +14,7 @@ from cyy_torch_toolbox.tensor import tensor_to
 
 class ComputationHook(Hook):
     __local_data = threading.local()
+    __shared_model = None
 
     def __init__(self, **kwargs):
         if "stripable" not in kwargs:
@@ -99,9 +100,16 @@ class ComputationHook(Hook):
             if self.__last_model_id is None or self.__last_model_id != id(
                 model_with_loss
             ):
-                model_with_loss.model.share_memory()
+                ComputationHook.__shared_model = copy.deepcopy(model_with_loss)
+                ComputationHook.__shared_model.model.zero_grad(set_to_none=True)
+                ComputationHook.__shared_model.model.share_memory()
                 self.__last_model_id = id(model_with_loss)
-                new_kwargs |= {"model_with_loss": model_with_loss}
+                new_kwargs |= {"model_with_loss": ComputationHook.__shared_model}
+            else:
+                shared_state_dict = ComputationHook.__shared_model.model.state_dict()
+                for k, v in model_with_loss.model.state_dict().items():
+                    shared_state_dict[k][:] = v[:]
+
             if not new_kwargs:
                 return
             for worker_id in range(task_queue.worker_num):
