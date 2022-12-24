@@ -2,8 +2,8 @@ import functools
 from typing import Callable
 
 import torch
+from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_algorithm.computation.computation_hook import ComputationHook
-# from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_toolbox.hooks.add_index_to_dataset import AddIndexToDataset
 from cyy_torch_toolbox.tensor import tensor_to
 
@@ -39,6 +39,7 @@ class SampleComputationHook(ComputationHook):
         input_features=None,
         batch_dim=0,
     ):
+        cnt = TimeCounter()
         if input_features is None:
             input_features = [None] * len(sample_indices)
 
@@ -92,7 +93,10 @@ class SampleComputationHook(ComputationHook):
                 processed_targets.append(sample_target)
         if not processed_indices:
             return
-
+        self._broadcast_one_shot_data(
+            batch_index=self.__batch_index, model_with_loss=model_with_loss
+        )
+        print("br use", cnt.elapsed_milliseconds())
         for sample_index, sample_input, sample_input_feature, targrt in zip(
             processed_indices, processed_inputs, processed_features, processed_targets
         ):
@@ -105,9 +109,7 @@ class SampleComputationHook(ComputationHook):
                     targrt,
                 ),
             )
-        self._broadcast_one_shot_data(
-            batch_index=self.__batch_index, model_with_loss=model_with_loss
-        )
+        print("add task use", cnt.elapsed_milliseconds())
         self.__batch_index += 1
 
     def _after_optimizer_step(self, step_skipped: bool, **kwargs) -> None:
