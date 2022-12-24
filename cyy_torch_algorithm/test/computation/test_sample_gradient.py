@@ -33,7 +33,7 @@ def test_CV_sample_gradient():
 
 def test_huggingface_sample_gradient():
     config = DefaultConfig("IMDB", "sequence_classification_distilbert-base-cased")
-    config.hyper_parameter_config.epoch = 1
+    config.hyper_parameter_config.epoch = 2
     config.hyper_parameter_config.batch_size = 8
     config.hyper_parameter_config.learning_rate = 0.01
     config.hyper_parameter_config.find_learning_rate = False
@@ -47,7 +47,7 @@ def test_huggingface_sample_gradient():
     def print_sample_gradients(**kwargs):
         if hook.result_dict:
             print(hook.result_dict)
-            raise StopExecutingException()
+            hook.reset_result()
 
     trainer.append_named_hook(
         ModelExecutorHookPoint.AFTER_FORWARD, "check gradients", print_sample_gradients

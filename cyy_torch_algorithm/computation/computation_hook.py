@@ -14,12 +14,9 @@ from cyy_torch_toolbox.tensor import tensor_to
 
 class ComputationHook(Hook):
     __local_data = threading.local()
-    __shared_model = None
 
     def __init__(self, **kwargs):
-        if "stripable" not in kwargs:
-            kwargs["stripable"] = True
-        super().__init__(**kwargs)
+        super().__init__(stripable=True, **kwargs)
         self.__result_dict = {}
         self.__task_queue: TorchProcessTaskQueue | None = None
         self._result_transform: Callable | None = None
@@ -27,6 +24,7 @@ class ComputationHook(Hook):
         self.__prev_tasks = []
         self.__result_collection_fun: Callable | None = None
         self.__last_model_id = None
+        self.__shared_model = None
 
     def set_result_transform(self, f: Callable) -> None:
         self._result_transform = f
@@ -100,13 +98,13 @@ class ComputationHook(Hook):
             if self.__last_model_id is None or self.__last_model_id != id(
                 model_with_loss
             ):
-                ComputationHook.__shared_model = copy.deepcopy(model_with_loss)
-                ComputationHook.__shared_model.model.zero_grad(set_to_none=True)
-                ComputationHook.__shared_model.model.share_memory()
+                self.__shared_model = copy.deepcopy(model_with_loss)
+                self.__shared_model.model.zero_grad(set_to_none=True)
+                self.__shared_model.model.share_memory()
                 self.__last_model_id = id(model_with_loss)
-                new_kwargs |= {"model_with_loss": ComputationHook.__shared_model}
+                new_kwargs |= {"model_with_loss": self.__shared_model}
             else:
-                shared_state_dict = ComputationHook.__shared_model.model.state_dict()
+                shared_state_dict = self.__shared_model.model.state_dict()
                 for k, v in model_with_loss.model.state_dict().items():
                     shared_state_dict[k][:] = v[:]
 
