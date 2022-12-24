@@ -106,7 +106,7 @@ class ComputationHook(Hook):
             else:
                 shared_state_dict = self.__shared_model.model.state_dict()
                 for k, v in model_with_loss.model.state_dict().items():
-                    shared_state_dict[k][:] = v[:]
+                    shared_state_dict[k].copy_(v)
 
             if not new_kwargs:
                 return
