@@ -40,27 +40,23 @@ class BatchComputationHook(ComputationHook):
     def add_task(self, model_executor, inputs, targets, data, batch_index):
         assert data
         assert not self.has_unfetched_result()
-        for data_idx, data_piece in enumerate(data):
-            self._add_task(
-                task=(batch_index, data_idx, data_piece),
-            )
         self._broadcast_one_shot_data(
             batch_index=batch_index,
             model_with_loss=model_executor.model_with_loss,
             inputs=inputs,
             targets=targets,
         )
-
-    def _after_optimizer_step(self, step_skipped: bool, **kwargs) -> None:
-        if step_skipped:
-            self._drop_result()
+        for data_idx, data_piece in enumerate(data):
+            self._add_task(
+                task=(batch_index, data_idx, data_piece),
+            )
 
     @classmethod
     def common_worker_fun(
         cls, result_transform, worker_fun, tasks, device, worker_queue, **kwargs
     ):
         batch_size = len(tasks)
-        worker_device, worker_stream = ComputationHook._setup_cuda_device(device)
+        worker_device, worker_stream = ComputationHook._setup_device(device)
         batch_index = tasks[0][0]
         data_indices = [task[1] for task in tasks]
         data = [task[2] for task in tasks]
@@ -71,7 +67,7 @@ class BatchComputationHook(ComputationHook):
                 worker_queue=worker_queue,
             )
             data = tensor_to(data, device=worker_device, non_blocking=True)
-            worker_fun = ComputationHook.get_cached_function(
+            worker_fun = ComputationHook.get_cached_item(
                 "worker_fun", worker_fun, worker_device=worker_device
             )
             res = worker_fun(data=data, worker_device=worker_device, **one_shot_data)

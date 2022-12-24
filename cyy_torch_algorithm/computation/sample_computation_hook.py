@@ -112,10 +112,6 @@ class SampleComputationHook(ComputationHook):
         print("add task use", cnt.elapsed_milliseconds())
         self.__batch_index += 1
 
-    def _after_optimizer_step(self, step_skipped: bool, **kwargs) -> None:
-        if step_skipped:
-            self._drop_result()
-
     def _get_sample_computation_fun(self):
         raise NotImplementedError()
 
@@ -146,7 +142,7 @@ class SampleComputationHook(ComputationHook):
         cls, result_transform, worker_fun, tasks, device, worker_queue, **kwargs
     ):
         # counter = TimeCounter()
-        worker_device, worker_stream = ComputationHook._setup_cuda_device(
+        worker_device, worker_stream = ComputationHook._setup_device(
             device,
         )
 
@@ -171,7 +167,7 @@ class SampleComputationHook(ComputationHook):
             is_input_feature = input_features[0] is not None
             if is_input_feature:
                 inputs = input_features
-            worker_fun = ComputationHook.get_cached_function(
+            worker_fun = ComputationHook.get_cached_item(
                 "worker_fun", worker_fun, worker_device=worker_device
             )
             res = worker_fun(
@@ -182,7 +178,7 @@ class SampleComputationHook(ComputationHook):
                 worker_device=worker_device,
                 **model_data,
             )
-            result_transform = ComputationHook.get_cached_function(
+            result_transform = ComputationHook.get_cached_item(
                 "result_transform", result_transform, worker_device=worker_device
             )
             if result_transform is not None:

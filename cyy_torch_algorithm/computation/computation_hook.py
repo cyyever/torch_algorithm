@@ -129,11 +129,13 @@ class ComputationHook(Hook):
             self.__task_queue = None
 
     @classmethod
-    def _setup_cuda_device(cls, advised_device):
+    def _setup_device(cls, advised_device) -> tuple:
         worker_device = getattr(cls.__local_data, "worker_device", None)
         if worker_device is None:
             worker_device = advised_device
             cls.__local_data.worker_device = worker_device
+        if not torch.cuda.is_available():
+            return worker_device, None
         worker_stream = getattr(cls.__local_data, "worker_stream", None)
         if worker_stream is None:
             worker_stream = torch.cuda.Stream(device=worker_device)
@@ -142,7 +144,7 @@ class ComputationHook(Hook):
         return worker_device, worker_stream
 
     @classmethod
-    def get_cached_item(cls, name: str, value: Any, worker_device) -> Callable:
+    def get_cached_item(cls, name: str, value: Any, worker_device) -> Any:
         if not hasattr(cls.__local_data, name):
             value = tensor_to(
                 value,
@@ -153,17 +155,9 @@ class ComputationHook(Hook):
             return value
         return getattr(cls.__local_data, name)
 
-    @classmethod
-    def get_cached_function(cls, name: str, fun: Callable, worker_device) -> Callable:
-        if not hasattr(cls.__local_data, name):
-            fun = tensor_to(
-                fun,
-                device=worker_device,
-                non_blocking=True,
-            )
-            setattr(cls.__local_data, name, fun)
-            return fun
-        return getattr(cls.__local_data, name)
+    def _after_optimizer_step(self, step_skipped: bool, **kwargs) -> None:
+        if step_skipped:
+            self._drop_result()
 
     @classmethod
     def get_cached_one_shot_data(cls, batch_index, worker_device, worker_queue) -> dict:
