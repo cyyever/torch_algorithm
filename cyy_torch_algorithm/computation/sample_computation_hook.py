@@ -5,7 +5,7 @@ import torch
 from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_algorithm.computation.computation_hook import ComputationHook
 from cyy_torch_toolbox.hooks.add_index_to_dataset import AddIndexToDataset
-from cyy_torch_toolbox.tensor import tensor_to
+from cyy_torch_toolbox.tensor import recursive_tensor_op, tensor_to
 
 
 class SampleComputationHook(ComputationHook):
@@ -130,7 +130,7 @@ class SampleComputationHook(ComputationHook):
             inputs, batch_dim, input_features = model_executor.split_batch_input(
                 inputs=inputs, targets=targets, input_features=input_features
             )
-            model_with_loss = (model_executor.model_with_loss,)
+            model_with_loss = model_executor.model_with_loss
         else:
             model_with_loss = kwargs["model_with_loss"]
             batch_dim = 0
@@ -198,15 +198,14 @@ class SampleComputationHook(ComputationHook):
                         input_feature=input_feature,
                         target=target,
                     )
-        for k, v in res.items():
-            if isinstance(v, torch.Tensor):
-                if v.numel() == 1:
-                    res[k] = v.item()
-            if isinstance(v, dict):
-                for k2, v2 in v.items():
-                    if v2.numel() == 1:
-                        v[k2] = v2.item()
-        # get_logger().error("use %s ms", counter.elapsed_milliseconds())
+
+        def result_transform2(tensor, **kwargs):
+            if tensor.numel() == 1:
+                return tensor.item()
+            tensor.share_memory_()
+            return tensor
+
+        res = recursive_tensor_op(res, result_transform2)
         return batch_size, res
 
 

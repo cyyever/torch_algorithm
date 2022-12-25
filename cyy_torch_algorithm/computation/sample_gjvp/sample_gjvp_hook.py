@@ -5,7 +5,6 @@ import torch.cuda
 from cyy_torch_algorithm.computation.evaluation import eval_model
 from cyy_torch_algorithm.computation.sample_computation_hook import \
     SampleComputationHook
-from cyy_torch_toolbox.tensor import tensor_to
 from functorch import grad, jvp, vmap
 
 
