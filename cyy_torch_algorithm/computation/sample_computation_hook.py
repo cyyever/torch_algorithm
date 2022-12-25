@@ -9,9 +9,10 @@ from cyy_torch_toolbox.tensor import tensor_to
 
 
 class SampleComputationHook(ComputationHook):
-    def __init__(self, **kwargs):
+    def __init__(self, add_index=True, **kwargs):
         super().__init__(**kwargs)
-        self.dataset_index_hook = AddIndexToDataset()
+        if add_index:
+            self.dataset_index_hook = AddIndexToDataset()
         self.__sample_selector = None
         self.__input_transform: Callable | None = None
         self.__batch_index = 0
