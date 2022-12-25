@@ -126,11 +126,16 @@ class SampleComputationHook(ComputationHook):
     def _after_forward(
         self, model_executor, inputs, input_features, targets, sample_indices, **kwargs
     ):
-        inputs, batch_dim, input_features = model_executor.split_batch_input(
-            inputs=inputs, targets=targets, input_features=input_features
-        )
+        if model_executor is not None:
+            inputs, batch_dim, input_features = model_executor.split_batch_input(
+                inputs=inputs, targets=targets, input_features=input_features
+            )
+            model_with_loss = (model_executor.model_with_loss,)
+        else:
+            model_with_loss = kwargs["model_with_loss"]
+            batch_dim = 0
         self.add_task(
-            model_with_loss=model_executor.model_with_loss,
+            model_with_loss=model_with_loss,
             sample_indices=sample_indices.tolist(),
             inputs=inputs,
             input_features=input_features,
