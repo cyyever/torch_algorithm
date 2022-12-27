@@ -1,4 +1,3 @@
-import copy
 import functools
 
 import torch
@@ -21,9 +20,10 @@ def batch_hvp_worker_fun(
     parameter_list,
     parameter_shapes,
 ):
-    # time_counter = TimeCounter()
+    time_counter = TimeCounter()
     vectors = data
 
+    # phase=MachineLearningPhase.Test,
     def hvp_wrapper(vector):
         f = functools.partial(
             eval_model,
@@ -31,7 +31,6 @@ def batch_hvp_worker_fun(
             targets=targets,
             device=worker_device,
             model_with_loss=model_with_loss,
-            phase=MachineLearningPhase.Test,
             parameter_shapes=parameter_shapes,
             non_blocking=True,
         )

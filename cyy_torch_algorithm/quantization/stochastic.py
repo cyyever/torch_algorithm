@@ -12,19 +12,9 @@ class StochasticQuant:
         self.use_l2_norm = use_l2_norm
 
     def __call__(self, data):
-        if not data:
-            return data
-        match data:
-            case tuple():
-                if not isinstance(data[0], torch.Tensor):
-                    return tuple(self.__call__(v) for v in data)
-            case list():
-                if not isinstance(data[0], torch.Tensor):
-                    return [self.__call__(v) for v in data]
-            case dict():
-                if not isinstance(next(iter(data.values())), torch.Tensor):
-                    return {k: self.__call__(v) for k, v in data.items()}
         tensor, shapes = assemble_tensors(data)
+        if tensor is None:
+            return data
 
         old_tensor_shape = tensor.shape
         tensor = tensor.reshape(-1)
@@ -62,7 +52,7 @@ class StochasticDequant:
         match data:
             case dict():
                 if "quantization_level" not in data:
-                    return {k: self.__call__(v) for k, v in data.items()}
+                    return data
                 norm = data["norm"]
                 sign_tensor = data["sign"]
                 quantized_tensor = data["slot"]
