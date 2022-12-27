@@ -71,7 +71,6 @@ class StochasticDequant:
             * sign_tensor.to(quantized_tensor.device)
             / quantization_level
         )
-
         return disassemble_tensor(res, name_and_shapes)
 
 
