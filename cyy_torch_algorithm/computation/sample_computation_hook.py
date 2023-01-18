@@ -4,15 +4,12 @@ from typing import Callable
 import torch
 from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_algorithm.computation.computation_hook import ComputationHook
-from cyy_torch_toolbox.hooks.add_index_to_dataset import AddIndexToDataset
 from cyy_torch_toolbox.tensor import recursive_tensor_op, tensor_to
 
 
 class SampleComputationHook(ComputationHook):
-    def __init__(self, add_index=True, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        if add_index:
-            self.dataset_index_hook = AddIndexToDataset()
         self.__sample_selector = None
         self.__input_transform: Callable | None = None
         self.__batch_index = 0
