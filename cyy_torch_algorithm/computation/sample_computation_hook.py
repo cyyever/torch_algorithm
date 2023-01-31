@@ -121,7 +121,13 @@ class SampleComputationHook(ComputationHook):
         )
 
     def _after_forward(
-        self, model_executor, inputs, input_features, targets, sample_indices, **kwargs
+        self,
+        model_executor,
+        inputs,
+        targets,
+        sample_indices,
+        input_features=None,
+        **kwargs
     ):
         if model_executor is not None:
             inputs, batch_dim, input_features = model_executor.split_batch_input(
