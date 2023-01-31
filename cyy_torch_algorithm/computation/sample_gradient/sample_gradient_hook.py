@@ -99,5 +99,5 @@ def get_sample_gradient_dict(
 
 def get_sample_gradient_product_dict(vector, **kwargs):
     return get_sample_gradient_dict(
-        result_transform=functools.partial(sample_dot_product, vector=vector)
+        result_transform=functools.partial(sample_dot_product, vector=vector), **kwargs
     )
