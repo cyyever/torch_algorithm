@@ -76,7 +76,7 @@ def get_sample_gradient_dict(
     result_collection_fun=None,
 ) -> dict | None:
     tmp_inferencer = copy.deepcopy(inferencer)
-    tmp_inferencer.disable_logger()
+    tmp_inferencer.disable_hook("logger")
     hook = SampleGradientHook()
     if computed_indices is not None:
         hook.set_computed_indices(computed_indices)
