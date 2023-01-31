@@ -38,7 +38,6 @@ class BatchComputationHook(ComputationHook):
         )
 
     def add_task(self, model_executor, inputs, targets, data, batch_index):
-        assert data
         assert not self.has_unfetched_result()
         self._broadcast_one_shot_data(
             batch_index=batch_index,
