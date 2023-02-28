@@ -2,13 +2,16 @@ import functools
 
 import torch
 import torch.cuda
-from cyy_naive_lib.log import get_logger
 from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_algorithm.computation.batch_computation_hook import \
     BatchComputationHook
 from cyy_torch_algorithm.computation.evaluation import eval_model
 from cyy_torch_toolbox.ml_type import MachineLearningPhase
-from torch.func import grad, jvp, vmap
+
+try:
+    from torch.func import grad, jvp, vmap
+except BaseException:
+    from functorch import grad, jvp, vmap
 
 
 def batch_hvp_worker_fun(

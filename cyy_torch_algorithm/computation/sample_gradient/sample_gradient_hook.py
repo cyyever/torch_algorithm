@@ -5,7 +5,11 @@ import torch
 from cyy_torch_algorithm.computation.evaluation import eval_model
 from cyy_torch_algorithm.computation.sample_computation_hook import (
     SampleComputationHook, sample_dot_product)
-from torch.func import grad, vmap
+
+try:
+    from torch.func import grad, vmap
+except BaseException:
+    from functorch import grad, vmap
 
 
 def sample_gradient_worker_fun(

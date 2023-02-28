@@ -5,7 +5,11 @@ import torch.cuda
 from cyy_torch_algorithm.computation.evaluation import eval_model
 from cyy_torch_algorithm.computation.sample_computation_hook import \
     SampleComputationHook
-from torch.func import grad, jvp, vmap
+
+try:
+    from torch.func import grad, jvp, vmap
+except BaseException:
+    from functorch import grad, jvp, vmap
 
 
 def sample_gjvp_worker_fun(
