@@ -4,8 +4,7 @@ import torch.nn as nn
 from cyy_torch_algorithm.computation.sample_gvjp.sample_gvjp_hook import \
     SampleGradientVJPHook
 from cyy_torch_toolbox.default_config import DefaultConfig
-from cyy_torch_toolbox.ml_type import (ModelExecutorHookPoint,
-                                       StopExecutingException)
+from cyy_torch_toolbox.ml_type import ExecutorHookPoint, StopExecutingException
 
 
 def test_CV_vjp():
@@ -25,7 +24,7 @@ def test_CV_vjp():
             raise StopExecutingException()
 
     trainer.append_named_hook(
-        ModelExecutorHookPoint.AFTER_FORWARD, "check gradients", print_result
+        ExecutorHookPoint.AFTER_FORWARD, "check gradients", print_result
     )
     trainer.train()
     hook.release_queue()

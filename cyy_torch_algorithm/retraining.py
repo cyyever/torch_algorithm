@@ -1,7 +1,7 @@
 import math
 
 from cyy_torch_toolbox.default_config import DefaultConfig
-from cyy_torch_toolbox.ml_type import ModelExecutorHookPoint
+from cyy_torch_toolbox.ml_type import ExecutorHookPoint
 from cyy_torch_toolbox.reproducible_env import global_reproducible_env
 
 
@@ -41,7 +41,7 @@ class DeterministicTraining:
                 raise RuntimeError("not in reproducible training")
 
         trainer.append_named_hook(
-            ModelExecutorHookPoint.AFTER_EPOCH,
+            ExecutorHookPoint.AFTER_EPOCH,
             "validate_reproducibility",
             validate_reproducibility,
             stripable=True,

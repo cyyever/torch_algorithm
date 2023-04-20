@@ -4,8 +4,7 @@
 from cyy_torch_algorithm.computation.sample_gradient.sample_gradient_hook import \
     SampleGradientHook
 from cyy_torch_toolbox.default_config import DefaultConfig
-from cyy_torch_toolbox.ml_type import (ModelExecutorHookPoint,
-                                       StopExecutingException)
+from cyy_torch_toolbox.ml_type import ExecutorHookPoint, StopExecutingException
 
 
 def test_CV_sample_gradient():
@@ -25,7 +24,7 @@ def test_CV_sample_gradient():
             hook.reset_result()
 
     trainer.append_named_hook(
-        ModelExecutorHookPoint.AFTER_FORWARD, "check gradients", print_sample_gradients
+        ExecutorHookPoint.AFTER_FORWARD, "check gradients", print_sample_gradients
     )
     trainer.train()
     hook.release_queue()
@@ -50,7 +49,7 @@ def test_huggingface_sample_gradient():
             hook.reset_result()
 
     trainer.append_named_hook(
-        ModelExecutorHookPoint.AFTER_FORWARD, "check gradients", print_sample_gradients
+        ExecutorHookPoint.AFTER_FORWARD, "check gradients", print_sample_gradients
     )
     trainer.train()
     hook.release_queue()

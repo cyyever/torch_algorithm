@@ -6,8 +6,7 @@ from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_algorithm.computation.batch_hvp.batch_hvp_hook import \
     BatchHVPHook
 from cyy_torch_toolbox.default_config import DefaultConfig
-from cyy_torch_toolbox.ml_type import (ModelExecutorHookPoint,
-                                       StopExecutingException)
+from cyy_torch_toolbox.ml_type import ExecutorHookPoint, StopExecutingException
 
 
 def test_CV_jvp():
@@ -22,7 +21,7 @@ def test_CV_jvp():
 
     time_counter = TimeCounter(debug_logging=False)
     trainer.append_named_hook(
-        ModelExecutorHookPoint.AFTER_FORWARD,
+        ExecutorHookPoint.AFTER_FORWARD,
         "reset_time",
         lambda **kwargs: time_counter.reset_start_time()
         and get_logger().error("begin count time"),
@@ -44,7 +43,7 @@ def test_CV_jvp():
             raise StopExecutingException()
 
     trainer.append_named_hook(
-        ModelExecutorHookPoint.AFTER_FORWARD, "check results", print_products
+        ExecutorHookPoint.AFTER_FORWARD, "check results", print_products
     )
     v = torch.ones_like(parameter_vector).view(-1).to(device="cuda:0")
     hook.set_vectors([v * (i + 1) for i in range(100)])
