@@ -41,7 +41,7 @@ def test_CV_jvp():
 #     config.hyper_parameter_config.find_learning_rate = False
 #     trainer = config.create_trainer()
 #     trainer.model_util.cache_buffer_names()
-#     trainer.model_with_loss.need_input_features = True
+#     trainer.model_evaluator.need_input_features = True
 #     trainer.model_util.freeze_modules(module_type=torch.nn.Embedding)
 #     hook = SampleGradientJVPHook()
 #     hook.set_vector(torch.ones((1, 100 * 300)).view(-1))
@@ -54,6 +54,6 @@ def test_CV_jvp():
 #             raise StopExecutingException()
 
 #     trainer.append_named_hook(
-#         ModelExecutorHookPoint.AFTER_BATCH, "check results", print_result
+# ExecutorHookPoint.AFTER_BATCH, "check results", print_result
 #     )
 #     trainer.train()

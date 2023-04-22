@@ -14,7 +14,7 @@ except BaseException:
 
 def sample_gjvp_worker_fun(
     vector,
-    model_with_loss,
+    model_evaluator,
     parameter_list,
     parameter_shapes,
     sample_indices,
@@ -33,7 +33,7 @@ def sample_gjvp_worker_fun(
             inputs=input_tensor,
             targets=target,
             device=worker_device,
-            model_with_loss=model_with_loss,
+            model_evaluator=model_evaluator,
             input_shape=inputs[0].shape,
             parameter_shapes=parameter_shapes,
             is_input_feature=is_input_feature,

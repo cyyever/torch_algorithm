@@ -30,7 +30,7 @@ class SampleComputationHook(ComputationHook):
 
     def add_task(
         self,
-        model_with_loss,
+        model_evaluator,
         sample_indices,
         inputs,
         targets,
@@ -92,7 +92,7 @@ class SampleComputationHook(ComputationHook):
         if not processed_indices:
             return
         self._broadcast_one_shot_data(
-            batch_index=self.__batch_index, model_with_loss=model_with_loss
+            batch_index=self.__batch_index, model_evaluator=model_evaluator
         )
         print("br use", cnt.elapsed_milliseconds())
         for sample_index, sample_input, sample_input_feature, targrt in zip(
@@ -133,12 +133,12 @@ class SampleComputationHook(ComputationHook):
             inputs, batch_dim, input_features = model_executor.split_batch_input(
                 inputs=inputs, targets=targets, input_features=input_features
             )
-            model_with_loss = model_executor.model_with_loss
+            model_evaluator = model_executor.model_evaluator
         else:
-            model_with_loss = kwargs["model_with_loss"]
+            model_evaluator = kwargs["model_evaluator"]
             batch_dim = 0
         self.add_task(
-            model_with_loss=model_with_loss,
+            model_evaluator=model_evaluator,
             sample_indices=sample_indices.tolist(),
             inputs=inputs,
             input_features=input_features,

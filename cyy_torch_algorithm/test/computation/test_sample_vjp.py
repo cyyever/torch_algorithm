@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 import torch
-import torch.nn as nn
 from cyy_torch_algorithm.computation.sample_gvjp.sample_gvjp_hook import \
     SampleGradientVJPHook
 from cyy_torch_toolbox.default_config import DefaultConfig
 from cyy_torch_toolbox.ml_type import ExecutorHookPoint, StopExecutingException
+from torch import nn
 
 
 def test_CV_vjp():
@@ -41,7 +41,7 @@ def test_NLP_vjp():
     config.hyper_parameter_config.find_learning_rate = False
     trainer = config.create_trainer()
     trainer.model_util.freeze_modules(module_type=nn.Embedding)
-    trainer.model_with_loss.need_input_features = True
+    trainer.model_evaluator.need_input_features = True
     hook = SampleGradientVJPHook()
     hook.set_vector(torch.ones_like(trainer.model_util.get_parameter_list()).view(-1))
     trainer.append_hook(hook)
@@ -53,6 +53,6 @@ def test_NLP_vjp():
             raise StopExecutingException()
 
     trainer.append_named_hook(
-        ModelExecutorHookPoint.AFTER_BATCH, "check gradients", print_result
+        ExecutorHookPoint.AFTER_BATCH, "check gradients", print_result
     )
     trainer.train()

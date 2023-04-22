@@ -15,7 +15,7 @@ except BaseException:
 
 
 def batch_hvp_worker_fun(
-    model_with_loss,
+    model_evaluator,
     inputs,
     targets,
     data,
@@ -33,7 +33,7 @@ def batch_hvp_worker_fun(
             inputs=inputs,
             targets=targets,
             device=worker_device,
-            model_with_loss=model_with_loss,
+            model_evaluator=model_evaluator,
             parameter_shapes=parameter_shapes,
             non_blocking=True,
         )

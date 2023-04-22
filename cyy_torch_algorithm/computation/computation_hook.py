@@ -89,23 +89,23 @@ class ComputationHook(Hook):
         self._get_task_queue().add_task(task)
 
     def _broadcast_one_shot_data(
-        self, batch_index: int, model_with_loss, **kwargs
+        self, batch_index: int, model_evaluator, **kwargs
     ) -> None:
         with TimeCounter() as cnt:
             task_queue = self._get_task_queue()
             new_kwargs = kwargs
             print("prepare use ", cnt.elapsed_milliseconds())
             if self.__last_model_id is None or self.__last_model_id != id(
-                model_with_loss
+                model_evaluator
             ):
-                self.__shared_model = copy.deepcopy(model_with_loss)
+                self.__shared_model = copy.deepcopy(model_evaluator)
                 self.__shared_model.model.zero_grad(set_to_none=True)
                 self.__shared_model.model.share_memory()
-                self.__last_model_id = id(model_with_loss)
-                new_kwargs |= {"model_with_loss": self.__shared_model}
+                self.__last_model_id = id(model_evaluator)
+                new_kwargs |= {"model_evaluator": self.__shared_model}
             else:
                 shared_state_dict = self.__shared_model.model.state_dict()
-                for k, v in model_with_loss.model.state_dict().items():
+                for k, v in model_evaluator.model.state_dict().items():
                     shared_state_dict[k].copy_(v)
 
             if not new_kwargs:
@@ -168,41 +168,41 @@ class ComputationHook(Hook):
             or ComputationHook.__local_data.batch_index != batch_index
         ):
             new_data = {}
-            model_with_loss = None
+            model_evaluator = None
             while not worker_queue.empty():
                 res = worker_queue.get()
                 new_data = res[1]
-                if "model_with_loss" in new_data:
-                    model_with_loss = new_data.pop("model_with_loss")
+                if "model_evaluator" in new_data:
+                    model_evaluator = new_data.pop("model_evaluator")
                 if res[0] < batch_index:
                     continue
                 break
             setattr(ComputationHook.__local_data, "batch_index", batch_index)
-            if model_with_loss is not None:
-                setattr(cls.__local_data, "shared_model_with_loss", model_with_loss)
+            if model_evaluator is not None:
+                setattr(cls.__local_data, "shared_model_evaluator", model_evaluator)
             assert next(
-                iter(cls.__local_data.shared_model_with_loss.model.parameters())
+                iter(cls.__local_data.shared_model_evaluator.model.parameters())
             ).is_shared()
-            data["model_with_loss"] = copy.deepcopy(
-                cls.__local_data.shared_model_with_loss
+            data["model_evaluator"] = copy.deepcopy(
+                cls.__local_data.shared_model_evaluator
             )
-            data["model_with_loss"].model.requires_grad_(requires_grad=False)
-            data["model_with_loss"].to(device=worker_device)
-            print("copy model_with_loss", cnt.elapsed_milliseconds())
+            data["model_evaluator"].model.requires_grad_(requires_grad=False)
+            data["model_evaluator"].to(device=worker_device)
+            print("copy model_evaluator", cnt.elapsed_milliseconds())
             # with Profile() as c:
             if "parameter_shapes" not in data:
                 data[
                     "parameter_shapes"
-                ] = model_with_loss.model_util.get_parameter_shapes()
+                ] = model_evaluator.model_util.get_parameter_shapes()
 
             if "parameter_list" not in data:
                 data["parameter_list"] = data[
-                    "model_with_loss"
+                    "model_evaluator"
                 ].model_util.get_parameter_list(detach=False)
             else:
                 a = data["parameter_list"]
                 bias = 0
-                for parameter in data["model_with_loss"].model_util.get_parameter_seq(
+                for parameter in data["model_evaluator"].model_util.get_parameter_seq(
                     detach=False
                 ):
                     param_element_num = parameter.numel()

@@ -41,7 +41,7 @@ class BatchComputationHook(ComputationHook):
         assert not self.has_unfetched_result()
         self._broadcast_one_shot_data(
             batch_index=batch_index,
-            model_with_loss=model_executor.model_with_loss,
+            model_evaluator=model_executor.model_evaluator,
             inputs=inputs,
             targets=targets,
         )

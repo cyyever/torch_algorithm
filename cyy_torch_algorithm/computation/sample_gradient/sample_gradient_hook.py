@@ -13,7 +13,7 @@ except BaseException:
 
 
 def sample_gradient_worker_fun(
-    model_with_loss,
+    model_evaluator,
     parameter_list,
     parameter_shapes,
     sample_indices,
@@ -35,7 +35,7 @@ def sample_gradient_worker_fun(
             eval_model,
             targets=target,
             device=worker_device,
-            model_with_loss=model_with_loss,
+            model_evaluator=model_evaluator,
             parameter_shapes=parameter_shapes,
             non_blocking=True,
             **input_kwargs

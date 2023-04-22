@@ -3,7 +3,7 @@ from cyy_torch_toolbox.ml_type import MachineLearningPhase
 
 def eval_model(
     parameter_list,
-    model_with_loss,
+    model_evaluator,
     targets,
     device=None,
     inputs=None,
@@ -14,7 +14,7 @@ def eval_model(
     parameter_shapes=None,
     **kwargs
 ):
-    model_with_loss.model_util.load_parameter_list(
+    model_evaluator.model_util.load_parameter_list(
         parameter_list.to(device, non_blocking=non_blocking),
         check_parameter=False,
         as_parameter=False,
@@ -38,4 +38,4 @@ def eval_model(
         else:
             kwargs["inputs"] = inputs
 
-    return model_with_loss(**kwargs)["loss"]
+    return model_evaluator(**kwargs)["loss"]

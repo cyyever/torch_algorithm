@@ -39,8 +39,8 @@ class QuantizationAwareTraining(Hook):
         quant_model.train()
         quant_model = torch.ao.quantization.prepare_qat(quant_model)
         get_logger().debug("quant_model is %s", quant_model)
-        trainer.set_model_with_loss(
-            trainer.model_with_loss.replace_model(model=quant_model)
+        trainer.set_model_evaluator(
+            trainer.model_evaluator.replace_model(model=quant_model)
         )
         trainer.remove_optimizer()
 
