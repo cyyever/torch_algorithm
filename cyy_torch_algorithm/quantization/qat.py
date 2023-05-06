@@ -17,7 +17,7 @@ class QuantizationAwareTraining(Hook):
         self.__trainer = None
 
     def _before_execute(self, **kwargs):
-        trainer = kwargs["model_executor"]
+        trainer = kwargs["executor"]
         self.__prepare_quantization(trainer)
 
     def __prepare_quantization(self, trainer: Trainer) -> None:

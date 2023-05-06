@@ -14,13 +14,13 @@ class BatchComputationHook(ComputationHook):
     def set_data_fun(self, data_fun):
         self.__data_fun = data_fun
 
-    def _after_forward(self, model_executor, inputs, targets, batch_index, **kwargs):
+    def _after_forward(self, executor, inputs, targets, batch_index, **kwargs):
         assert self.__data_fun is not None
         data = self.__data_fun()
         if data is None:
             return
         self.add_task(
-            model_executor=model_executor,
+            executor=executor,
             inputs=inputs,
             targets=targets,
             data=data,
@@ -37,11 +37,11 @@ class BatchComputationHook(ComputationHook):
             self._get_batch_computation_fun(),
         )
 
-    def add_task(self, model_executor, inputs, targets, data, batch_index):
+    def add_task(self, executor, inputs, targets, data, batch_index):
         assert not self.has_unfetched_result()
         self._broadcast_one_shot_data(
             batch_index=batch_index,
-            model_evaluator=model_executor.model_evaluator,
+            model_evaluator=executor.model_evaluator,
             inputs=inputs,
             targets=targets,
         )
