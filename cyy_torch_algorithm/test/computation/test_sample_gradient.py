@@ -28,7 +28,9 @@ def test_CV_sample_gradient():
 
 
 def test_huggingface_sample_gradient():
-    config = DefaultConfig("IMDB", "sequence_classification_distilbert-base-cased")
+    config = DefaultConfig(
+        "IMDB", "hugging_face_sequence_classification_distilbert-base-cased"
+    )
     config.hyper_parameter_config.epoch = 2
     config.hyper_parameter_config.batch_size = 8
     config.hyper_parameter_config.learning_rate = 0.01
