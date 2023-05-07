@@ -1,10 +1,7 @@
-#!/usr/bin/env python3
-
-
 from cyy_torch_algorithm.computation.sample_gradient.sample_gradient_hook import \
     SampleGradientHook
 from cyy_torch_toolbox.default_config import DefaultConfig
-from cyy_torch_toolbox.ml_type import ExecutorHookPoint, StopExecutingException
+from cyy_torch_toolbox.ml_type import ExecutorHookPoint
 
 
 def test_CV_sample_gradient():
@@ -36,7 +33,7 @@ def test_huggingface_sample_gradient():
     config.hyper_parameter_config.batch_size = 8
     config.hyper_parameter_config.learning_rate = 0.01
     config.hyper_parameter_config.find_learning_rate = False
-    config.model_config.model_kwargs = {"n_layers": 1}
+    config.model_config.model_kwargs = {"n_layers": 1, "max_len": 100}
     config.dc_config.dataset_kwargs = {"max_len": 100}
     trainer = config.create_trainer()
     hook = SampleGradientHook()

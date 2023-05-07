@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import torch
 from cyy_torch_algorithm.computation.sample_gvjp.sample_gvjp_hook import \
     SampleGradientVJPHook
@@ -32,6 +31,7 @@ def test_CV_vjp():
 
 def test_NLP_vjp():
     config = DefaultConfig("IMDB", "TransformerClassificationModel")
+    config.dc_config.dataset_kwargs["max_len"] = 300
     config.model_config.model_kwargs["max_len"] = 300
     config.model_config.model_kwargs["d_model"] = 100
     config.model_config.model_kwargs["nhead"] = 5

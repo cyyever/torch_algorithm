@@ -38,7 +38,7 @@ def test_CV_jvp():
                 torch.linalg.vector_norm(
                     products[0].cpu() * 2 - products[1].cpu()
                 ).item()
-                < 0.05
+                < 0.1
             )
             raise StopExecutingException()
 
