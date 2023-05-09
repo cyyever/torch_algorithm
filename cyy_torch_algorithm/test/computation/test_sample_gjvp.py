@@ -36,6 +36,7 @@ def test_CV_jvp():
 #     config.model_config.model_kwargs["d_model"] = 100
 #     config.model_config.model_kwargs["nhead"] = 5
 #     config.model_config.model_kwargs["num_encoder_layer"] = 1
+#     config.dc_config.dataset_kwargs["max_len"] = 300
 #     config.hyper_parameter_config.epoch = 1
 #     config.hyper_parameter_config.learning_rate = 0.1
 #     config.hyper_parameter_config.find_learning_rate = False
@@ -54,6 +55,6 @@ def test_CV_jvp():
 #             raise StopExecutingException()
 
 #     trainer.append_named_hook(
-# ExecutorHookPoint.AFTER_BATCH, "check results", print_result
+#         ExecutorHookPoint.AFTER_BATCH, "check results", print_result
 #     )
 #     trainer.train()
