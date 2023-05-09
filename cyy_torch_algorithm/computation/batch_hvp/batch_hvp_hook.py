@@ -2,11 +2,9 @@ import functools
 
 import torch
 import torch.cuda
-from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_algorithm.computation.batch_computation_hook import \
     BatchComputationHook
 from cyy_torch_algorithm.computation.evaluation import eval_model
-from cyy_torch_toolbox.ml_type import MachineLearningPhase
 
 try:
     from torch.func import grad, jvp, vmap
@@ -23,10 +21,8 @@ def batch_hvp_worker_fun(
     parameter_list,
     parameter_shapes,
 ):
-    time_counter = TimeCounter()
     vectors = data
 
-    # phase=MachineLearningPhase.Test,
     def hvp_wrapper(vector):
         f = functools.partial(
             eval_model,

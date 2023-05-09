@@ -54,6 +54,7 @@ class ComputationHook(Hook):
 
     def __fetch_result(self, drop: bool = False) -> dict:
         results: dict = {}
+        assert self.__pending_task_cnt >= 0
         while self.has_unfetched_result():
             assert self.__task_queue is not None
             res = self.__task_queue.get_data()
@@ -116,17 +117,22 @@ class ComputationHook(Hook):
             )
 
     def _before_execute(self, **_):
-        self.reset_result()
+        self.reset()
 
     def __del__(self):
-        self.release_queue()
+        self.reset()
 
-    def release_queue(self) -> None:
+    def release_queue(self):
+        self.reset()
+
+    def reset(self) -> None:
         assert not self.has_unfetched_result()
         self.reset_result()
+        self.__prev_tasks = []
         if self.__task_queue is not None:
             self.__task_queue.release()
             self.__task_queue = None
+        self.__shared_model = None
 
     @classmethod
     def _setup_device(cls, advised_device) -> tuple:
