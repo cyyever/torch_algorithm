@@ -4,27 +4,28 @@ import threading
 from typing import Any, Callable
 
 import torch
+from cyy_naive_lib.log import get_logger
 # from cyy_naive_lib.profiling import Profile
 from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
     TorchProcessTaskQueue
 from cyy_torch_toolbox.hook import Hook
+from cyy_torch_toolbox.model_evaluator import ModelEvaluator
 from cyy_torch_toolbox.tensor import tensor_to
 
 
 class ComputationHook(Hook):
     __local_data = threading.local()
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         super().__init__(stripable=True, **kwargs)
-        self.__result_dict = {}
+        self.__result_dict: dict = {}
         self.__task_queue: TorchProcessTaskQueue | None = None
         self._result_transform: Callable | None = None
         self.__pending_task_cnt: int = 0
-        self.__prev_tasks = []
+        self.__prev_tasks: list = []
         self.__result_collection_fun: Callable | None = None
-        self.__last_model_id = None
-        self.__shared_model = None
+        self.__shared_model: None | ModelEvaluator = None
 
     def set_result_transform(self, f: Callable) -> None:
         self._result_transform = f
@@ -42,8 +43,7 @@ class ComputationHook(Hook):
 
     @property
     def result_dict(self) -> dict:
-        results = self.__fetch_result()
-        self.__result_dict |= results
+        self.__result_dict |= self.__fetch_result()
         return self.__result_dict
 
     def has_unfetched_result(self):
@@ -55,6 +55,7 @@ class ComputationHook(Hook):
     def __fetch_result(self, drop: bool = False) -> dict:
         results: dict = {}
         while self.has_unfetched_result():
+            assert self.__task_queue is not None
             res = self.__task_queue.get_data()
             self.__pending_task_cnt -= res[0]
             assert self.__pending_task_cnt >= 0
@@ -73,7 +74,6 @@ class ComputationHook(Hook):
                 worker_num = int(worker_num)
             self.__task_queue = TorchProcessTaskQueue(
                 worker_fun=self._get_worker_fun(),
-                send_tensor_in_cpu=False,
                 use_manager=False,
                 worker_num=worker_num,
                 use_worker_queue=True,
@@ -94,16 +94,14 @@ class ComputationHook(Hook):
         with TimeCounter() as cnt:
             task_queue = self._get_task_queue()
             new_kwargs = kwargs
-            print("prepare use ", cnt.elapsed_milliseconds())
-            if self.__last_model_id is None or self.__last_model_id != id(
-                model_evaluator
-            ):
+            if self.__shared_model is None:
                 self.__shared_model = copy.deepcopy(model_evaluator)
                 self.__shared_model.model.zero_grad(set_to_none=True)
+                self.__shared_model.model.requires_grad_(requires_grad=False)
                 self.__shared_model.model.share_memory()
-                self.__last_model_id = id(model_evaluator)
                 new_kwargs |= {"model_evaluator": self.__shared_model}
             else:
+                assert self.__shared_model is not None
                 shared_state_dict = self.__shared_model.model.state_dict()
                 for k, v in model_evaluator.model.state_dict().items():
                     shared_state_dict[k].copy_(v)
@@ -113,7 +111,9 @@ class ComputationHook(Hook):
             for worker_id in range(task_queue.worker_num):
                 worker_queue = task_queue.get_worker_queue(worker_id=worker_id)
                 worker_queue.put((batch_index, new_kwargs))
-            print("_broadcast_one_shot_data use ", cnt.elapsed_milliseconds())
+            get_logger().debug(
+                "_broadcast_one_shot_data use %s", cnt.elapsed_milliseconds()
+            )
 
     def _before_execute(self, **_):
         self.reset_result()
@@ -161,58 +161,49 @@ class ComputationHook(Hook):
 
     @classmethod
     def get_cached_one_shot_data(cls, batch_index, worker_device, worker_queue) -> dict:
-        cnt = TimeCounter()
         data = getattr(ComputationHook.__local_data, "data", {})
         if (
-            not hasattr(ComputationHook.__local_data, "batch_index")
-            or ComputationHook.__local_data.batch_index != batch_index
+            hasattr(ComputationHook.__local_data, "batch_index")
+            and ComputationHook.__local_data.batch_index == batch_index
         ):
-            new_data = {}
-            model_evaluator = None
-            while not worker_queue.empty():
-                res = worker_queue.get()
-                new_data = res[1]
-                if "model_evaluator" in new_data:
-                    model_evaluator = new_data.pop("model_evaluator")
-                if res[0] < batch_index:
-                    continue
+            return data
+        new_data = {}
+        model_evaluator = None
+        print("get batch_index", batch_index)
+        while not worker_queue.empty():
+            res = worker_queue.get()
+            new_data = res[1]
+            if "model_evaluator" in new_data:
+                model_evaluator = new_data.pop("model_evaluator")
+            assert res[0] <= batch_index
+            if res[0] == batch_index:
                 break
-            setattr(ComputationHook.__local_data, "batch_index", batch_index)
-            if model_evaluator is not None:
-                setattr(cls.__local_data, "shared_model_evaluator", model_evaluator)
-            assert next(
-                iter(cls.__local_data.shared_model_evaluator.model.parameters())
-            ).is_shared()
-            data["model_evaluator"] = copy.deepcopy(
-                cls.__local_data.shared_model_evaluator
-            )
-            data["model_evaluator"].model.requires_grad_(requires_grad=False)
-            data["model_evaluator"].to(device=worker_device)
-            print("copy model_evaluator", cnt.elapsed_milliseconds())
-            # with Profile() as c:
-            if "parameter_shapes" not in data:
-                data[
-                    "parameter_shapes"
-                ] = model_evaluator.model_util.get_parameter_shapes()
+        setattr(ComputationHook.__local_data, "batch_index", batch_index)
+        if model_evaluator is not None:
+            assert next(iter(model_evaluator.model.parameters())).is_shared()
+            setattr(cls.__local_data, "shared_model_evaluator", model_evaluator)
+        data["model_evaluator"] = copy.copy(cls.__local_data.shared_model_evaluator)
+        data["model_evaluator"].to(device=worker_device, non_blocking=True)
+        if "parameter_shapes" not in data:
+            data["parameter_shapes"] = model_evaluator.model_util.get_parameter_shapes()
 
-            if "parameter_list" not in data:
-                data["parameter_list"] = data[
-                    "model_evaluator"
-                ].model_util.get_parameter_list(detach=False)
-            else:
-                a = data["parameter_list"]
-                bias = 0
-                for parameter in data["model_evaluator"].model_util.get_parameter_seq(
-                    detach=False
-                ):
-                    param_element_num = parameter.numel()
-                    a[bias: bias + param_element_num] = parameter.view(-1)
-                    bias += param_element_num
+        if "parameter_list" not in data:
+            data["parameter_list"] = data[
+                "model_evaluator"
+            ].model_util.get_parameter_list(detach=False)
+        else:
+            parameter_list = data["parameter_list"]
+            bias = 0
+            for parameter in data["model_evaluator"].model_util.get_parameter_seq(
+                detach=False
+            ):
+                param_element_num = parameter.numel()
+                parameter_list[bias: bias + param_element_num] = parameter.view(-1)
+                bias += param_element_num
 
-            print("parameter list", cnt.elapsed_milliseconds())
-            if new_data:
-                data |= tensor_to(new_data, device=worker_device, non_blocking=True)
+        if new_data:
+            data |= tensor_to(new_data, device=worker_device, non_blocking=True)
 
-            if data:
-                setattr(ComputationHook.__local_data, "data", data)
+        if data:
+            setattr(ComputationHook.__local_data, "data", data)
         return data

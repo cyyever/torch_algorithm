@@ -2,17 +2,16 @@ import functools
 from typing import Callable
 
 import torch
-from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_algorithm.computation.computation_hook import ComputationHook
 from cyy_torch_toolbox.tensor import recursive_tensor_op, tensor_to
 
 
 class SampleComputationHook(ComputationHook):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
-        self.__sample_selector = None
+        self.__sample_selector: Callable | None = None
         self.__input_transform: Callable | None = None
-        self.__batch_index = 0
+        self.__batch_index: int = 0
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -36,8 +35,7 @@ class SampleComputationHook(ComputationHook):
         targets,
         input_features=None,
         batch_dim=0,
-    ):
-        cnt = TimeCounter()
+    ) -> None:
         if input_features is None:
             input_features = [None] * len(sample_indices)
 
@@ -94,7 +92,6 @@ class SampleComputationHook(ComputationHook):
         self._broadcast_one_shot_data(
             batch_index=self.__batch_index, model_evaluator=model_evaluator
         )
-        print("br use", cnt.elapsed_milliseconds())
         for sample_index, sample_input, sample_input_feature, targrt in zip(
             processed_indices, processed_inputs, processed_features, processed_targets
         ):
@@ -107,7 +104,6 @@ class SampleComputationHook(ComputationHook):
                     targrt,
                 ),
             )
-        print("add task use", cnt.elapsed_milliseconds())
         self.__batch_index += 1
 
     def _get_sample_computation_fun(self):
