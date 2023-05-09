@@ -169,7 +169,6 @@ class ComputationHook(Hook):
             return data
         new_data = {}
         model_evaluator = None
-        print("get batch_index", batch_index)
         while not worker_queue.empty():
             res = worker_queue.get()
             new_data = res[1]
