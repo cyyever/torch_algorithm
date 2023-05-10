@@ -17,7 +17,7 @@ def test_CV_sample_gradient():
 
     def print_sample_gradients(**kwargs):
         if hook.result_dict:
-            # print(next(hook.result_dict.values()).keys())
+            print(next(iter(hook.result_dict.values())))
             hook.reset_result()
 
     trainer.append_named_hook(
@@ -31,6 +31,7 @@ def test_huggingface_sample_gradient():
     config = DefaultConfig(
         "IMDB", "hugging_face_sequence_classification_distilbert-base-cased"
     )
+    config.hook_config.use_amp = False
     config.hyper_parameter_config.epoch = 2
     config.hyper_parameter_config.batch_size = 8
     config.hyper_parameter_config.learning_rate = 0.001
@@ -47,7 +48,7 @@ def test_huggingface_sample_gradient():
 
     def print_sample_gradients(**kwargs):
         if hook.result_dict:
-            # print(next(hook.result_dict.values()).keys())
+            print(next(iter(hook.result_dict.values())))
             hook.reset_result()
 
     trainer.append_named_hook(
