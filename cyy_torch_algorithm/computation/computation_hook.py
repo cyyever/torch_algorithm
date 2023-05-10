@@ -191,24 +191,6 @@ class ComputationHook(Hook):
             data["parameter_dict"] = data[
                 "model_evaluator"
             ].model_util.get_parameter_dict(detach=False)
-            if "parameter_list" not in data:
-                data["parameter_list"] = data[
-                    "model_evaluator"
-                ].model_util.get_parameter_list(detach=False)
-            else:
-                parameter_list = data["parameter_list"]
-                bias = 0
-                for parameter in data["model_evaluator"].model_util.get_parameter_seq(
-                    detach=False
-                ):
-                    param_element_num = parameter.numel()
-                    parameter_list[bias: bias + param_element_num] = parameter.view(-1)
-                    bias += param_element_num
-
-            if "parameter_shapes" not in data:
-                data["parameter_shapes"] = data[
-                    "model_evaluator"
-                ].model_util.get_parameter_shapes()
 
         if new_data:
             data |= tensor_to(new_data, device=worker_device, non_blocking=True)

@@ -17,7 +17,7 @@ def test_CV_sample_gradient():
 
     def print_sample_gradients(**kwargs):
         if hook.result_dict:
-            print(hook.result_dict)
+            # print(next(hook.result_dict.values()).keys())
             hook.reset_result()
 
     trainer.append_named_hook(
@@ -47,7 +47,7 @@ def test_huggingface_sample_gradient():
 
     def print_sample_gradients(**kwargs):
         if hook.result_dict:
-            print(hook.result_dict)
+            # print(next(hook.result_dict.values()).keys())
             hook.reset_result()
 
     trainer.append_named_hook(

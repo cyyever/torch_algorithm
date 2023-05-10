@@ -17,7 +17,6 @@ def sample_gjvp_worker_fun(
     vector,
     model_evaluator,
     parameter_dict,
-    parameter_shapes,
     sample_indices,
     inputs,
     targets,
