@@ -186,25 +186,29 @@ class ComputationHook(Hook):
         setattr(ComputationHook.__local_data, "batch_index", batch_index)
         if model_evaluator is not None:
             assert next(iter(model_evaluator.model.parameters())).is_shared()
-            setattr(cls.__local_data, "shared_model_evaluator", model_evaluator)
-        data["model_evaluator"] = copy.copy(cls.__local_data.shared_model_evaluator)
-        data["model_evaluator"].to(device=worker_device, non_blocking=True)
-        if "parameter_shapes" not in data:
-            data["parameter_shapes"] = model_evaluator.model_util.get_parameter_shapes()
-
-        if "parameter_list" not in data:
-            data["parameter_list"] = data[
+            data["model_evaluator"] = copy.copy(model_evaluator)
+            data["model_evaluator"].to(device=worker_device, non_blocking=True)
+            data["parameter_dict"] = data[
                 "model_evaluator"
-            ].model_util.get_parameter_list(detach=False)
-        else:
-            parameter_list = data["parameter_list"]
-            bias = 0
-            for parameter in data["model_evaluator"].model_util.get_parameter_seq(
-                detach=False
-            ):
-                param_element_num = parameter.numel()
-                parameter_list[bias: bias + param_element_num] = parameter.view(-1)
-                bias += param_element_num
+            ].model_util.get_parameter_dict(detach=False)
+            if "parameter_list" not in data:
+                data["parameter_list"] = data[
+                    "model_evaluator"
+                ].model_util.get_parameter_list(detach=False)
+            else:
+                parameter_list = data["parameter_list"]
+                bias = 0
+                for parameter in data["model_evaluator"].model_util.get_parameter_seq(
+                    detach=False
+                ):
+                    param_element_num = parameter.numel()
+                    parameter_list[bias: bias + param_element_num] = parameter.view(-1)
+                    bias += param_element_num
+
+            if "parameter_shapes" not in data:
+                data["parameter_shapes"] = data[
+                    "model_evaluator"
+                ].model_util.get_parameter_shapes()
 
         if new_data:
             data |= tensor_to(new_data, device=worker_device, non_blocking=True)

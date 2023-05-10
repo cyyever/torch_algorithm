@@ -2,7 +2,7 @@ import copy
 import functools
 
 import torch
-from cyy_torch_algorithm.computation.evaluation import eval_model
+from cyy_torch_algorithm.computation.evaluation import eval_model, eval_model2
 from cyy_torch_algorithm.computation.sample_computation_hook import (
     SampleComputationHook, sample_dot_product)
 
@@ -14,16 +14,14 @@ except BaseException:
 
 def sample_gradient_worker_fun(
     model_evaluator,
-    parameter_list,
-    parameter_shapes,
     sample_indices,
     inputs,
-    input_features,
     targets,
     worker_device,
+    parameter_dict,
+    **kwargs
 ):
-    def wrapper(parameter_list, target, *args, input_keys=None):
-        nonlocal parameter_shapes
+    def wrapper(parameter_dict, target, *args, input_keys=None):
         input_kwargs = {}
         if input_keys is not None:
             input_kwargs = dict(zip(input_keys, args))
@@ -32,20 +30,18 @@ def sample_gradient_worker_fun(
             input_kwargs["inputs"] = args[0]
 
         f = functools.partial(
-            eval_model,
+            eval_model2,
             targets=target,
             device=worker_device,
             model_evaluator=model_evaluator,
-            parameter_shapes=parameter_shapes,
-            non_blocking=True,
             **input_kwargs
         )
-        return grad(f, argnums=0)(parameter_list).view(-1)
+        return grad(f, argnums=0)(parameter_dict)
 
     match inputs[0]:
         case torch.Tensor():
-            gradient_lists = vmap(wrapper, in_dims=(None, 0, 0), randomness="same",)(
-                parameter_list,
+            gradient_dicts = vmap(wrapper, in_dims=(None, 0, 0), randomness="same",)(
+                parameter_dict,
                 torch.stack(targets),
                 torch.stack(inputs),
             )
@@ -56,13 +52,17 @@ def sample_gradient_worker_fun(
                 dict_inputs.append(torch.stack([a[k] for a in inputs]))
             in_dims = [0] * (len(dict_inputs) + 2)
             in_dims[0] = None
-            gradient_lists = vmap(
+            gradient_dicts = vmap(
                 functools.partial(wrapper, input_keys=input_keys),
                 in_dims=tuple(in_dims),
                 randomness="same",
-            )(parameter_list, torch.stack(targets), *dict_inputs)
-
-    return dict(zip(sample_indices, gradient_lists))
+            )(parameter_dict, torch.stack(targets), *dict_inputs)
+    result = {}
+    for idx, sample_idx in enumerate(sample_indices):
+        result[sample_idx] = {}
+        for k, v in gradient_dicts.items():
+            result[sample_idx][k] = v[idx]
+    return result
 
 
 class SampleGradientHook(SampleComputationHook):

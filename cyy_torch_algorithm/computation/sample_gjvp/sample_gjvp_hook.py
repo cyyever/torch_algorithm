@@ -22,6 +22,7 @@ def sample_gjvp_worker_fun(
     input_features,
     targets,
     worker_device,
+    **kwargs
 ):
     is_input_feature = input_features[0] is not None
     if is_input_feature:
