@@ -140,7 +140,6 @@ class SampleComputationHook(ComputationHook):
     def common_worker_fun(
         cls, result_transform, worker_fun, tasks, device, worker_queue, **kwargs
     ):
-        # counter = TimeCounter()
         worker_device, worker_stream = ComputationHook._setup_device(
             device,
         )
@@ -149,8 +148,6 @@ class SampleComputationHook(ComputationHook):
             tasks = tensor_to(
                 tasks, device=worker_device, non_blocking=True, check_slowdown=False
             )
-            # check_slowdown=True
-
             batch_index = tasks[0][0]
             batch_size = len(tasks)
             sample_indices = [task[1] for task in tasks]
@@ -163,8 +160,8 @@ class SampleComputationHook(ComputationHook):
                 worker_queue=worker_queue,
             )
 
-            is_input_feature = input_features[0] is not None
-            if is_input_feature:
+            has_input_feature = input_features[0] is not None
+            if has_input_feature:
                 inputs = input_features
             worker_fun = ComputationHook.get_cached_item(
                 "worker_fun", worker_fun, worker_device=worker_device
