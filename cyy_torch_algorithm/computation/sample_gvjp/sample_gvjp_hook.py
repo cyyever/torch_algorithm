@@ -2,9 +2,10 @@ import functools
 
 import torch
 import torch.cuda
-from cyy_torch_algorithm.computation.evaluation import eval_model
-from cyy_torch_algorithm.computation.sample_computation_hook import \
-    SampleComputationHook
+from cyy_torch_toolbox.tensor import cat_tensor_dict
+
+from ..evaluation import eval_model2
+from ..sample_computation_hook import SampleComputationHook
 
 try:
     from torch.func import grad, vjp, vmap
@@ -15,38 +16,34 @@ except BaseException:
 def sample_gvjp_worker_fun(
     vector,
     model_evaluator,
-    parameter_list,
-    parameter_shapes,
     sample_indices,
     inputs,
-    input_features,
     targets,
     worker_device,
+    parameter_dict,
+    is_input_feature,
+    **kwargs
 ):
-    is_input_feature = input_features[0] is not None
-    if is_input_feature:
-        inputs = input_features
-
-    def vjp_wrapper(parameter_list, input_tensor, target):
+    def vjp_wrapper(parameter_dict, input_tensor, target):
         f = functools.partial(
-            eval_model,
+            eval_model2,
             targets=target,
             device=worker_device,
             model_evaluator=model_evaluator,
             input_shape=inputs[0].shape,
             is_input_feature=is_input_feature,
-            non_blocking=True,
-            parameter_shapes=parameter_shapes,
         )
 
         def grad_f(input_tensor):
-            return grad(f, argnums=0)(parameter_list, inputs=input_tensor).view(-1)
+            return cat_tensor_dict(
+                grad(f, argnums=0)(parameter_dict, inputs=input_tensor)
+            )
 
         vjpfunc = vjp(grad_f, input_tensor.view(-1))[1]
         return vjpfunc(vector)[0]
 
     products = vmap(vjp_wrapper, in_dims=(None, 0, 0), randomness="same")(
-        parameter_list,
+        parameter_dict,
         torch.stack(inputs),
         torch.stack(targets),
     )

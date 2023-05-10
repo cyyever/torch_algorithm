@@ -4,7 +4,7 @@ from typing import Callable
 import torch
 from cyy_naive_lib.algorithm.mapping_op import get_mapping_values_by_key_order
 from cyy_torch_algorithm.computation.computation_hook import ComputationHook
-from cyy_torch_toolbox.tensor import (cat_tensors_to_vector,
+from cyy_torch_toolbox.tensor import (cat_tensor_dict, cat_tensors_to_vector,
                                       recursive_tensor_op, tensor_to)
 
 
@@ -162,8 +162,8 @@ class SampleComputationHook(ComputationHook):
                 worker_queue=worker_queue,
             )
 
-            has_input_feature = input_features[0] is not None
-            if has_input_feature:
+            is_input_feature = input_features[0] is not None
+            if is_input_feature:
                 inputs = input_features
             worker_fun = ComputationHook.get_cached_item(
                 "worker_fun", worker_fun, worker_device=worker_device
@@ -174,6 +174,7 @@ class SampleComputationHook(ComputationHook):
                 input_features=input_features,
                 targets=targets,
                 worker_device=worker_device,
+                is_input_feature=is_input_feature,
                 **model_data,
             )
             result_transform = ComputationHook.get_cached_item(
@@ -213,6 +214,6 @@ def sample_dot_product(result, vector, **kwargs):
             return product
     match result:
         case dict():
-            result = cat_tensors_to_vector(get_mapping_values_by_key_order(result))
+            result = cat_tensor_dict(result)
 
     return result.dot(vector)

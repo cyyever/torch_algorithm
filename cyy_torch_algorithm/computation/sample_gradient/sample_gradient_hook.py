@@ -19,6 +19,7 @@ def sample_gradient_worker_fun(
     targets,
     worker_device,
     parameter_dict,
+    is_input_feature,
     **kwargs
 ):
     def wrapper(parameter_dict, target, *args, input_keys=None):
@@ -34,6 +35,7 @@ def sample_gradient_worker_fun(
             targets=target,
             device=worker_device,
             model_evaluator=model_evaluator,
+            is_input_feature=is_input_feature,
             **input_kwargs
         )
         return grad(f, argnums=0)(parameter_dict)
