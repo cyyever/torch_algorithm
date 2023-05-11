@@ -2,8 +2,9 @@ import functools
 from typing import Callable
 
 import torch
-from cyy_torch_algorithm.computation.computation_hook import ComputationHook
 from cyy_torch_toolbox.tensor import tensor_to
+
+from .computation_hook import ComputationHook
 
 
 class BatchComputationHook(ComputationHook):
@@ -14,7 +15,7 @@ class BatchComputationHook(ComputationHook):
     def set_data_fun(self, data_fun):
         self.__data_fun = data_fun
 
-    def _after_forward(self, executor, inputs, targets, batch_index, **kwargs):
+    def _after_forward(self, executor, inputs, targets, batch_index, **kwargs) -> None:
         assert self.__data_fun is not None
         data = self.__data_fun()
         if data is None:
@@ -30,7 +31,7 @@ class BatchComputationHook(ComputationHook):
     def _get_batch_computation_fun(self):
         raise NotImplementedError()
 
-    def _get_worker_fun(self):
+    def _get_worker_fun(self) -> Callable:
         return functools.partial(
             BatchComputationHook.common_worker_fun,
             self._result_transform,

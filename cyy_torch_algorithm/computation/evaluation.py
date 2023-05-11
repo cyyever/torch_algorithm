@@ -1,7 +1,7 @@
 from cyy_torch_toolbox.ml_type import MachineLearningPhase
 
 
-def eval_model2(
+def eval_model(
     parameter_dict,
     model_evaluator,
     targets,
@@ -16,7 +16,6 @@ def eval_model2(
         parameter_dict,
         check_parameter=False,
         as_parameter=False,
-        # parameter_shapes=parameter_shapes,
         update_parameter_shapes=False,
     )
     input_kwargs = kwargs

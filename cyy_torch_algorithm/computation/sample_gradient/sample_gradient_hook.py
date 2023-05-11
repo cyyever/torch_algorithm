@@ -2,14 +2,10 @@ import copy
 import functools
 
 import torch
-from cyy_torch_algorithm.computation.evaluation import eval_model2
-from cyy_torch_algorithm.computation.sample_computation_hook import (
-    SampleComputationHook, sample_dot_product)
+from torch.func import grad, vmap
 
-try:
-    from torch.func import grad, vmap
-except BaseException:
-    from functorch import grad, vmap
+from ..evaluation import eval_model
+from ..sample_computation_hook import SampleComputationHook, sample_dot_product
 
 
 def sample_gradient_worker_fun(
@@ -31,7 +27,7 @@ def sample_gradient_worker_fun(
             input_kwargs["inputs"] = args[0]
 
         f = functools.partial(
-            eval_model2,
+            eval_model,
             targets=target,
             device=worker_device,
             model_evaluator=model_evaluator,

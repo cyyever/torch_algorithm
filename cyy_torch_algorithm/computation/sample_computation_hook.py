@@ -2,10 +2,10 @@ import functools
 from typing import Callable
 
 import torch
-from cyy_naive_lib.algorithm.mapping_op import get_mapping_values_by_key_order
-from cyy_torch_algorithm.computation.computation_hook import ComputationHook
-from cyy_torch_toolbox.tensor import (cat_tensor_dict, cat_tensors_to_vector,
-                                      recursive_tensor_op, tensor_to)
+from cyy_torch_toolbox.tensor import (cat_tensor_dict, recursive_tensor_op,
+                                      tensor_to)
+
+from .computation_hook import ComputationHook
 
 
 class SampleComputationHook(ComputationHook):
@@ -202,16 +202,17 @@ class SampleComputationHook(ComputationHook):
         return batch_size, res
 
 
-def sample_dot_product(result, vector, **kwargs):
+def sample_dot_product(result, vector, **kwargs) -> float:
     match vector:
         case dict():
-            product = None
+            product: None | torch.Tensor = None
             for k, v in vector.items():
                 tmp = v.view(-1).dot(result[k].view(-1))
                 if product is None:
                     product = tmp
                 else:
                     product += tmp
+            assert product is not None
             return product.item()
     match result:
         case dict():

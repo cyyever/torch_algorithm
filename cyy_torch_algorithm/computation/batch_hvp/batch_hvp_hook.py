@@ -4,14 +4,10 @@ import functools
 import torch
 import torch.cuda
 from cyy_naive_lib.algorithm.mapping_op import get_mapping_items_by_key_order
-from cyy_torch_algorithm.computation.batch_computation_hook import \
-    BatchComputationHook
-from cyy_torch_algorithm.computation.evaluation import eval_model2
+from torch.func import grad, jvp, vmap
 
-try:
-    from torch.func import grad, jvp, vmap
-except BaseException:
-    from functorch import grad, jvp, vmap
+from ..batch_computation_hook import BatchComputationHook
+from ..evaluation import eval_model
 
 
 def batch_hvp_worker_fun(
@@ -25,7 +21,7 @@ def batch_hvp_worker_fun(
 
     def hvp_wrapper(vector):
         f = functools.partial(
-            eval_model2,
+            eval_model,
             inputs=inputs,
             targets=targets,
             device=worker_device,

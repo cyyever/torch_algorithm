@@ -4,7 +4,7 @@ import torch
 import torch.cuda
 from cyy_torch_toolbox.tensor import cat_tensor_dict
 
-from ..evaluation import eval_model2
+from ..evaluation import eval_model
 from ..sample_computation_hook import SampleComputationHook
 
 try:
@@ -26,7 +26,7 @@ def sample_gvjp_worker_fun(
 ):
     def vjp_wrapper(parameter_dict, input_tensor, target):
         f = functools.partial(
-            eval_model2,
+            eval_model,
             targets=target,
             device=worker_device,
             model_evaluator=model_evaluator,
