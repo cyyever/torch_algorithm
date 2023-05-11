@@ -2,7 +2,7 @@ import copy
 import functools
 
 import torch
-from cyy_torch_algorithm.computation.evaluation import eval_model, eval_model2
+from cyy_torch_algorithm.computation.evaluation import eval_model2
 from cyy_torch_algorithm.computation.sample_computation_hook import (
     SampleComputationHook, sample_dot_product)
 

@@ -207,13 +207,14 @@ def sample_dot_product(result, vector, **kwargs):
         case dict():
             product = None
             for k, v in vector.items():
+                tmp = v.view(-1).dot(result[k].view(-1))
                 if product is None:
-                    product = v.dot(result[k])
+                    product = tmp
                 else:
-                    product += v.dot(result[k])
-            return product
+                    product += tmp
+            return product.item()
     match result:
         case dict():
             result = cat_tensor_dict(result)
 
-    return result.dot(vector)
+    return result.dot(vector).item()
