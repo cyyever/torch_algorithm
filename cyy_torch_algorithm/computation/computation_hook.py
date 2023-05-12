@@ -98,7 +98,6 @@ class ComputationHook(Hook):
             if self.__shared_model is None:
                 self.__shared_model = copy.deepcopy(model_evaluator)
                 self.__shared_model.model.zero_grad(set_to_none=True)
-                self.__shared_model.model.requires_grad_(requires_grad=False)
                 self.__shared_model.model.share_memory()
                 new_kwargs |= {"model_evaluator": self.__shared_model}
             else:
