@@ -195,8 +195,8 @@ class GTGShapleyValue(ShapleyValue):
         )
         if np.max(errors) > self.converge_criteria:
             return True
-        get_logger().info(
-            "convergent for index %s and converge_min %s max error %s converge_criteria %s",
+        get_logger().debug(
+            "convergent in index %s and min index for convergent %s max error %s error threshold %s",
             index,
             self.converge_min,
             np.max(errors),
