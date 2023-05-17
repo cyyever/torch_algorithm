@@ -94,7 +94,7 @@ def get_sample_gradient_dict(
     gradients = hook.result_dict
     if result_collection_fun is None:
         assert gradients
-    hook.release_queue()
+    hook.reset()
     return gradients
 
 

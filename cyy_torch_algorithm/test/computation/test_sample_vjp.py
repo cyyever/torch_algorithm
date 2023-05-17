@@ -26,7 +26,7 @@ def test_CV_vjp():
         ExecutorHookPoint.AFTER_FORWARD, "check gradients", print_result
     )
     trainer.train()
-    hook.release_queue()
+    hook.reset()
 
 
 def test_NLP_vjp():
@@ -50,7 +50,7 @@ def test_NLP_vjp():
     def print_result(**kwargs):
         if hook.result_dict:
             print(hook.result_dict)
-            hook.release_queue()
+            hook.reset()
             raise StopExecutingException()
 
     trainer.append_named_hook(
