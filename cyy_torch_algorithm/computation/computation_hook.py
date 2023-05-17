@@ -43,8 +43,7 @@ class ComputationHook(Hook):
 
     @property
     def result_dict(self) -> dict:
-        self.__result_dict |= self.__fetch_result()
-        return self.__result_dict
+        return self.__fetch_result()
 
     def has_unfetched_result(self):
         return self.__pending_task_cnt != 0
@@ -66,7 +65,8 @@ class ComputationHook(Hook):
                 else:
                     results |= res[1]
         self.__prev_tasks = []
-        return results
+        self.__result_dict |= results
+        return self.__result_dict
 
     def _get_task_queue(self) -> TorchProcessTaskQueue:
         if self.__task_queue is None:
@@ -100,15 +100,13 @@ class ComputationHook(Hook):
                 self.__shared_model.model.zero_grad(set_to_none=True)
                 self.__shared_model.model.requires_grad_(False)
                 self.__shared_model.model.share_memory()
-                new_kwargs |= {"model_evaluator": self.__shared_model}
             else:
                 assert self.__shared_model is not None
                 shared_state_dict = self.__shared_model.model.state_dict()
                 for k, v in model_evaluator.model.state_dict().items():
                     shared_state_dict[k].copy_(v)
 
-            if not new_kwargs:
-                return
+            new_kwargs |= {"model_evaluator": self.__shared_model}
             for worker_id in range(task_queue.worker_num):
                 worker_queue = task_queue.get_worker_queue(worker_id=worker_id)
                 worker_queue.put((batch_index, new_kwargs))
@@ -128,7 +126,6 @@ class ComputationHook(Hook):
     def reset(self) -> None:
         assert not self.has_unfetched_result()
         self.reset_result()
-        self.__prev_tasks = []
         if self.__task_queue is not None:
             self.__task_queue.release()
             self.__task_queue = None
