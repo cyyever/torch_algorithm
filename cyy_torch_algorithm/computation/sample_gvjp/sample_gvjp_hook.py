@@ -3,14 +3,10 @@ import functools
 import torch
 import torch.cuda
 from cyy_torch_toolbox.tensor import cat_tensor_dict
+from torch.func import grad, vjp, vmap
 
 from ..evaluation import eval_model
 from ..sample_computation_hook import SampleComputationHook
-
-try:
-    from torch.func import grad, vjp, vmap
-except BaseException:
-    from functorch import grad, vjp, vmap
 
 
 def sample_gvjp_worker_fun(
