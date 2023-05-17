@@ -158,9 +158,9 @@ class ComputationHook(Hook):
             return value
         return getattr(cls.__local_data, name)
 
-    def _after_optimizer_step(self, step_skipped: bool, **kwargs) -> None:
-        if step_skipped:
-            self._drop_result()
+    def _cancel_forward(self, **kwargs) -> None:
+        get_logger().warning("discard results")
+        self._drop_result()
 
     @classmethod
     def get_cached_one_shot_data(cls, batch_index, worker_device, worker_queue) -> dict:

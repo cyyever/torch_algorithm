@@ -1,5 +1,4 @@
 import copy
-from typing import Callable
 
 import numpy as np
 from cyy_naive_lib.log import get_logger
@@ -21,8 +20,6 @@ class GTGShapleyValue(ShapleyValue):
         self.converge_min = max(30, self.worker_number)
         self.last_k = 10
         self.converge_criteria = 0.05
-        self.metric_fun: None | Callable = None
-        self.save_fun: None | Callable = None
 
         self.max_percentage = 0.8
         self.max_number = min(
@@ -35,7 +32,7 @@ class GTGShapleyValue(ShapleyValue):
         )
         get_logger().info("max_number %s", self.max_number)
 
-    def compute(self):
+    def compute(self) -> None:
         assert self.metric_fun is not None
         self.round_number += 1
         this_round_metric = self.metric_fun(
@@ -69,10 +66,10 @@ class GTGShapleyValue(ShapleyValue):
             )
             self.last_round_metric = this_round_metric
             return
-        metrics = dict()
+        metrics = {}
 
         # for best_S
-        perm_records = dict()
+        perm_records = {}
 
         index = 0
         contribution_records: list = []
@@ -124,9 +121,8 @@ class GTGShapleyValue(ShapleyValue):
         subset_rank = sorted(
             metrics.items(), key=lambda x: (x[1], -len(x[0])), reverse=True
         )
-        best_S: tuple = None
         if subset_rank[0][0]:
-            best_S = subset_rank[0][0]
+            best_S: tuple = subset_rank[0][0]
         else:
             best_S = subset_rank[1][0]
 
@@ -135,7 +131,7 @@ class GTGShapleyValue(ShapleyValue):
         ]
         SV_calc_temp = np.sum(contrib_S, 0) / len(contrib_S)
         round_marginal_gain_S = metrics[best_S] - self.last_round_metric
-        round_SV_S: dict = dict()
+        round_SV_S: dict = {}
         for client_id in best_S:
             round_SV_S[client_id] = float(SV_calc_temp[client_id])
 
@@ -156,7 +152,7 @@ class GTGShapleyValue(ShapleyValue):
             assert len(round_shapley_values) == self.worker_number
 
             round_marginal_gain = this_round_metric - self.last_round_metric
-            round_shapley_value_dict = dict()
+            round_shapley_value_dict = {}
             for idx, value in enumerate(round_shapley_values):
                 round_shapley_value_dict[idx] = float(value)
 

@@ -32,32 +32,31 @@ class MultiRoundShapleyValue(ShapleyValue):
             return
         metrics[()] = self.last_round_metric
         metrics[tuple(range(self.worker_number))] = this_round_metric
-        if self.round_trunc_threshold is not None:
-            if (
-                abs(this_round_metric - self.last_round_metric)
-                <= self.round_trunc_threshold
-            ):
-                self.shapley_values[self.round_number] = {
-                    i: 0 for i in range(self.worker_number)
-                }
-                self.shapley_values_S[self.round_number] = {
-                    i: 0 for i in range(self.worker_number)
-                }
-                if self.save_fun is not None:
-                    self.save_fun(
-                        self.round_number,
-                        self.shapley_values[self.round_number],
-                        self.shapley_values_S[self.round_number],
-                    )
-                get_logger().info(
-                    "skip round %s, this_round_metric %s last_round_metric %s round_trunc_threshold %s",
+        if self.round_trunc_threshold is not None and (
+            abs(this_round_metric - self.last_round_metric)
+            <= self.round_trunc_threshold
+        ):
+            self.shapley_values[self.round_number] = {
+                i: 0 for i in range(self.worker_number)
+            }
+            self.shapley_values_S[self.round_number] = {
+                i: 0 for i in range(self.worker_number)
+            }
+            if self.save_fun is not None:
+                self.save_fun(
                     self.round_number,
-                    this_round_metric,
-                    self.last_round_metric,
-                    self.round_trunc_threshold,
+                    self.shapley_values[self.round_number],
+                    self.shapley_values_S[self.round_number],
                 )
-                self.last_round_metric = this_round_metric
-                return
+            get_logger().info(
+                "skip round %s, this_round_metric %s last_round_metric %s round_trunc_threshold %s",
+                self.round_number,
+                this_round_metric,
+                self.last_round_metric,
+                self.round_trunc_threshold,
+            )
+            self.last_round_metric = this_round_metric
+            return
 
         for subset in ShapleyValue.powerset(range(self.worker_number)):
             key = tuple(sorted(subset))

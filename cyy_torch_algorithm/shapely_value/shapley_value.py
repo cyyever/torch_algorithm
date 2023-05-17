@@ -1,5 +1,6 @@
 import math
 from itertools import chain, combinations
+from typing import Callable
 
 
 class ShapleyValue:
@@ -17,8 +18,8 @@ class ShapleyValue:
         self.worker_number = worker_number
         self.last_round_metric = last_round_metric
         self.round_number = 0
-        self.metric_fun = None
-        self.save_fun = None
+        self.metric_fun: None | Callable = None
+        self.save_fun: None | Callable = None
 
     def set_metric_function(self, metric_fun):
         self.metric_fun = metric_fun

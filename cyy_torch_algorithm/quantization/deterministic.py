@@ -182,7 +182,7 @@ class NeuralNetworkAdaptiveDeterministicDequant(AdaptiveDeterministicDequant):
                 return data
 
 
-def NNADQ(weight: float = None, use_l2_norm: bool = False) -> Tuple[Callable, Callable]:
+def NNADQ(weight: float, use_l2_norm: bool = False) -> Tuple[Callable, Callable]:
     return (
         NeuralNetworkAdaptiveDeterministicQuant(
             weight=weight,
