@@ -23,6 +23,7 @@ def eval_model(
         "targets": targets,
         "device": device,
         "non_blocking": True,
+        "is_input_feature":is_input_feature,
         "phase": phase,
     }
     if input_kwargs:
@@ -30,10 +31,6 @@ def eval_model(
     else:
         if input_shape is not None:
             inputs = inputs.view(input_shape)
-        if is_input_feature:
-            kwargs["input_features"] = inputs
-            kwargs["inputs"] = None
-        else:
-            kwargs["inputs"] = inputs
+        kwargs["inputs"] = inputs
 
     return model_evaluator(**kwargs)["loss"]

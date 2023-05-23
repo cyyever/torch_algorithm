@@ -32,7 +32,7 @@ def test_huggingface_sample_gradient():
     config = DefaultConfig(
         "IMDB", "hugging_face_sequence_classification_distilbert-base-cased"
     )
-    config.hook_config.use_amp = False
+    config.trainer_config.hook_config.use_amp = False
     config.hyper_parameter_config.epoch = 2
     config.hyper_parameter_config.batch_size = 8
     config.hyper_parameter_config.learning_rate = 0.001

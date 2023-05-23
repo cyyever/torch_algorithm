@@ -13,7 +13,7 @@ from cyy_torch_toolbox.tensor import cat_tensor_dict
 def test_CV_jvp():
     torch.autograd.set_detect_anomaly(True)
     config = DefaultConfig("MNIST", "lenet5")
-    config.hook_config.use_amp = False
+    config.trainer_config.hook_config.use_amp = False
     config.hyper_parameter_config.epoch = 1
     config.hyper_parameter_config.batch_size = 8
     config.hyper_parameter_config.learning_rate = 0.01
