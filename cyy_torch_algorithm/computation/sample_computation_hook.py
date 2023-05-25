@@ -179,7 +179,7 @@ class SampleComputationHook(ComputationHook):
         return batch_size, res
 
 
-def sample_dot_product(result, vector, **kwargs) -> float:
+def dot_product(result, vector, **kwargs) -> float:
     match vector:
         case dict():
             product: None | torch.Tensor = None

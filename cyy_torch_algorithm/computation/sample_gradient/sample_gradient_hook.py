@@ -5,7 +5,7 @@ import torch
 from torch.func import grad, vmap
 
 from ..evaluation import eval_model
-from ..sample_computation_hook import SampleComputationHook, sample_dot_product
+from ..sample_computation_hook import SampleComputationHook, dot_product
 
 
 def sample_gradient_worker_fun(
@@ -75,7 +75,7 @@ def get_sample_gradient_dict(
     input_transform=None,
     result_transform=None,
     result_collection_fun=None,
-) -> dict | None:
+) -> dict:
     tmp_inferencer = copy.deepcopy(inferencer)
     tmp_inferencer.disable_hook("logger")
     hook = SampleGradientHook()
@@ -98,7 +98,22 @@ def get_sample_gradient_dict(
     return gradients
 
 
-def get_sample_gradient_product_dict(vector, **kwargs) -> dict | None:
+def get_sample_gradient_dot_product_dict(vector, **kwargs) -> dict:
     return get_sample_gradient_dict(
-        result_transform=functools.partial(sample_dot_product, vector=vector), **kwargs
+        result_transform=functools.partial(dot_product, vector=vector), **kwargs
+    )
+
+
+def get_sample_gvp_dict(vector, **kwargs) -> dict:
+    return get_sample_gradient_dict(
+        result_transform=functools.partial(dot_product, vector=vector), **kwargs
+    )
+
+
+def get_self_gvp_dict(vectors: dict, **kwargs) -> dict:
+    def get_product(result, sample_index, **kwargs) -> float:
+        return dot_product(result, vectors[sample_index])
+
+    return get_sample_gradient_dict(
+        result_transform=get_product, computed_indices=set(vectors.keys()), **kwargs
     )
