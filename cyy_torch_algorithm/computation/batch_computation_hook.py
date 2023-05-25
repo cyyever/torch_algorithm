@@ -8,7 +8,7 @@ from .computation_hook import ComputationHook
 
 
 class BatchComputationHook(ComputationHook):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self.__data_fun: Callable | None = None
 
@@ -71,5 +71,17 @@ class BatchComputationHook(ComputationHook):
                 "worker_fun", worker_fun, worker_device=worker_device
             )
             res = worker_fun(data=data, worker_device=worker_device, **one_shot_data)
-            assert result_transform is None
-            return batch_size, dict(zip(data_indices, res))
+
+            result_transform = ComputationHook.get_cached_item(
+                "result_transform", result_transform, worker_device=worker_device
+            )
+            if result_transform is not None:
+                new_res: dict = {
+                    data_index: result_transform(
+                        data_index=data_index, result=v, data=data
+                    )
+                    for data_index, v, data in zip(data_indices, res, data)
+                }
+            else:
+                new_res = dict(zip(data_indices, res))
+            return batch_size, new_res

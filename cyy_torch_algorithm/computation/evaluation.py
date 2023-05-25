@@ -23,7 +23,7 @@ def eval_model(
         "targets": targets,
         "device": device,
         "non_blocking": True,
-        "is_input_feature":is_input_feature,
+        "is_input_feature": is_input_feature,
         "phase": phase,
     }
     if input_kwargs:

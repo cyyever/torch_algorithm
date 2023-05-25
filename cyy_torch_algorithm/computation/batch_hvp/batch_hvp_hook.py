@@ -4,6 +4,7 @@ import functools
 import torch
 import torch.cuda
 from cyy_naive_lib.algorithm.mapping_op import get_mapping_items_by_key_order
+from cyy_naive_lib.log import get_logger
 from torch.func import grad, jvp, vmap
 
 from ..batch_computation_hook import BatchComputationHook
@@ -30,7 +31,6 @@ def batch_hvp_worker_fun(
 
         def grad_f(parameter_dict):
             return grad(f, argnums=0)(parameter_dict)
-            # return cat_tensor_dict(grad(f, argnums=0)(parameter_dict))
 
         return jvp(
             grad_f,
@@ -38,20 +38,21 @@ def batch_hvp_worker_fun(
             (vector,),
         )[1]
 
-    match vectors[0]:
-        case torch.Tensor:
-            vectors = torch.stack(vectors)
-        case dict():
-            vectors = {
-                k: torch.stack([vector[k] for vector in vectors]) for k in vectors[0]
-            }
-
+    vectors = {k: torch.stack([vector[k] for vector in vectors]) for k in vectors[0]}
     vectors = collections.OrderedDict(list(get_mapping_items_by_key_order(vectors)))
     products = vmap(
         hvp_wrapper,
         in_dims=(collections.OrderedDict((k, 0) for k in vectors),),
         # randomness="same",
     )(vectors)
+    # if next(iter(products.values())).device != worker_device:
+    #     get_logger().error(
+    #         "%s %s %s",
+    #         next(iter(products.values())).device,
+    #         worker_device,
+    #         next(iter(vectors.values())).device,
+    #     )
+    #     assert next(iter(products.values())).device == worker_device
     return [{k: v[idx] for k, v in products.items()} for idx in range(vector_size)]
 
 

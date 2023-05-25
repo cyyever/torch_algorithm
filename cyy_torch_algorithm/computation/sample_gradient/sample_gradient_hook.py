@@ -2,6 +2,7 @@ import copy
 import functools
 
 import torch
+from cyy_torch_toolbox.tensor import tensor_to
 from torch.func import grad, vmap
 
 from ..evaluation import eval_model
@@ -110,10 +111,14 @@ def get_sample_gvp_dict(vector, **kwargs) -> dict:
     )
 
 
+def get_self_product(vectors, result, sample_index, **kwargs) -> float:
+    return dot_product(result, vectors[sample_index])
+
+
 def get_self_gvp_dict(vectors: dict, **kwargs) -> dict:
-    def get_product(result, sample_index, **kwargs) -> float:
-        return dot_product(result, vectors[sample_index])
 
     return get_sample_gradient_dict(
-        result_transform=get_product, computed_indices=set(vectors.keys()), **kwargs
+        result_transform=functools.partial(get_self_product, vectors),
+        computed_indices=set(vectors.keys()),
+        **kwargs
     )

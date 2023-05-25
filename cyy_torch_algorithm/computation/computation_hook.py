@@ -26,6 +26,7 @@ class ComputationHook(Hook):
         self.__prev_tasks: list = []
         self.__result_collection_fun: Callable | None = None
         self.__shared_model: None | ModelEvaluator = None
+        self.__shared_parameter_dict: None | dict = None
 
     def set_result_transform(self, f: Callable) -> None:
         self._result_transform = f
@@ -37,7 +38,7 @@ class ComputationHook(Hook):
         raise NotImplementedError()
 
     def reset_result(self) -> None:
-        self.__fetch_result()
+        self._drop_result()
         del self.__result_dict
         self.__result_dict = {}
 
@@ -100,13 +101,13 @@ class ComputationHook(Hook):
                 self.__shared_model.model.zero_grad(set_to_none=True)
                 self.__shared_model.model.requires_grad_(False)
                 self.__shared_model.model.share_memory()
+                new_kwargs |= {"model_evaluator": self.__shared_model}
             else:
                 assert self.__shared_model is not None
-                shared_state_dict = self.__shared_model.model.state_dict()
-                for k, v in model_evaluator.model.state_dict().items():
-                    shared_state_dict[k].copy_(v)
-
-            new_kwargs |= {"model_evaluator": self.__shared_model}
+                self.__shared_parameter_dict = (
+                    model_evaluator.model_util.get_parameter_dict(detach=True)
+                )
+                new_kwargs |= {"parameter_dict": self.__shared_parameter_dict}
             for worker_id in range(task_queue.worker_num):
                 worker_queue = task_queue.get_worker_queue(worker_id=worker_id)
                 worker_queue.put((batch_index, new_kwargs))
@@ -130,6 +131,7 @@ class ComputationHook(Hook):
             self.__task_queue.release()
             self.__task_queue = None
         self.__shared_model = None
+        self.__shared_parameter_dict = None
 
     @classmethod
     def _setup_device(cls, advised_device) -> tuple:
@@ -172,11 +174,14 @@ class ComputationHook(Hook):
             return data
         new_data = {}
         model_evaluator = None
+        parameter_dict = None
         while not worker_queue.empty():
             res = worker_queue.get()
             new_data = res[1]
             if "model_evaluator" in new_data:
                 model_evaluator = new_data.pop("model_evaluator")
+            if "parameter_dict" in new_data:
+                parameter_dict = new_data.pop("parameter_dict")
             assert res[0] <= batch_index
             if res[0] == batch_index:
                 break
@@ -188,6 +193,10 @@ class ComputationHook(Hook):
             data["parameter_dict"] = data[
                 "model_evaluator"
             ].model_util.get_parameter_dict(detach=False)
+        if parameter_dict is not None:
+            data["parameter_dict"] = tensor_to(
+                parameter_dict, device=worker_device, non_blocking=True
+            )
 
         if new_data:
             data |= tensor_to(new_data, device=worker_device, non_blocking=True)

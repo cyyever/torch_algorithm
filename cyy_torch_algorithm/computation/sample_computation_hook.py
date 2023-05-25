@@ -182,17 +182,17 @@ class SampleComputationHook(ComputationHook):
 def dot_product(result, vector, **kwargs) -> float:
     match vector:
         case dict():
-            product: None | torch.Tensor = None
+            product = 0
             for k, v in vector.items():
-                tmp = v.view(-1).dot(result[k].view(-1))
-                if product is None:
-                    product = tmp
+                if v.device == result[k].device:
+                    product += v.view(-1).dot(result[k].view(-1)).item()
                 else:
-                    product += tmp
-            assert product is not None
-            return product.item()
+                    product += v.cpu().view(-1).dot(result[k].cpu().view(-1)).item()
+            return product
     match result:
         case dict():
             result = cat_tensor_dict(result)
 
-    return result.dot(vector).item()
+    if result.device == vector.device:
+        return result.dot(vector).item()
+    return result.cpu().dot(vector.cpu()).item()
