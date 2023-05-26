@@ -4,9 +4,7 @@ import threading
 from typing import Any, Callable
 
 import torch
-from cyy_naive_lib.data_structure.task_queue import TaskQueue
 from cyy_naive_lib.log import get_logger
-# from cyy_naive_lib.profiling import Profile
 from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
     TorchProcessTaskQueue
@@ -27,6 +25,7 @@ class ComputationHook(Hook):
         self.__prev_tasks: list = []
         self.__result_collection_fun: Callable | None = None
         self.__shared_model: None | ModelEvaluator = None
+        self.__sent_model: bool = False
         self.__shared_parameter_dict: None | dict = None
 
     def set_result_transform(self, f: Callable) -> None:
@@ -98,7 +97,7 @@ class ComputationHook(Hook):
         with TimeCounter() as cnt:
             task_queue = self._get_task_queue()
             new_kwargs = kwargs
-            if self.__shared_model is None:
+            if not self.__sent_model:
                 self.__shared_model = copy.deepcopy(model_evaluator)
                 self.__shared_model.model.zero_grad(set_to_none=True)
                 self.__shared_model.model.requires_grad_(False)
@@ -106,9 +105,15 @@ class ComputationHook(Hook):
                 new_kwargs |= {"model_evaluator": self.__shared_model}
             else:
                 assert self.__shared_model is not None
+                self.__shared_model = None
+                self.__sent_model = True
                 self.__shared_parameter_dict = (
                     model_evaluator.model_util.get_parameter_dict(detach=True)
                 )
+                for v in self.__shared_parameter_dict.values():
+                    v.grad = None
+                    v.requires_grad_(False)
+                    v.share_memory_()
                 new_kwargs |= {"parameter_dict": self.__shared_parameter_dict}
             for worker_id in range(task_queue.worker_num):
                 worker_queue = task_queue.get_worker_queue(worker_id=worker_id)
@@ -168,7 +173,7 @@ class ComputationHook(Hook):
 
     @classmethod
     def get_cached_one_shot_data(
-        cls, batch_index: int, worker_device: torch.device, worker_queue: TaskQueue
+        cls, batch_index: int, worker_device: torch.device, worker_queue: Any
     ) -> dict:
         data = getattr(ComputationHook.__local_data, "data", {})
         if (
