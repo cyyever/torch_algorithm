@@ -4,6 +4,7 @@ import threading
 from typing import Any, Callable
 
 import torch
+from cyy_naive_lib.data_structure.task_queue import TaskQueue
 from cyy_naive_lib.log import get_logger
 # from cyy_naive_lib.profiling import Profile
 from cyy_naive_lib.time_counter import TimeCounter
@@ -58,6 +59,8 @@ class ComputationHook(Hook):
         while self.has_unfetched_result():
             assert self.__task_queue is not None
             res = self.__task_queue.get_data()
+            assert res is not None
+            res = res[0]
             self.__pending_task_cnt -= res[0]
             assert self.__pending_task_cnt >= 0
             if not drop:
@@ -82,7 +85,6 @@ class ComputationHook(Hook):
                 batch_process=True,
             )
             self.__task_queue.start()
-            torch.cuda.empty_cache()
         return self.__task_queue
 
     def _add_task(self, task: Any) -> None:
@@ -91,7 +93,7 @@ class ComputationHook(Hook):
         self._get_task_queue().add_task(task)
 
     def _broadcast_one_shot_data(
-        self, batch_index: int, model_evaluator, **kwargs
+        self, batch_index: int, model_evaluator: ModelEvaluator, **kwargs
     ) -> None:
         with TimeCounter() as cnt:
             task_queue = self._get_task_queue()
@@ -165,7 +167,9 @@ class ComputationHook(Hook):
         self._drop_result()
 
     @classmethod
-    def get_cached_one_shot_data(cls, batch_index, worker_device, worker_queue) -> dict:
+    def get_cached_one_shot_data(
+        cls, batch_index: int, worker_device: torch.device, worker_queue: TaskQueue
+    ) -> dict:
         data = getattr(ComputationHook.__local_data, "data", {})
         if (
             hasattr(ComputationHook.__local_data, "batch_index")
@@ -176,15 +180,19 @@ class ComputationHook(Hook):
         model_evaluator = None
         parameter_dict = None
         while not worker_queue.empty():
-            res = worker_queue.get()
-            new_data = res[1]
-            if "model_evaluator" in new_data:
-                model_evaluator = new_data.pop("model_evaluator")
-            if "parameter_dict" in new_data:
-                parameter_dict = new_data.pop("parameter_dict")
-            assert res[0] <= batch_index
-            if res[0] == batch_index:
-                break
+            try:
+                res = worker_queue.get(timeout=0.01)
+                new_data = res[1]
+                if "model_evaluator" in new_data:
+                    model_evaluator = new_data.pop("model_evaluator")
+                if "parameter_dict" in new_data:
+                    parameter_dict = new_data.pop("parameter_dict")
+                assert res[0] <= batch_index
+                if res[0] == batch_index:
+                    break
+            except BaseException as e:
+                if "empty" in e.__class__.__name__.lower():
+                    break
         setattr(ComputationHook.__local_data, "batch_index", batch_index)
         if model_evaluator is not None:
             assert next(iter(model_evaluator.model.parameters())).is_shared()

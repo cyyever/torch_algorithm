@@ -53,8 +53,14 @@ class BatchComputationHook(ComputationHook):
 
     @classmethod
     def common_worker_fun(
-        cls, result_transform, worker_fun, tasks, device, worker_queue, **kwargs
-    ):
+        cls,
+        result_transform: Callable | None,
+        worker_fun: Callable,
+        tasks: list,
+        device,
+        worker_queue,
+        **kwargs
+    ) -> tuple:
         batch_size = len(tasks)
         worker_device, worker_stream = ComputationHook._setup_device(device)
         batch_index = tasks[0][0]
