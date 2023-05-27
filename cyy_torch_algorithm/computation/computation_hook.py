@@ -67,6 +67,8 @@ class ComputationHook(Hook):
                     self.__result_collection_fun(res[1])
                 else:
                     results |= res[1]
+            else:
+                del res
         self.__prev_tasks = []
         self.__result_dict |= results
         return self.__result_dict
@@ -105,7 +107,6 @@ class ComputationHook(Hook):
                 new_kwargs |= {"model_evaluator": self.__shared_model}
             else:
                 assert self.__shared_model is not None
-                self.__shared_model = None
                 self.__sent_model = True
                 self.__shared_parameter_dict = (
                     model_evaluator.model_util.get_parameter_dict(detach=True)
@@ -201,7 +202,7 @@ class ComputationHook(Hook):
         setattr(ComputationHook.__local_data, "batch_index", batch_index)
         if model_evaluator is not None:
             assert next(iter(model_evaluator.model.parameters())).is_shared()
-            data["model_evaluator"] = copy.copy(model_evaluator)
+            data["model_evaluator"] = copy.deepcopy(model_evaluator)
             data["model_evaluator"].to(device=worker_device, non_blocking=True)
             data["parameter_dict"] = data[
                 "model_evaluator"
