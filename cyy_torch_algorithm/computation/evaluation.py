@@ -12,12 +12,7 @@ def eval_model(
     input_shape=None,
     **kwargs
 ):
-    model_evaluator.model_util.load_parameter_dict(
-        parameter_dict,
-        check_parameter=False,
-        as_parameter=False,
-        update_parameter_shapes=False,
-    )
+    model_evaluator.model_util.load_buffer_dict(parameter_dict)
     input_kwargs = kwargs
     kwargs = {
         "targets": targets,
