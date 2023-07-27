@@ -2,8 +2,7 @@ import functools
 from typing import Callable
 
 import torch
-from cyy_torch_toolbox.tensor import (cat_tensor_dict, recursive_tensor_op,
-                                      tensor_to)
+from cyy_torch_toolbox.tensor import recursive_tensor_op, tensor_to
 
 from .computation_hook import ComputationHook
 
@@ -38,11 +37,10 @@ class SampleComputationHook(ComputationHook):
         is_input_feature,
         batch_dim=0,
     ) -> None:
-
         processed_indices = []
         processed_inputs = []
         processed_targets = []
-        for (sample_index, sample_input, sample_target) in zip(
+        for sample_index, sample_input, sample_target in zip(
             sample_indices, inputs, targets
         ):
             if self.__sample_selector is not None and not self.__sample_selector(
@@ -171,7 +169,7 @@ class SampleComputationHook(ComputationHook):
 
         def result_transform2(tensor, **kwargs):
             if tensor.numel() == 1:
-                return tensor.item()
+                return tensor.view(-1).item()
             tensor.share_memory_()
             return tensor
 
@@ -179,20 +177,19 @@ class SampleComputationHook(ComputationHook):
         return batch_size, res
 
 
-def dot_product(result, vector, **kwargs) -> float:
-    match vector:
+def dot_product(a, b, **kwargs) -> float:
+    match b:
         case dict():
             product = 0
-            for k, v in vector.items():
-                if v.device == result[k].device:
-                    product += v.view(-1).dot(result[k].view(-1)).item()
+            for k, v in b.items():
+                if v.device == a[k].device:
+                    product += v.view(-1).dot(a[k].view(-1)).item()
                 else:
-                    product += v.cpu().view(-1).dot(result[k].cpu().view(-1)).item()
+                    product += v.cpu().view(-1).dot(a[k].cpu().view(-1)).item()
             return product
-    match result:
-        case dict():
-            result = cat_tensor_dict(result)
-
-    if result.device == vector.device:
-        return result.dot(vector).item()
-    return result.cpu().dot(vector.cpu()).item()
+        case _:
+            a = a.view(-1)
+            b = b.view(-1)
+            if a.device == b.device:
+                return a.dot(b).item()
+            return a.cpu().dot(b.cpu()).item()
