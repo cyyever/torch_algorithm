@@ -8,7 +8,7 @@ from cyy_torch_toolbox.trainer import Trainer
 
 
 class DeterministicTraining:
-    def __init__(self, config: DefaultConfig = None) -> None:
+    def __init__(self, config: DefaultConfig) -> None:
         self.config = config
         self.trainer_fun: Callable = self.config.create_trainer
         self.last_trainer: None | Trainer = None
@@ -17,7 +17,7 @@ class DeterministicTraining:
     def create_deterministic_trainer(
         self, trainer_fun: None | Callable = None
     ) -> Trainer:
-        self.config.make_reproducible_env = True
+        self.config.reproducible_env_config.make_reproducible_env = True
         self.config.apply_global_config()
         if trainer_fun is not None:
             self.trainer_fun = trainer_fun
