@@ -1,20 +1,20 @@
 import math
 from itertools import chain, combinations
-from typing import Callable
+from typing import Callable, Iterable
 
 
 class ShapleyValue:
     @staticmethod
-    def powerset(iterable):
+    def powerset(iterable: Iterable) -> chain:
         "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
-        s = list(iterable)
+        s: list = list(iterable)
         return chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))
 
     def __init__(
         self,
         worker_number: int,
         last_round_metric: float = 0,
-    ):
+    ) -> None:
         self.worker_number = worker_number
         self.last_round_metric = last_round_metric
         self.round_number = 0
@@ -26,6 +26,9 @@ class ShapleyValue:
 
     def set_save_function(self, save_fun):
         self.save_fun = save_fun
+
+    def get_full_worker_set(self) -> tuple:
+        return tuple(range(self.worker_number))
 
     @staticmethod
     def normalize_shapley_values(shapley_values: dict, marginal_gain: float) -> dict:

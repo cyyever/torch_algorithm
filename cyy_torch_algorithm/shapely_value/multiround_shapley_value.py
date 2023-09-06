@@ -12,7 +12,7 @@ class MultiRoundShapleyValue(ShapleyValue):
         worker_number: int,
         last_round_metric: float = 0,
         round_trunc_threshold: float | None = None,
-    ):
+    ) -> None:
         super().__init__(
             worker_number=worker_number, last_round_metric=last_round_metric
         )
@@ -20,27 +20,26 @@ class MultiRoundShapleyValue(ShapleyValue):
         self.shapley_values_S: dict = {}
         self.round_trunc_threshold = round_trunc_threshold
 
-    def compute(self):
+    def compute(self) -> None:
         assert self.metric_fun is not None
         self.round_number += 1
-        metrics = {}
+        metrics: dict = {tuple(): self.last_round_metric}
         this_round_metric = self.metric_fun(
-            self.round_number, set(range(self.worker_number))
+            self.round_number, self.get_full_worker_set()
         )
         if this_round_metric is None:
             get_logger().warning("force stop")
             return
-        metrics[()] = self.last_round_metric
-        metrics[tuple(range(self.worker_number))] = this_round_metric
+        metrics[self.get_full_worker_set()] = this_round_metric
         if self.round_trunc_threshold is not None and (
             abs(this_round_metric - self.last_round_metric)
             <= self.round_trunc_threshold
         ):
             self.shapley_values[self.round_number] = {
-                i: 0 for i in range(self.worker_number)
+                i: 0 for i in self.get_full_worker_set()
             }
             self.shapley_values_S[self.round_number] = {
-                i: 0 for i in range(self.worker_number)
+                i: 0 for i in self.get_full_worker_set()
             }
             if self.save_fun is not None:
                 self.save_fun(
@@ -58,7 +57,7 @@ class MultiRoundShapleyValue(ShapleyValue):
             self.last_round_metric = this_round_metric
             return
 
-        for subset in ShapleyValue.powerset(range(self.worker_number)):
+        for subset in ShapleyValue.powerset(self.get_full_worker_set()):
             key = tuple(sorted(subset))
             if key not in metrics:
                 if not subset:
@@ -106,7 +105,7 @@ class MultiRoundShapleyValue(ShapleyValue):
         ] = ShapleyValue.normalize_shapley_values(round_SV_S, round_marginal_gain_S)
 
         # calculating fullset SV
-        if set(best_S) == set(range(self.worker_number)):
+        if set(best_S) == set(self.get_full_worker_set()):
             self.shapley_values[self.round_number] = copy.deepcopy(
                 self.shapley_values_S[self.round_number]
             )

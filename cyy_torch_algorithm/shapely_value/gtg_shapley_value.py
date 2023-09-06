@@ -36,7 +36,7 @@ class GTGShapleyValue(ShapleyValue):
         assert self.metric_fun is not None
         self.round_number += 1
         this_round_metric = self.metric_fun(
-            self.round_number, set(range(self.worker_number))
+            self.round_number, self.get_full_worker_set()
         )
         if this_round_metric is None:
             get_logger().warning("force stop")
@@ -46,10 +46,10 @@ class GTGShapleyValue(ShapleyValue):
             <= self.round_trunc_threshold
         ):
             self.shapley_values[self.round_number] = {
-                i: 0 for i in range(self.worker_number)
+                i: 0 for i in self.get_full_worker_set()
             }
             self.shapley_values_S[self.round_number] = {
-                i: 0 for i in range(self.worker_number)
+                i: 0 for i in self.get_full_worker_set()
             }
             if self.save_fun is not None:
                 self.save_fun(
@@ -74,24 +74,24 @@ class GTGShapleyValue(ShapleyValue):
         index = 0
         contribution_records: list = []
         while self.not_convergent(index, contribution_records):
-            for worker_id in range(self.worker_number):
+            for worker_id in self.get_full_worker_set():
                 index += 1
                 v: list = [0] * (self.worker_number + 1)
                 v[0] = self.last_round_metric
-                marginal_contribution = [0 for i in range(self.worker_number)]
+                marginal_contribution = [0] * len(self.get_full_worker_set())
                 perturbed_indices = np.concatenate(
                     (
                         np.array([worker_id]),
                         np.random.permutation(
-                            [i for i in range(self.worker_number) if i != worker_id]
+                            [i for i in self.get_full_worker_set() if i != worker_id]
                         ),
                     )
                 ).astype(int)
 
-                for j in range(1, self.worker_number + 1):
-                    subset = tuple(sorted(perturbed_indices[:j].tolist()))
+                for j in range(len(self.get_full_worker_set())):
+                    subset = tuple(sorted(perturbed_indices[: (j + 1)].tolist()))
                     # truncation
-                    if abs(this_round_metric - v[j - 1]) >= self.eps:
+                    if abs(this_round_metric - v[j]) >= self.eps:
                         if subset not in metrics:
                             if not subset:
                                 metric = self.last_round_metric
@@ -107,12 +107,12 @@ class GTGShapleyValue(ShapleyValue):
                                 metric,
                             )
                             metrics[subset] = metric
-                        v[j] = metrics[subset]
+                        v[j + 1] = metrics[subset]
                     else:
-                        v[j] = v[j - 1]
+                        v[j + 1] = v[j]
 
                     # update SV
-                    marginal_contribution[perturbed_indices[j - 1]] = v[j] - v[j - 1]
+                    marginal_contribution[perturbed_indices[j]] = v[j + 1] - v[j]
                 contribution_records.append(marginal_contribution)
                 # for best_S
                 perm_records[tuple(perturbed_indices.tolist())] = marginal_contribution
@@ -141,7 +141,7 @@ class GTGShapleyValue(ShapleyValue):
 
         # calculating fullset SV
         # shapley value calculation
-        if set(best_S) == set(range(self.worker_number)):
+        if set(best_S) == set(self.get_full_worker_set()):
             self.shapley_values[self.round_number] = copy.deepcopy(
                 self.shapley_values_S[self.round_number]
             )
