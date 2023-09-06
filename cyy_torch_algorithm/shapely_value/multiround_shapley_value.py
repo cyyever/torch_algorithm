@@ -122,12 +122,8 @@ class MultiRoundShapleyValue(ShapleyValue):
                     if client_id not in round_shapley_values:
                         round_shapley_values[client_id] = 0
                     round_shapley_values[client_id] += marginal_contribution / (
-                        (
-                            math.comb(
-                                len(self.get_full_worker_set()) - 1, len(subset) - 1
-                            )
-                        )
-                        * len(self.get_full_worker_set())
+                        (math.comb(self.worker_number - 1, len(subset) - 1))
+                        * self.worker_number
                     )
 
             round_marginal_gain = this_round_metric - self.last_round_metric

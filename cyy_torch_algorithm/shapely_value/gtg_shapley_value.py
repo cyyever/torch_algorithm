@@ -78,7 +78,7 @@ class GTGShapleyValue(ShapleyValue):
                 index += 1
                 v: list = [0] * (self.worker_number + 1)
                 v[0] = self.last_round_metric
-                marginal_contribution = [0] * len(self.get_full_worker_set())
+                marginal_contribution = [0] * self.worker_number
                 perturbed_indices = np.concatenate(
                     (
                         np.array([worker_id]),
@@ -88,7 +88,7 @@ class GTGShapleyValue(ShapleyValue):
                     )
                 ).astype(int)
 
-                for j in range(len(self.get_full_worker_set())):
+                for j in self.get_full_worker_set():
                     subset = tuple(sorted(perturbed_indices[: (j + 1)].tolist()))
                     # truncation
                     if abs(this_round_metric - v[j]) >= self.eps:
