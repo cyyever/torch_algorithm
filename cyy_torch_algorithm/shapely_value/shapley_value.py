@@ -34,11 +34,11 @@ class ShapleyValue:
     def normalize_shapley_values(shapley_values: dict, marginal_gain: float) -> dict:
         sum_value: float = 0
         if marginal_gain >= 0:
-            sum_value = sum([v for v in shapley_values.values() if v >= 0])
+            sum_value = sum(v for v in shapley_values.values() if v >= 0)
             if math.isclose(sum_value, 0):
                 sum_value = 1e-9
         else:
-            sum_value = sum([v for v in shapley_values.values() if v < 0])
+            sum_value = sum(v for v in shapley_values.values() if v < 0)
             if math.isclose(sum_value, 0):
                 sum_value = -1e-9
 

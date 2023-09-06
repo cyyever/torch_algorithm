@@ -35,9 +35,7 @@ class GTGShapleyValue(ShapleyValue):
     def compute(self) -> None:
         assert self.metric_fun is not None
         self.round_number += 1
-        this_round_metric = self.metric_fun(
-            self.round_number, self.get_full_worker_set()
-        )
+        this_round_metric = self.metric_fun(self.get_full_worker_set())
         if this_round_metric is None:
             get_logger().warning("force stop")
             return
@@ -96,7 +94,7 @@ class GTGShapleyValue(ShapleyValue):
                             if not subset:
                                 metric = self.last_round_metric
                             else:
-                                metric = self.metric_fun(self.round_number, subset)
+                                metric = self.metric_fun(subset)
                                 if metric is None:
                                     get_logger().warning("force stop")
                                     return
