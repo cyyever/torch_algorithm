@@ -25,11 +25,18 @@ class ShapleyValue:
     def player_number(self) -> int:
         return len(self.players)
 
-    def set_metric_function(self, metric_fun):
+    def set_metric_function(self, metric_fun) -> None:
         self.metric_fun = lambda subset: metric_fun(self.__get_players(subset))
 
-    def set_save_function(self, save_fun):
-        self.save_fun = save_fun
+    def set_save_function(self, save_fun) -> None:
+        def new_save_fun(round_number, sv1, sv2) -> None:
+            save_fun(
+                round_number,
+                {self.players[k]: v for k, v in sv1.items()},
+                {self.players[k]: v for k, v in sv2.items()},
+            )
+
+        self.save_fun = new_save_fun
 
     def __get_players(self, indices) -> tuple:
         return tuple(self.players[i] for i in indices)
