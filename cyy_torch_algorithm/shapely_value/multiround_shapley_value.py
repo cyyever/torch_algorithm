@@ -9,13 +9,11 @@ from .shapley_value import ShapleyValue
 class MultiRoundShapleyValue(ShapleyValue):
     def __init__(
         self,
-        worker_number: int,
+        players: list,
         last_round_metric: float = 0,
         round_trunc_threshold: float | None = None,
     ) -> None:
-        super().__init__(
-            worker_number=worker_number, last_round_metric=last_round_metric
-        )
+        super().__init__(players=players, last_round_metric=last_round_metric)
         self.shapley_values: dict = {}
         self.shapley_values_S: dict = {}
         self.round_trunc_threshold = round_trunc_threshold
@@ -24,20 +22,20 @@ class MultiRoundShapleyValue(ShapleyValue):
         assert self.metric_fun is not None
         self.round_number += 1
         metrics: dict = {tuple(): self.last_round_metric}
-        this_round_metric = self.metric_fun(self.get_full_worker_set())
+        this_round_metric = self.metric_fun(self.complete_player_indices)
         if this_round_metric is None:
             get_logger().warning("force stop")
             return
-        metrics[self.get_full_worker_set()] = this_round_metric
+        metrics[self.complete_player_indices] = this_round_metric
         if self.round_trunc_threshold is not None and (
             abs(this_round_metric - self.last_round_metric)
             <= self.round_trunc_threshold
         ):
             self.shapley_values[self.round_number] = {
-                i: 0 for i in self.get_full_worker_set()
+                i: 0 for i in self.complete_player_indices
             }
             self.shapley_values_S[self.round_number] = {
-                i: 0 for i in self.get_full_worker_set()
+                i: 0 for i in self.complete_player_indices
             }
             if self.save_fun is not None:
                 self.save_fun(
@@ -55,7 +53,7 @@ class MultiRoundShapleyValue(ShapleyValue):
             self.last_round_metric = this_round_metric
             return
 
-        for subset in ShapleyValue.powerset(self.get_full_worker_set()):
+        for subset in self.powerset(self.complete_player_indices):
             key = tuple(sorted(subset))
             if key not in metrics:
                 if not subset:
@@ -103,7 +101,7 @@ class MultiRoundShapleyValue(ShapleyValue):
         ] = ShapleyValue.normalize_shapley_values(round_SV_S, round_marginal_gain_S)
 
         # calculating fullset SV
-        if set(best_S) == set(self.get_full_worker_set()):
+        if set(best_S) == set(self.complete_player_indices):
             self.shapley_values[self.round_number] = copy.deepcopy(
                 self.shapley_values_S[self.round_number]
             )
@@ -112,16 +110,16 @@ class MultiRoundShapleyValue(ShapleyValue):
             for subset, metric in metrics.items():
                 if not subset:
                     continue
-                for client_id in subset:
+                for player_id in subset:
                     marginal_contribution = (
                         metric
-                        - metrics[tuple(sorted(i for i in subset if i != client_id))]
+                        - metrics[tuple(sorted(i for i in subset if i != player_id))]
                     )
-                    if client_id not in round_shapley_values:
-                        round_shapley_values[client_id] = 0
-                    round_shapley_values[client_id] += marginal_contribution / (
-                        (math.comb(self.worker_number - 1, len(subset) - 1))
-                        * self.worker_number
+                    if player_id not in round_shapley_values:
+                        round_shapley_values[player_id] = 0
+                    round_shapley_values[player_id] += marginal_contribution / (
+                        (math.comb(self.player_number - 1, len(subset) - 1))
+                        * self.player_number
                     )
 
             round_marginal_gain = this_round_metric - self.last_round_metric

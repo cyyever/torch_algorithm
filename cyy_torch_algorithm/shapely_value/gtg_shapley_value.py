@@ -7,26 +7,24 @@ from .shapley_value import ShapleyValue
 
 
 class GTGShapleyValue(ShapleyValue):
-    def __init__(self, worker_number: int, last_round_metric: float = 0):
-        super().__init__(
-            worker_number=worker_number, last_round_metric=last_round_metric
-        )
+    def __init__(self, players: list, last_round_metric: float = 0) -> None:
+        super().__init__(players=players, last_round_metric=last_round_metric)
         self.shapley_values: dict = {}
         self.shapley_values_S: dict = {}
 
         self.eps = 0.001
         self.round_trunc_threshold = 0.001
 
-        self.converge_min = max(30, self.worker_number)
+        self.converge_min = max(30, self.player_number)
         self.last_k = 10
         self.converge_criteria = 0.05
 
         self.max_percentage = 0.8
         self.max_number = min(
-            2**self.worker_number,
+            2**self.player_number,
             max(
                 self.converge_min,
-                self.max_percentage * (2**self.worker_number)
+                self.max_percentage * (2**self.player_number)
                 + np.random.randint(-5, +5),
             ),
         )
@@ -35,7 +33,7 @@ class GTGShapleyValue(ShapleyValue):
     def compute(self) -> None:
         assert self.metric_fun is not None
         self.round_number += 1
-        this_round_metric = self.metric_fun(self.get_full_worker_set())
+        this_round_metric = self.metric_fun(self.complete_player_indices)
         if this_round_metric is None:
             get_logger().warning("force stop")
             return
@@ -44,10 +42,10 @@ class GTGShapleyValue(ShapleyValue):
             <= self.round_trunc_threshold
         ):
             self.shapley_values[self.round_number] = {
-                i: 0 for i in self.get_full_worker_set()
+                i: 0 for i in self.complete_player_indices
             }
             self.shapley_values_S[self.round_number] = {
-                i: 0 for i in self.get_full_worker_set()
+                i: 0 for i in self.complete_player_indices
             }
             if self.save_fun is not None:
                 self.save_fun(
@@ -72,21 +70,21 @@ class GTGShapleyValue(ShapleyValue):
         index = 0
         contribution_records: list = []
         while self.not_convergent(index, contribution_records):
-            for worker_id in self.get_full_worker_set():
+            for player_id in self.complete_player_indices:
                 index += 1
-                v: list = [0] * (self.worker_number + 1)
+                v: list = [0] * (self.player_number + 1)
                 v[0] = self.last_round_metric
-                marginal_contribution = [0] * self.worker_number
+                marginal_contribution = [0] * self.player_number
                 perturbed_indices = np.concatenate(
                     (
-                        np.array([worker_id]),
+                        np.array([player_id]),
                         np.random.permutation(
-                            [i for i in self.get_full_worker_set() if i != worker_id]
+                            [i for i in self.complete_player_indices if i != player_id]
                         ),
                     )
                 ).astype(int)
 
-                for j in self.get_full_worker_set():
+                for j in self.complete_player_indices:
                     subset = tuple(sorted(perturbed_indices[: (j + 1)].tolist()))
                     # truncation
                     if abs(this_round_metric - v[j]) >= self.eps:
@@ -139,7 +137,7 @@ class GTGShapleyValue(ShapleyValue):
 
         # calculating fullset SV
         # shapley value calculation
-        if set(best_S) == set(self.get_full_worker_set()):
+        if set(best_S) == set(self.complete_player_indices):
             self.shapley_values[self.round_number] = copy.deepcopy(
                 self.shapley_values_S[self.round_number]
             )
@@ -147,7 +145,7 @@ class GTGShapleyValue(ShapleyValue):
             round_shapley_values = np.sum(contribution_records, 0) / len(
                 contribution_records
             )
-            assert len(round_shapley_values) == self.worker_number
+            assert len(round_shapley_values) == self.player_number
 
             round_marginal_gain = this_round_metric - self.last_round_metric
             round_shapley_value_dict = {}
