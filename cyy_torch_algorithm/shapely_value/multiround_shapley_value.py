@@ -31,17 +31,13 @@ class MultiRoundShapleyValue(ShapleyValue):
             abs(this_round_metric - self.last_round_metric)
             <= self.round_trunc_threshold
         ):
-            self.shapley_values[self.round_number] = {
-                i: 0 for i in self.complete_player_indices
-            }
-            self.shapley_values_S[self.round_number] = {
-                i: 0 for i in self.complete_player_indices
-            }
+            self.shapley_values = {i: 0 for i in self.complete_player_indices}
+            self.shapley_values_S = {i: 0 for i in self.complete_player_indices}
             if self.save_fun is not None:
                 self.save_fun(
                     self.round_number,
-                    self.shapley_values[self.round_number],
-                    self.shapley_values_S[self.round_number],
+                    self.shapley_values,
+                    self.shapley_values_S,
                 )
             get_logger().info(
                 "skip round %s, this_round_metric %s last_round_metric %s round_trunc_threshold %s",
@@ -96,15 +92,13 @@ class MultiRoundShapleyValue(ShapleyValue):
                 )
         round_marginal_gain_S = metrics_S[best_S] - self.last_round_metric
 
-        self.shapley_values_S[
-            self.round_number
-        ] = ShapleyValue.normalize_shapley_values(round_SV_S, round_marginal_gain_S)
+        self.shapley_values_S = ShapleyValue.normalize_shapley_values(
+            round_SV_S, round_marginal_gain_S
+        )
 
         # calculating fullset SV
         if set(best_S) == set(self.complete_player_indices):
-            self.shapley_values[self.round_number] = copy.deepcopy(
-                self.shapley_values_S[self.round_number]
-            )
+            self.shapley_values = copy.deepcopy(self.shapley_values_S)
         else:
             round_shapley_values = {}
             for subset, metric in metrics.items():
@@ -123,20 +117,16 @@ class MultiRoundShapleyValue(ShapleyValue):
                     )
 
             round_marginal_gain = this_round_metric - self.last_round_metric
-            self.shapley_values[
-                self.round_number
-            ] = ShapleyValue.normalize_shapley_values(
+            self.shapley_values = ShapleyValue.normalize_shapley_values(
                 round_shapley_values, round_marginal_gain
             )
 
         if self.save_fun is not None:
             self.save_fun(
                 self.round_number,
-                self.shapley_values[self.round_number],
-                self.shapley_values_S[self.round_number],
+                self.shapley_values,
+                self.shapley_values_S,
             )
         self.last_round_metric = this_round_metric
-        get_logger().info("shapley_value %s", self.shapley_values[self.round_number])
-        get_logger().info(
-            "shapley_value_best_set %s", self.shapley_values_S[self.round_number]
-        )
+        get_logger().info("shapley_value %s", self.shapley_values)
+        get_logger().info("shapley_value_best_set %s", self.shapley_values_S)
