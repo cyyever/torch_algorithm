@@ -18,9 +18,8 @@ class MultiRoundShapleyValue(ShapleyValue):
         self.shapley_values_S: dict = {}
         self.round_trunc_threshold = round_trunc_threshold
 
-    def compute(self) -> None:
+    def compute(self, round_number: int) -> None:
         assert self.metric_fun is not None
-        self.round_number += 1
         metrics: dict = {tuple(): self.last_round_metric}
         this_round_metric = self.metric_fun(self.complete_player_indices)
         if this_round_metric is None:
@@ -35,13 +34,12 @@ class MultiRoundShapleyValue(ShapleyValue):
             self.shapley_values_S = {i: 0 for i in self.complete_player_indices}
             if self.save_fun is not None:
                 self.save_fun(
-                    self.round_number,
                     self.shapley_values,
                     self.shapley_values_S,
                 )
             get_logger().info(
                 "skip round %s, this_round_metric %s last_round_metric %s round_trunc_threshold %s",
-                self.round_number,
+                round_number,
                 this_round_metric,
                 self.last_round_metric,
                 self.round_trunc_threshold,
@@ -61,7 +59,7 @@ class MultiRoundShapleyValue(ShapleyValue):
                         return
                 metrics[key] = metric
                 get_logger().info(
-                    "round %s subset %s metric %s", self.round_number, key, metric
+                    "round %s subset %s metric %s", round_number, key, metric
                 )
 
         # best subset in metrics
@@ -123,7 +121,6 @@ class MultiRoundShapleyValue(ShapleyValue):
 
         if self.save_fun is not None:
             self.save_fun(
-                self.round_number,
                 self.shapley_values,
                 self.shapley_values_S,
             )

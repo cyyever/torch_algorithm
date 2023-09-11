@@ -29,9 +29,8 @@ class ShapleyValue:
         self.metric_fun = lambda subset: metric_fun(self.__get_players(subset))
 
     def set_save_function(self, save_fun) -> None:
-        def new_save_fun(round_number, sv1, sv2) -> None:
+        def new_save_fun(sv1, sv2) -> None:
             save_fun(
-                round_number,
                 {self.players[k]: v for k, v in sv1.items()},
                 {self.players[k]: v for k, v in sv2.items()},
             )

@@ -30,7 +30,7 @@ class GTGShapleyValue(ShapleyValue):
         )
         get_logger().info("max_number %s", self.max_number)
 
-    def compute(self) -> None:
+    def compute(self, round_number: int) -> None:
         assert self.metric_fun is not None
         this_round_metric = self.metric_fun(self.complete_player_indices)
         if this_round_metric is None:
@@ -44,13 +44,12 @@ class GTGShapleyValue(ShapleyValue):
             self.shapley_values_S = {i: 0 for i in self.complete_player_indices}
             if self.save_fun is not None:
                 self.save_fun(
-                    self.round_number,
                     self.shapley_values,
                     self.shapley_values_S,
                 )
             get_logger().info(
                 "skip round %s, this_round_metric %s last_round_metric %s round_trunc_threshold %s",
-                self.round_number,
+                round_number,
                 this_round_metric,
                 self.last_round_metric,
                 self.round_trunc_threshold,
@@ -93,7 +92,7 @@ class GTGShapleyValue(ShapleyValue):
                                     return
                             get_logger().info(
                                 "round %s subset %s metric %s",
-                                self.round_number,
+                                round_number,
                                 subset,
                                 metric,
                             )
@@ -145,15 +144,12 @@ class GTGShapleyValue(ShapleyValue):
             for idx, value in enumerate(round_shapley_values):
                 round_shapley_value_dict[idx] = float(value)
 
-            self.shapley_values[
-                self.round_number
-            ] = ShapleyValue.normalize_shapley_values(
+            self.shapley_values = ShapleyValue.normalize_shapley_values(
                 round_shapley_value_dict, round_marginal_gain
             )
 
         if self.save_fun is not None:
             self.save_fun(
-                self.round_number,
                 self.shapley_values,
                 self.shapley_values_S,
             )
