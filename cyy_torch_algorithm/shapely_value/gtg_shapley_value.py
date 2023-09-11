@@ -31,6 +31,8 @@ class GTGShapleyValue(ShapleyValue):
         get_logger().info("max_number %s", self.max_number)
 
     def compute(self, round_number: int) -> None:
+        self.shapley_values.clear()
+        self.shapley_values_S.clear()
         assert self.metric_fun is not None
         this_round_metric = self.metric_fun(self.complete_player_indices)
         if this_round_metric is None:

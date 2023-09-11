@@ -19,6 +19,8 @@ class MultiRoundShapleyValue(ShapleyValue):
         self.round_trunc_threshold = round_trunc_threshold
 
     def compute(self, round_number: int) -> None:
+        self.shapley_values.clear()
+        self.shapley_values_S.clear()
         assert self.metric_fun is not None
         metrics: dict = {tuple(): self.last_round_metric}
         this_round_metric = self.metric_fun(self.complete_player_indices)
