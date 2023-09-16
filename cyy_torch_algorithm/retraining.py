@@ -28,7 +28,7 @@ class DeterministicTraining:
     def recreate_trainer(self) -> Trainer:
         assert self.last_trainer is not None
         previous_training_loss = {
-            epoch: self.last_trainer.performance_metric.get_loss(epoch).cpu()
+            epoch: self.last_trainer.performance_metric.get_loss(epoch)
             for epoch in range(1, self.last_trainer.hyper_parameter.epoch + 1)
         }
 
