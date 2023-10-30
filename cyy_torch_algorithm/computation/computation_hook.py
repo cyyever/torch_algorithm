@@ -1,4 +1,5 @@
 import copy
+import functools
 import os
 import threading
 from typing import Any, Callable
@@ -79,11 +80,11 @@ class ComputationHook(Hook):
             if worker_num is not None:
                 worker_num = int(worker_num)
             self.__task_queue = TorchProcessTaskQueue(
-                worker_fun=self._get_worker_fun(),
-                use_manager=False,
                 worker_num=worker_num,
-                use_worker_queue=True,
                 batch_process=True,
+            )
+            self.__task_queue.set_worker_fun(
+                functools.partial(self._get_worker_fun(), task_queue=self.__task_queue)
             )
             self.__task_queue.start()
         return self.__task_queue
@@ -118,8 +119,10 @@ class ComputationHook(Hook):
                     v.share_memory_()
                 new_kwargs |= {"parameter_dict": self.__shared_parameter_dict}
             for worker_id in range(task_queue.worker_num):
-                worker_queue = task_queue.get_worker_queue(worker_id=worker_id)
-                worker_queue.put((batch_index, new_kwargs))
+                task_queue.put_data(
+                    data=(batch_index, new_kwargs),
+                    queue_name=task_queue.get_worker_queue_name(worker_id=worker_id),
+                )
             get_logger().debug(
                 "_broadcast_one_shot_data use %s", cnt.elapsed_milliseconds()
             )
@@ -175,7 +178,11 @@ class ComputationHook(Hook):
 
     @classmethod
     def get_cached_one_shot_data(
-        cls, batch_index: int, worker_device: torch.device, worker_queue: Any
+        cls,
+        batch_index: int,
+        worker_device: torch.device,
+        task_queue: TorchProcessTaskQueue,
+        worker_id: int,
     ) -> dict:
         data = getattr(ComputationHook.__local_data, "data", {})
         if (
@@ -186,20 +193,22 @@ class ComputationHook(Hook):
         new_data = {}
         model_evaluator = None
         parameter_dict = None
-        while not worker_queue.empty():
-            try:
-                res = worker_queue.get(timeout=0.01)
-                new_data = res[1]
-                if "model_evaluator" in new_data:
-                    model_evaluator = new_data.pop("model_evaluator")
-                if "parameter_dict" in new_data:
-                    parameter_dict = new_data.pop("parameter_dict")
-                assert res[0] <= batch_index
-                if res[0] == batch_index:
-                    break
-            except BaseException as e:
-                if "empty" in e.__class__.__name__.lower():
-                    break
+        queue_name = task_queue.get_worker_queue_name(worker_id)
+        read_succ = False
+        while not read_succ or task_queue.has_data(queue_name=queue_name):
+            res = task_queue.get_data(queue_name=queue_name, timeout=0.01)
+            if res is None:
+                continue
+            res = res[0]
+            read_succ = True
+            new_data = res[1]
+            if "model_evaluator" in new_data:
+                model_evaluator = new_data.pop("model_evaluator")
+            if "parameter_dict" in new_data:
+                parameter_dict = new_data.pop("parameter_dict")
+            assert res[0] <= batch_index
+            if res[0] == batch_index:
+                break
         setattr(ComputationHook.__local_data, "batch_index", batch_index)
         if model_evaluator is not None:
             assert next(iter(model_evaluator.model.parameters())).is_shared()
