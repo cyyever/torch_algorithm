@@ -111,6 +111,7 @@ class ComputationHook(Hook):
                 self.__shared_parameter_dict = (
                     model_evaluator.model_util.get_parameter_dict(detach=True)
                 )
+                assert self.__shared_parameter_dict is not None
                 for v in self.__shared_parameter_dict.values():
                     v.grad = None
                     v.requires_grad_(False)
