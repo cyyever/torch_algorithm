@@ -83,10 +83,11 @@ class ComputationHook(Hook):
                 worker_num=worker_num,
                 batch_process=True,
             )
-            self.__task_queue.set_worker_fun(
-                functools.partial(self._get_worker_fun(), task_queue=self.__task_queue)
+            self.__task_queue.start(
+                worker_fun=functools.partial(
+                    self._get_worker_fun(), task_queue=self.__task_queue
+                )
             )
-            self.__task_queue.start()
         return self.__task_queue
 
     def _add_task(self, task: Any) -> None:
