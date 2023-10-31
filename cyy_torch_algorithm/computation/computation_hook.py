@@ -5,6 +5,7 @@ import threading
 from typing import Any, Callable
 
 import torch
+from cyy_naive_lib.data_structure.task_queue import QueueType
 from cyy_naive_lib.log import get_logger
 from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
@@ -86,7 +87,8 @@ class ComputationHook(Hook):
             self.__task_queue.start(
                 worker_fun=functools.partial(
                     self._get_worker_fun(), task_queue=self.__task_queue
-                )
+                ),
+                worker_queue_type=QueueType.Queue,
             )
         return self.__task_queue
 
