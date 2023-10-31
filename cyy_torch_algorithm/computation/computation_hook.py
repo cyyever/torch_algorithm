@@ -122,9 +122,10 @@ class ComputationHook(Hook):
                     v.share_memory_()
                 new_kwargs |= {"parameter_dict": self.__shared_parameter_dict}
             for worker_id in range(task_queue.worker_num):
+                queue_name = task_queue.get_worker_queue_name(worker_id=worker_id)
+                task_queue.clear_data(queue_name=queue_name)
                 task_queue.put_data(
-                    data=(batch_index, new_kwargs),
-                    queue_name=task_queue.get_worker_queue_name(worker_id=worker_id),
+                    data=(batch_index, new_kwargs), queue_name=queue_name
                 )
             get_logger().debug(
                 "_broadcast_one_shot_data use %s", cnt.elapsed_milliseconds()
