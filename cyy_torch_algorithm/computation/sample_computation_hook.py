@@ -126,6 +126,7 @@ class SampleComputationHook(ComputationHook):
         tasks,
         device,
         task_queue,
+        model_queue,
         worker_id,
         **kwargs,
     ) -> tuple:
@@ -148,6 +149,7 @@ class SampleComputationHook(ComputationHook):
                 worker_device=worker_device,
                 worker_id=worker_id,
                 task_queue=task_queue,
+                model_queue=model_queue
             )
 
             worker_fun = ComputationHook.get_cached_item(

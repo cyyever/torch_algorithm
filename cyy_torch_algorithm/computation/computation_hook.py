@@ -22,13 +22,12 @@ class ComputationHook(Hook):
         super().__init__(stripable=True, **kwargs)
         self.__result_dict: dict = {}
         self.__task_queue: TorchProcessTaskQueue | None = None
+        self.__model_queue: TorchProcessTaskQueue | None = None
         self._result_transform: Callable | None = None
         self.__pending_task_cnt: int = 0
         self.__prev_tasks: list = []
         self.__result_collection_fun: Callable | None = None
-        self.__shared_model: None | ModelEvaluator = None
-        self.__sent_model: bool = False
-        self.__shared_parameter_dict: None | dict = None
+        self.__shared_models: dict = {}
 
     def set_result_transform(self, f: Callable) -> None:
         self._result_transform = f
@@ -38,6 +37,20 @@ class ComputationHook(Hook):
 
     def _get_worker_fun(self) -> Callable:
         raise NotImplementedError()
+
+    def _model_worker_fun(self, task, *args, **kwargs) -> Any:
+        match task:
+            case dict():
+                self.__shared_models.clear()
+                batch_index = task["batch_index"]
+                if batch_index != 0:
+                    task["parameter_dict"] = {
+                        k: v.clone() for k, v in task["parameter_dict"].items()
+                    }
+                self.__shared_models[batch_index] = task
+            case _:
+                batch_index = task
+                return self.__shared_models[batch_index]
 
     def reset_result(self) -> None:
         self._drop_result()
@@ -86,11 +99,24 @@ class ComputationHook(Hook):
             )
             self.__task_queue.start(
                 worker_fun=functools.partial(
-                    self._get_worker_fun(), task_queue=self.__task_queue
+                    self._get_worker_fun(),
+                    task_queue=self.__task_queue,
+                    model_queue=self.__get_model_queue(),
                 ),
                 worker_queue_type=QueueType.Queue,
             )
         return self.__task_queue
+
+    def __get_model_queue(self) -> TorchProcessTaskQueue:
+        if self.__model_queue is None:
+            self.__model_queue = TorchProcessTaskQueue(
+                worker_num=1,
+            )
+            self.__model_queue.start(
+                worker_fun=self._model_worker_fun,
+                worker_queue_type=QueueType.Queue,
+            )
+        return self.__model_queue
 
     def _add_task(self, task: Any) -> None:
         self.__prev_tasks.append(task)
@@ -101,32 +127,25 @@ class ComputationHook(Hook):
         self, batch_index: int, model_evaluator: ModelEvaluator, **kwargs
     ) -> None:
         with TimeCounter() as cnt:
-            task_queue = self._get_task_queue()
-            new_kwargs = kwargs
-            if not self.__sent_model:
-                self.__shared_model = copy.deepcopy(model_evaluator)
-                self.__shared_model.model.zero_grad(set_to_none=True)
-                self.__shared_model.model.requires_grad_(False)
-                self.__shared_model.model.share_memory()
-                new_kwargs |= {"model_evaluator": self.__shared_model}
+            task_queue = self.__get_model_queue()
+            assert batch_index >= 0
+            data: dict = dict(kwargs)
+            if batch_index == 0:
+                data["model_evaluator"] = copy.deepcopy(model_evaluator)
+                data["model_evaluator"].model.cpu()
+                data["model_evaluator"].model.zero_grad(set_to_none=True)
+                data["model_evaluator"].model.requires_grad_(False)
+                data["model_evaluator"].model.share_memory()
             else:
-                assert self.__shared_model is not None
-                self.__sent_model = True
-                self.__shared_parameter_dict = (
-                    model_evaluator.model_util.get_parameter_dict(detach=True)
+                data["parameter_dict"] = model_evaluator.model_util.get_parameter_dict(
+                    detach=True
                 )
-                assert self.__shared_parameter_dict is not None
-                for v in self.__shared_parameter_dict.values():
+                for v in data["parameter_dict"].values():
                     v.grad = None
                     v.requires_grad_(False)
                     v.share_memory_()
-                new_kwargs |= {"parameter_dict": self.__shared_parameter_dict}
-            for worker_id in range(task_queue.worker_num):
-                queue_name = task_queue.get_worker_queue_name(worker_id=worker_id)
-                task_queue.clear_data(queue_name=queue_name)
-                task_queue.put_data(
-                    data=(batch_index, new_kwargs), queue_name=queue_name
-                )
+            data["batch_index"] = batch_index
+            task_queue.add_task(data)
             get_logger().debug(
                 "_broadcast_one_shot_data use %s", cnt.elapsed_milliseconds()
             )
@@ -146,8 +165,9 @@ class ComputationHook(Hook):
         if self.__task_queue is not None:
             self.__task_queue.release()
             self.__task_queue = None
-        self.__shared_model = None
-        self.__shared_parameter_dict = None
+        if self.__model_queue is not None:
+            self.__model_queue.release()
+            self.__task_queue = None
 
     @classmethod
     def _setup_device(cls, advised_device) -> tuple:
@@ -186,6 +206,7 @@ class ComputationHook(Hook):
         batch_index: int,
         worker_device: torch.device,
         task_queue: TorchProcessTaskQueue,
+        model_queue: TorchProcessTaskQueue,
         worker_id: int,
     ) -> dict:
         data = getattr(ComputationHook.__local_data, "data", {})
@@ -194,40 +215,24 @@ class ComputationHook(Hook):
             and ComputationHook.__local_data.batch_index == batch_index
         ):
             return data
-        new_data = {}
-        model_evaluator = None
-        parameter_dict = None
-        queue_name = task_queue.get_worker_queue_name(worker_id)
-        read_succ = False
-        while not read_succ or task_queue.has_data(queue_name=queue_name):
-            res = task_queue.get_data(queue_name=queue_name, timeout=0.01)
-            if res is None:
-                continue
-            res = res[0]
-            read_succ = True
-            new_data = res[1]
-            if "model_evaluator" in new_data:
-                model_evaluator = new_data.pop("model_evaluator")
-            if "parameter_dict" in new_data:
-                parameter_dict = new_data.pop("parameter_dict")
-            assert res[0] <= batch_index
-            if res[0] == batch_index:
-                break
+        task_queue.get_worker_queue_name(worker_id)
+        model_queue.add_task(batch_index)
+        if data:
+            data = tensor_to(data, device=worker_device, non_blocking=True)
+        new_data: dict = model_queue.get_data()[0]
+        get_logger().error("keys %s", new_data)
+
         setattr(ComputationHook.__local_data, "batch_index", batch_index)
-        if model_evaluator is not None:
-            assert next(iter(model_evaluator.model.parameters())).is_shared()
-            data["model_evaluator"] = copy.deepcopy(model_evaluator)
+        if "model_evaluator" in new_data:
+            data["model_evaluator"] = copy.deepcopy(new_data["model_evaluator"])
             data["model_evaluator"].to(device=worker_device, non_blocking=True)
             data["parameter_dict"] = data[
                 "model_evaluator"
             ].model_util.get_parameter_dict(detach=False)
-        if parameter_dict is not None:
+        else:
             data["parameter_dict"] = tensor_to(
-                parameter_dict, device=worker_device, non_blocking=True
+                new_data["parameter_dict"], device=worker_device, non_blocking=True
             )
-
-        if new_data:
-            data |= tensor_to(new_data, device=worker_device, non_blocking=True)
 
         if data:
             setattr(ComputationHook.__local_data, "data", data)
