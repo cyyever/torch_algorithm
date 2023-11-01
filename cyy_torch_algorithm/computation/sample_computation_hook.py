@@ -125,9 +125,7 @@ class SampleComputationHook(ComputationHook):
         worker_fun,
         tasks,
         device,
-        task_queue,
         model_queue,
-        worker_id,
         **kwargs,
     ) -> tuple:
         worker_device, worker_stream = ComputationHook._setup_device(
@@ -147,9 +145,7 @@ class SampleComputationHook(ComputationHook):
             model_data = cls.get_cached_one_shot_data(
                 batch_index=batch_index,
                 worker_device=worker_device,
-                worker_id=worker_id,
-                task_queue=task_queue,
-                model_queue=model_queue
+                model_queue=model_queue,
             )
 
             worker_fun = ComputationHook.get_cached_item(

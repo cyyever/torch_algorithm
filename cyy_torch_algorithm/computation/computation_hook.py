@@ -5,7 +5,6 @@ import threading
 from typing import Any, Callable
 
 import torch
-from cyy_naive_lib.data_structure.task_queue import QueueType
 from cyy_naive_lib.log import get_logger
 from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
@@ -40,14 +39,6 @@ class ComputationHook(Hook):
 
     def _model_worker_fun(self, task, *args, **kwargs) -> Any:
         match task:
-            case dict():
-                self.__shared_models.clear()
-                batch_index = task["batch_index"]
-                if batch_index != 0:
-                    task["parameter_dict"] = {
-                        k: v.clone() for k, v in task["parameter_dict"].items()
-                    }
-                self.__shared_models[batch_index] = task
             case _:
                 batch_index = task
                 return self.__shared_models[batch_index]
@@ -100,10 +91,8 @@ class ComputationHook(Hook):
             self.__task_queue.start(
                 worker_fun=functools.partial(
                     self._get_worker_fun(),
-                    task_queue=self.__task_queue,
                     model_queue=self.__get_model_queue(),
-                ),
-                worker_queue_type=QueueType.Queue,
+                )
             )
         return self.__task_queue
 
@@ -112,10 +101,7 @@ class ComputationHook(Hook):
             self.__model_queue = TorchProcessTaskQueue(
                 worker_num=1,
             )
-            self.__model_queue.start(
-                worker_fun=self._model_worker_fun,
-                worker_queue_type=QueueType.Queue,
-            )
+            self.__model_queue.start(worker_fun=self._model_worker_fun, use_thread=True)
         return self.__model_queue
 
     def _add_task(self, task: Any) -> None:
@@ -127,7 +113,7 @@ class ComputationHook(Hook):
         self, batch_index: int, model_evaluator: ModelEvaluator, **kwargs
     ) -> None:
         with TimeCounter() as cnt:
-            task_queue = self.__get_model_queue()
+            self.__shared_models.clear()
             assert batch_index >= 0
             data: dict = dict(kwargs)
             if batch_index == 0:
@@ -144,8 +130,7 @@ class ComputationHook(Hook):
                     v.grad = None
                     v.requires_grad_(False)
                     v.share_memory_()
-            data["batch_index"] = batch_index
-            task_queue.add_task(data)
+            self.__shared_models[batch_index] = data
             get_logger().debug(
                 "_broadcast_one_shot_data use %s", cnt.elapsed_milliseconds()
             )
@@ -168,6 +153,7 @@ class ComputationHook(Hook):
         if self.__model_queue is not None:
             self.__model_queue.release()
             self.__task_queue = None
+        self.__shared_models.clear()
 
     @classmethod
     def _setup_device(cls, advised_device) -> tuple:
@@ -205,9 +191,7 @@ class ComputationHook(Hook):
         cls,
         batch_index: int,
         worker_device: torch.device,
-        task_queue: TorchProcessTaskQueue,
         model_queue: TorchProcessTaskQueue,
-        worker_id: int,
     ) -> dict:
         data = getattr(ComputationHook.__local_data, "data", {})
         if (
@@ -215,24 +199,23 @@ class ComputationHook(Hook):
             and ComputationHook.__local_data.batch_index == batch_index
         ):
             return data
-        task_queue.get_worker_queue_name(worker_id)
         model_queue.add_task(batch_index)
         if data:
             data = tensor_to(data, device=worker_device, non_blocking=True)
         new_data: dict = model_queue.get_data()[0]
-        get_logger().error("keys %s", new_data)
 
         setattr(ComputationHook.__local_data, "batch_index", batch_index)
         if "model_evaluator" in new_data:
-            data["model_evaluator"] = copy.deepcopy(new_data["model_evaluator"])
-            data["model_evaluator"].to(device=worker_device, non_blocking=True)
-            data["parameter_dict"] = data[
+            new_data["model_evaluator"] = copy.deepcopy(new_data["model_evaluator"])
+            new_data["model_evaluator"].to(device=worker_device, non_blocking=True)
+            new_data["parameter_dict"] = new_data[
                 "model_evaluator"
             ].model_util.get_parameter_dict(detach=False)
         else:
-            data["parameter_dict"] = tensor_to(
+            new_data["parameter_dict"] = tensor_to(
                 new_data["parameter_dict"], device=worker_device, non_blocking=True
             )
+        data |= new_data
 
         if data:
             setattr(ComputationHook.__local_data, "data", data)
