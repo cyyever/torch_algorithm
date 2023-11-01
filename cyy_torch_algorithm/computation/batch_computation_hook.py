@@ -58,8 +58,7 @@ class BatchComputationHook(ComputationHook):
         worker_fun: Callable,
         tasks: list,
         device,
-        task_queue,
-        worker_id,
+        model_queue,
         **kwargs
     ) -> tuple:
         batch_size = len(tasks)
@@ -71,8 +70,7 @@ class BatchComputationHook(ComputationHook):
             one_shot_data = cls.get_cached_one_shot_data(
                 batch_index=batch_index,
                 worker_device=worker_device,
-                worker_id=worker_id,
-                task_queue=task_queue,
+                model_queue=model_queue,
             )
             data = tensor_to(data, device=worker_device, non_blocking=True)
             worker_fun = ComputationHook.get_cached_item(

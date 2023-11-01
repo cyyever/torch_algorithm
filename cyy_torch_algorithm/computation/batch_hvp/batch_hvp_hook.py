@@ -4,7 +4,6 @@ import functools
 import torch
 import torch.cuda
 from cyy_naive_lib.algorithm.mapping_op import get_mapping_items_by_key_order
-from cyy_naive_lib.log import get_logger
 from torch.func import grad, jvp, vmap
 
 from ..batch_computation_hook import BatchComputationHook
@@ -57,8 +56,14 @@ def batch_hvp_worker_fun(
 
 
 class BatchHVPHook(BatchComputationHook):
+    vectors = None
+
+    def get_vectors(self):
+        return self.vectors
+
     def set_vectors(self, vectors):
-        self.set_data_fun(lambda: vectors)
+        self.vectors = vectors
+        self.set_data_fun(self.get_vectors)
 
     def _get_batch_computation_fun(self):
         return batch_hvp_worker_fun
