@@ -1,3 +1,4 @@
+import torch
 from cyy_torch_toolbox.ml_type import MachineLearningPhase
 
 
@@ -11,7 +12,7 @@ def eval_model(
     is_input_feature=False,
     input_shape=None,
     **kwargs
-):
+) -> torch.Tensor:
     model_evaluator.model_util.load_buffer_dict(parameter_dict)
     input_kwargs = kwargs
     kwargs = {
@@ -24,8 +25,7 @@ def eval_model(
     if input_kwargs:
         kwargs["inputs"] = input_kwargs
     else:
-        if input_shape is not None:
-            inputs = inputs.view(input_shape)
         kwargs["inputs"] = inputs
-
+    if input_shape is not None:
+        kwargs["inputs"] = kwargs["inputs"].view(input_shape)
     return model_evaluator(**kwargs)["loss"]

@@ -44,14 +44,6 @@ def batch_hvp_worker_fun(
         in_dims=(collections.OrderedDict((k, 0) for k in vectors),),
         # randomness="same",
     )(vectors)
-    # if next(iter(products.values())).device != worker_device:
-    #     get_logger().error(
-    #         "%s %s %s",
-    #         next(iter(products.values())).device,
-    #         worker_device,
-    #         next(iter(vectors.values())).device,
-    #     )
-    #     assert next(iter(products.values())).device == worker_device
     return [{k: v[idx] for k, v in products.items()} for idx in range(vector_size)]
 
 
