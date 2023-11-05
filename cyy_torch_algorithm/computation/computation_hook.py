@@ -38,10 +38,11 @@ class ComputationHook(Hook):
         raise NotImplementedError()
 
     def _model_worker_fun(self, task, *args, **kwargs) -> Any:
-        match task:
-            case _:
-                batch_index = task
-                return self.__shared_models[batch_index]
+        batch_index, need_model_evaluator = task
+        res = self.__shared_models[batch_index]
+        if need_model_evaluator:
+            res = res | {"model_evaluator": self.__shared_models[0]["model_evaluator"]}
+        return res
 
     def reset_result(self) -> None:
         self._drop_result()
@@ -113,7 +114,10 @@ class ComputationHook(Hook):
         self, batch_index: int, model_evaluator: ModelEvaluator, **kwargs
     ) -> None:
         with TimeCounter() as cnt:
-            self.__shared_models.clear()
+            if self.__shared_models:
+                old_model_evaluator = self.__shared_models[0]
+                self.__shared_models.clear()
+                self.__shared_models[0] = old_model_evaluator
             assert batch_index >= 0
             data: dict = dict(kwargs)
             if batch_index == 0:
@@ -199,24 +203,24 @@ class ComputationHook(Hook):
             and ComputationHook.__local_data.batch_index == batch_index
         ):
             return data
-        model_queue.add_task(batch_index)
-        if data:
-            data = tensor_to(data, device=worker_device, non_blocking=True)
+        model_queue.add_task((batch_index, "model_evaluator" not in data))
         new_data: dict = model_queue.get_data()[0]
 
         setattr(ComputationHook.__local_data, "batch_index", batch_index)
         if "model_evaluator" in new_data:
             new_data["model_evaluator"] = copy.deepcopy(new_data["model_evaluator"])
             new_data["model_evaluator"].to(device=worker_device, non_blocking=True)
-            new_data["parameter_dict"] = new_data[
-                "model_evaluator"
-            ].model_util.get_parameter_dict(detach=False)
-        else:
+        if "parameter_dict" in new_data:
             new_data["parameter_dict"] = tensor_to(
                 new_data["parameter_dict"], device=worker_device, non_blocking=True
             )
-        data |= new_data
+        else:
+            new_data["parameter_dict"] = new_data[
+                "model_evaluator"
+            ].model_util.get_parameter_dict(detach=False)
+        new_data = tensor_to(new_data, device=worker_device, non_blocking=True)
+        data.update(new_data)
 
-        if data:
-            setattr(ComputationHook.__local_data, "data", data)
+        setattr(ComputationHook.__local_data, "data", data)
+        assert "model_evaluator" in data
         return data
