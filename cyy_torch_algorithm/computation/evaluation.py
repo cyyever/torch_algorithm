@@ -1,5 +1,5 @@
 import torch
-from cyy_torch_toolbox.ml_type import MachineLearningPhase
+from cyy_torch_toolbox.ml_type import EvaluationMode
 
 
 def eval_model(
@@ -8,19 +8,18 @@ def eval_model(
     targets,
     device=None,
     inputs=None,
-    phase=MachineLearningPhase.Training,
+    evaluation_mode=EvaluationMode.Training,
     is_input_feature=False,
     input_shape=None,
-    **kwargs
+    **input_kwargs
 ) -> torch.Tensor:
     model_evaluator.model_util.load_buffer_dict(parameter_dict)
-    input_kwargs = kwargs
     kwargs = {
         "targets": targets,
         "device": device,
         "non_blocking": True,
         "is_input_feature": is_input_feature,
-        "phase": phase,
+        "evaluation_mode": evaluation_mode,
     }
     if input_kwargs:
         kwargs["inputs"] = input_kwargs
