@@ -42,7 +42,7 @@ def batch_hvp_worker_fun(
     products = vmap(
         hvp_wrapper,
         in_dims=(collections.OrderedDict((k, 0) for k in vectors),),
-        # randomness="same",
+        randomness="same",
     )(vectors)
     return [{k: v[idx] for k, v in products.items()} for idx in range(vector_size)]
 

@@ -8,7 +8,7 @@ def eval_model(
     model_evaluator.model_util.load_buffer_dict(parameter_dict)
     kwargs |= {
         "non_blocking": True,
-        "evaluation_mode": EvaluationMode.Training,
+        "evaluation_mode": EvaluationMode.Test,
     }
     if input_shape is not None:
         kwargs["inputs"] = kwargs["inputs"].view(input_shape)
