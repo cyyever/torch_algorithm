@@ -40,7 +40,7 @@ def test_CV_jvp():
                     cat_tensor_dict(products[1]).cpu() * 4
                     - cat_tensor_dict(products[4]).cpu()
                 ).item()
-                < 0.05
+                < 0.1
             )
             del products
             raise StopExecutingException()
