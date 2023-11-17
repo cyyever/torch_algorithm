@@ -1,14 +1,14 @@
 import math
 from typing import Any, Callable
 
-from cyy_torch_toolbox.default_config import DefaultConfig
+from cyy_torch_toolbox.default_config import Config
 from cyy_torch_toolbox.ml_type import ExecutorHookPoint
 from cyy_torch_toolbox.reproducible_env import global_reproducible_env
 from cyy_torch_toolbox.trainer import Trainer
 
 
 class DeterministicTraining:
-    def __init__(self, config: DefaultConfig) -> None:
+    def __init__(self, config: Config) -> None:
         self.config = config
         self.trainer_fun: Callable = self.config.create_trainer
         self.last_trainer: None | Trainer = None

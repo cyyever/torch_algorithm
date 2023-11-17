@@ -34,7 +34,6 @@ class SampleComputationHook(ComputationHook):
         sample_indices,
         inputs,
         targets,
-        is_input_feature,
         batch_dim=0,
     ) -> None:
         processed_indices = []
@@ -81,7 +80,7 @@ class SampleComputationHook(ComputationHook):
         )
         for item in zip(processed_indices, processed_inputs, processed_targets):
             self._add_task(
-                task=(self.__batch_index, *item, is_input_feature),
+                task=(self.__batch_index, *item),
             )
         self.__batch_index += 1
 
@@ -95,12 +94,7 @@ class SampleComputationHook(ComputationHook):
             self._get_sample_computation_fun(),
         )
 
-    def _after_forward(
-        self, executor, inputs, targets, sample_indices, input_features=None, **kwargs
-    ):
-        is_input_feature = input_features is not None
-        if is_input_feature:
-            inputs = input_features
+    def _after_forward(self, executor, inputs, targets, sample_indices, **kwargs):
         if executor is not None:
             model_evaluator = executor.model_evaluator
         else:
@@ -113,7 +107,6 @@ class SampleComputationHook(ComputationHook):
             model_evaluator=model_evaluator,
             sample_indices=sample_indices.tolist(),
             inputs=inputs,
-            is_input_feature=is_input_feature,
             targets=targets,
             batch_dim=batch_dim,
         )
@@ -141,7 +134,6 @@ class SampleComputationHook(ComputationHook):
             sample_indices = [task[1] for task in tasks]
             inputs = [task[2] for task in tasks]
             targets = [task[3] for task in tasks]
-            is_input_feature = tasks[0][4]
             model_data = cls.get_cached_one_shot_data(
                 batch_index=batch_index,
                 worker_device=worker_device,
@@ -156,7 +148,6 @@ class SampleComputationHook(ComputationHook):
                 inputs=inputs,
                 targets=targets,
                 worker_device=worker_device,
-                is_input_feature=is_input_feature,
                 **model_data,
             )
             result_transform = ComputationHook.get_cached_item(

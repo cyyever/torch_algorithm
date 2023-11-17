@@ -5,14 +5,14 @@ from cyy_naive_lib.log import get_logger
 from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_algorithm.computation.batch_hvp.batch_hvp_hook import \
     BatchHVPHook
-from cyy_torch_toolbox.default_config import DefaultConfig
+from cyy_torch_toolbox.default_config import Config
 from cyy_torch_toolbox.ml_type import ExecutorHookPoint, StopExecutingException
 from cyy_torch_toolbox.tensor import cat_tensor_dict
 
 
 def test_CV_jvp():
     torch.autograd.set_detect_anomaly(True)
-    config = DefaultConfig("MNIST", "lenet5")
+    config = Config("MNIST", "lenet5")
     config.trainer_config.hook_config.use_amp = False
     config.hyper_parameter_config.epoch = 1
     config.hyper_parameter_config.batch_size = 8

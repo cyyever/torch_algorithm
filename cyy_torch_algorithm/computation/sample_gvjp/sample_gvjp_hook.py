@@ -17,7 +17,6 @@ def sample_gvjp_worker_fun(
     targets,
     worker_device,
     parameter_dict,
-    is_input_feature,
     **kwargs
 ):
     def vjp_wrapper(parameter_dict, input_tensor, target):
@@ -27,7 +26,6 @@ def sample_gvjp_worker_fun(
             device=worker_device,
             model_evaluator=model_evaluator,
             input_shape=inputs[0].shape,
-            is_input_feature=is_input_feature,
         )
 
         def grad_f(input_tensor):

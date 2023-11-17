@@ -2,7 +2,6 @@ import copy
 import functools
 
 import torch
-from cyy_torch_toolbox.tensor import tensor_to
 from torch.func import grad, vmap
 
 from ..evaluation import eval_model
@@ -16,24 +15,20 @@ def sample_gradient_worker_fun(
     targets,
     worker_device,
     parameter_dict,
-    is_input_feature,
-    **kwargs
-):
+) -> dict:
     def wrapper(parameter_dict, target, *args, input_keys=None):
-        input_kwargs = {}
         if input_keys is not None:
-            input_kwargs = dict(zip(input_keys, args))
+            inputs = dict(zip(input_keys, args))
         else:
             assert len(args) == 1
-            input_kwargs["inputs"] = args[0]
+            inputs = args[0]
 
         f = functools.partial(
             eval_model,
             targets=target,
             device=worker_device,
             model_evaluator=model_evaluator,
-            is_input_feature=is_input_feature,
-            **input_kwargs
+            inputs=inputs,
         )
         return grad(f, argnums=0)(parameter_dict)
 

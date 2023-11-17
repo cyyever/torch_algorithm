@@ -1,11 +1,11 @@
 from cyy_torch_algorithm.computation.sample_gradient.sample_gradient_hook import \
     SampleGradientHook
-from cyy_torch_toolbox.default_config import DefaultConfig
+from cyy_torch_toolbox.default_config import Config
 from cyy_torch_toolbox.ml_type import ExecutorHookPoint, StopExecutingException
 
 
 def test_CV_sample_gradient():
-    config = DefaultConfig("MNIST", "lenet5")
+    config = Config("MNIST", "lenet5")
     config.hyper_parameter_config.epoch = 2
     config.hyper_parameter_config.batch_size = 8
     config.hyper_parameter_config.learning_rate = 0.01
@@ -29,7 +29,7 @@ def test_CV_sample_gradient():
 
 
 def test_huggingface_sample_gradient():
-    config = DefaultConfig(
+    config = Config(
         "IMDB", "hugging_face_sequence_classification_distilbert-base-cased"
     )
     config.trainer_config.hook_config.use_amp = False

@@ -1,13 +1,13 @@
 import torch
 from cyy_torch_algorithm.computation.sample_gvjp.sample_gvjp_hook import \
     SampleGradientVJPHook
-from cyy_torch_toolbox.default_config import DefaultConfig
+from cyy_torch_toolbox.default_config import Config
 from cyy_torch_toolbox.ml_type import ExecutorHookPoint, StopExecutingException
 from torch import nn
 
 
 def test_CV_vjp():
-    config = DefaultConfig("MNIST", "lenet5")
+    config = Config("MNIST", "lenet5")
     config.hyper_parameter_config.epoch = 1
     config.hyper_parameter_config.batch_size = 8
     config.hyper_parameter_config.learning_rate = 0.01
@@ -31,7 +31,7 @@ def test_CV_vjp():
 
 def test_NLP_vjp():
     return
-    config = DefaultConfig("IMDB", "TransformerClassificationModel")
+    config = Config("IMDB", "TransformerClassificationModel")
     config.dc_config.dataset_kwargs["max_len"] = 300
     config.model_config.model_kwargs["max_len"] = 300
     config.model_config.model_kwargs["d_model"] = 100
