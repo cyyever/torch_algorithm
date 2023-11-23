@@ -186,10 +186,6 @@ class ComputationHook(Hook):
             return value
         return getattr(cls.__local_data, name)
 
-    def _cancel_forward(self, **kwargs) -> None:
-        get_logger().warning("discard results")
-        self._drop_result()
-
     @classmethod
     def get_cached_one_shot_data(
         cls,
@@ -206,7 +202,7 @@ class ComputationHook(Hook):
         model_queue.add_task((batch_index, "model_evaluator" not in data))
         new_data: dict = model_queue.get_data()[0]
 
-        setattr(ComputationHook.__local_data, "batch_index", batch_index)
+        ComputationHook.__local_data.batch_index = batch_index
         if "model_evaluator" in new_data:
             new_data["model_evaluator"] = copy.deepcopy(new_data["model_evaluator"])
             new_data["model_evaluator"].to(device=worker_device, non_blocking=True)
