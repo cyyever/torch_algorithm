@@ -1,5 +1,5 @@
 import functools
-from typing import Callable
+from typing import Any, Callable
 
 import torch
 from cyy_torch_toolbox.tensor import tensor_to
@@ -11,13 +11,20 @@ class BatchComputationHook(ComputationHook):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self.__data_fun: Callable | None = None
+        self.__data: Any | None = None
+
+    def set_data(self, data: Any) -> None:
+        self.__data = data
 
     def set_data_fun(self, data_fun):
         self.__data_fun = data_fun
 
-    def _after_forward(self, executor, inputs, targets, batch_index, **kwargs) -> None:
-        assert self.__data_fun is not None
-        data = self.__data_fun()
+    def _before_batch(self, executor, inputs, targets, batch_index, **kwargs) -> None:
+        data = self.__data
+        if data is None:
+            assert self.__data_fun is not None
+            data = self.__data_fun()
+        assert data is not None
         if data is None:
             return
         self.add_task(

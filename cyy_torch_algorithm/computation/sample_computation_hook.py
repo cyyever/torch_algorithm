@@ -94,7 +94,9 @@ class SampleComputationHook(ComputationHook):
             self._get_sample_computation_fun(),
         )
 
-    def _after_forward(self, executor, inputs, targets, sample_indices, **kwargs):
+    def _before_batch(
+        self, executor, inputs, targets, sample_indices, **kwargs
+    ) -> None:
         if executor is not None:
             model_evaluator = executor.model_evaluator
         else:
