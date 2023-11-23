@@ -22,7 +22,7 @@ def test_CV_jvp():
 
     time_counter = TimeCounter(debug_logging=False)
     trainer.append_named_hook(
-        ExecutorHookPoint.AFTER_FORWARD,
+        ExecutorHookPoint.AFTER_BATCH,
         "reset_time",
         lambda **kwargs: time_counter.reset_start_time()
         and get_logger().error("begin count time"),
@@ -46,7 +46,7 @@ def test_CV_jvp():
             raise StopExecutingException()
 
     trainer.append_named_hook(
-        ExecutorHookPoint.AFTER_FORWARD, "check results", print_products
+        ExecutorHookPoint.AFTER_BATCH, "check results", print_products
     )
     parameter_dict = trainer.model_util.get_parameter_dict()
     vectors = []

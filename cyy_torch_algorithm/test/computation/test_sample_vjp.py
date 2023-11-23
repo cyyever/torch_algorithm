@@ -23,7 +23,7 @@ def test_CV_vjp():
             raise StopExecutingException()
 
     trainer.append_named_hook(
-        ExecutorHookPoint.AFTER_FORWARD, "check gradients", print_result
+        ExecutorHookPoint.AFTER_BATCH, "check gradients", print_result
     )
     trainer.train()
     hook.reset()

@@ -22,7 +22,7 @@ def test_CV_sample_gradient():
             raise StopExecutingException()
 
     trainer.append_named_hook(
-        ExecutorHookPoint.AFTER_FORWARD, "check gradients", print_sample_gradients
+        ExecutorHookPoint.AFTER_BATCH, "check gradients", print_sample_gradients
     )
     trainer.train()
     hook.reset()
@@ -54,7 +54,7 @@ def test_huggingface_sample_gradient():
             raise StopExecutingException()
 
     trainer.append_named_hook(
-        ExecutorHookPoint.AFTER_FORWARD, "check gradients", print_sample_gradients
+        ExecutorHookPoint.AFTER_BATCH, "check gradients", print_sample_gradients
     )
     trainer.train()
     hook.reset()

@@ -156,7 +156,7 @@ class ComputationHook(Hook):
             self.__task_queue = None
         if self.__model_queue is not None:
             self.__model_queue.release()
-            self.__task_queue = None
+            self.__model_queue = None
         self.__shared_models.clear()
 
     @classmethod
