@@ -142,12 +142,12 @@ class SampleComputationHook(ComputationHook):
                 model_queue=model_queue,
             )
             forward_fun: str | None = None
-            input_fatures = [
+            input_features = [
                 model_data["model_evaluator"].get_input_feature(input_element)
                 for input_element in inputs
             ]
-            if input_fatures is not None:
-                inputs = input_fatures
+            if input_features[0] is not None:
+                inputs = input_features
                 forward_fun = model_data["model_evaluator"].get_feature_forward_fun()
                 model_data["model_evaluator"].set_forward_fun(forward_fun)
 
