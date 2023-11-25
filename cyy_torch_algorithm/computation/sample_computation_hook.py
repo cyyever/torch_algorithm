@@ -35,12 +35,6 @@ class SampleComputationHook(ComputationHook):
         inputs,
         targets,
     ) -> None:
-        forward_fun: str | None = None
-        input_fatures = model_evaluator.get_input_feature(inputs)
-        if input_fatures is not None:
-            inputs = input_fatures
-            forward_fun = model_evaluator.get_feature_forward_fun()
-
         res = model_evaluator.split_batch_input(inputs=inputs, targets=targets)
         inputs = res["inputs"]
         batch_dim = res["batch_dim"]
@@ -91,7 +85,7 @@ class SampleComputationHook(ComputationHook):
         )
         for item in zip(processed_indices, processed_inputs, processed_targets):
             self._add_task(
-                task=(self.__batch_index, *item, forward_fun),
+                task=(self.__batch_index, *item),
             )
         self.__batch_index += 1
 
@@ -147,8 +141,15 @@ class SampleComputationHook(ComputationHook):
                 worker_device=worker_device,
                 model_queue=model_queue,
             )
-            forward_fun = tasks[0][4]
-            model_data["model_evaluator"].set_forward_fun(forward_fun)
+            forward_fun: str | None = None
+            input_fatures = [
+                model_data["model_evaluator"].get_input_feature(input_element)
+                for input_element in inputs
+            ]
+            if input_fatures is not None:
+                inputs = input_fatures
+                forward_fun = model_data["model_evaluator"].get_feature_forward_fun()
+                model_data["model_evaluator"].set_forward_fun(forward_fun)
 
             worker_fun = ComputationHook.get_cached_item(
                 "worker_fun", worker_fun, worker_device=worker_device
