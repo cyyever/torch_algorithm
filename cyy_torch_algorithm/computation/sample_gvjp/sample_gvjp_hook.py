@@ -45,7 +45,7 @@ def sample_gvjp_worker_fun(
 
 
 class SampleGradientVJPHook(SampleComputationHook):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self.__vector = None
 
