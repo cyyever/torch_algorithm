@@ -36,7 +36,6 @@ def test_huggingface_sample_gradient():
     config.hyper_parameter_config.epoch = 2
     config.hyper_parameter_config.batch_size = 8
     config.hyper_parameter_config.learning_rate = 0.001
-    config.hyper_parameter_config.find_learning_rate = False
     config.model_config.model_kwargs = {"n_layers": 1, "max_len": 100}
     config.dc_config.dataset_kwargs = {
         "max_len": 100,

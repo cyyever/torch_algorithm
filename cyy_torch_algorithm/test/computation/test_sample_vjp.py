@@ -11,7 +11,6 @@ def test_CV_vjp():
     config.hyper_parameter_config.epoch = 1
     config.hyper_parameter_config.batch_size = 8
     config.hyper_parameter_config.learning_rate = 0.01
-    config.hyper_parameter_config.find_learning_rate = False
     trainer = config.create_trainer()
     hook = SampleGradientVJPHook()
     hook.set_vector(torch.ones_like(trainer.model_util.get_parameter_list()).view(-1))

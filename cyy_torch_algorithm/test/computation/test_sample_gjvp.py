@@ -12,7 +12,6 @@ def test_CV_jvp():
     config.hyper_parameter_config.epoch = 1
     config.hyper_parameter_config.batch_size = 8
     config.hyper_parameter_config.learning_rate = 0.01
-    config.hyper_parameter_config.find_learning_rate = False
     trainer = config.create_trainer()
     hook = SampleGradientJVPHook()
     hook.set_vector(torch.ones((32, 32)).view(-1))
