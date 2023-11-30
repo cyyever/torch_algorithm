@@ -1,0 +1,2 @@
+torch
+git+ssh://git@github.com/cyyever/torch_toolbox.git@main#egg=cyy_torch_toolbox
