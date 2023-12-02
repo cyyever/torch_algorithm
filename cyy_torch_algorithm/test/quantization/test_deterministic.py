@@ -1,10 +1,8 @@
-#!/usr/bin/env python3
-
 import torch
 from cyy_naive_lib.algorithm.mapping_op import get_mapping_values_by_key_order
 from cyy_torch_algorithm.quantization.deterministic import (
     ADQ, NNADQ, NeuralNetworkAdaptiveDeterministicQuant)
-from cyy_torch_toolbox.model_util import ModelUtil
+from cyy_torch_toolbox.model.util import ModelUtil
 from cyy_torch_toolbox.tensor import cat_tensors_to_vector
 from transformers import BertModel
 
