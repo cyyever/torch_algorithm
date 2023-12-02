@@ -1,3 +1,7 @@
+import importlib.util
+
+has_cyy_torch_text: bool = importlib.util.find_spec("cyy_torch_text") is not None
+
 from cyy_torch_algorithm.computation.sample_gradient.sample_gradient_hook import \
     SampleGradientHook
 from cyy_torch_toolbox.default_config import Config
@@ -29,8 +33,12 @@ def test_CV_sample_gradient():
 
 
 def test_huggingface_sample_gradient():
+    if not has_cyy_torch_text:
+        return
+    import cyy_torch_text  # noqa: F401
+
     config = Config(
-        "IMDB", "hugging_face_sequence_classification_distilbert-base-cased"
+        "imdb", "hugging_face_sequence_classification_distilbert-base-cased"
     )
     config.trainer_config.hook_config.use_amp = False
     config.hyper_parameter_config.epoch = 2

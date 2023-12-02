@@ -1,4 +1,8 @@
+import importlib.util
+
 import torch
+
+has_cyy_torch_text: bool = importlib.util.find_spec("cyy_torch_text") is not None
 from cyy_torch_algorithm.computation.sample_gvjp.sample_gvjp_hook import \
     SampleGradientVJPHook
 from cyy_torch_toolbox.default_config import Config
@@ -29,7 +33,11 @@ def test_CV_vjp():
 
 
 def test_NLP_vjp():
-    config = Config("IMDB", "TransformerClassificationModel")
+    if not has_cyy_torch_text:
+        return
+    import cyy_torch_text  # noqa: F401
+
+    config = Config("imdb", "TransformerClassificationModel")
     config.dc_config.dataset_kwargs["max_len"] = 300
     config.dc_config.dataset_kwargs["tokenizer"] = {"type": "spacy"}
     config.model_config.model_kwargs["max_len"] = 300
