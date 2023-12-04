@@ -176,19 +176,20 @@ class SampleComputationHook(ComputationHook):
         return batch_size, res
 
 
-def dot_product(a, b, **kwargs) -> float:
-    match b:
+def dot_product(result, rhs, **kwargs) -> float:
+    assert type(result)==type(rhs)
+    match rhs:
         case dict():
             product = 0
-            for k, v in b.items():
-                if v.device == a[k].device:
-                    product += v.view(-1).dot(a[k].view(-1)).item()
+            for k, v in rhs.items():
+                if v.device == result[k].device:
+                    product += v.view(-1).dot(result[k].view(-1)).item()
                 else:
-                    product += v.cpu().view(-1).dot(a[k].cpu().view(-1)).item()
+                    product += v.cpu().view(-1).dot(result[k].cpu().view(-1)).item()
             return product
         case _:
-            a = a.view(-1)
-            b = b.view(-1)
-            if a.device == b.device:
-                return a.dot(b).item()
-            return a.cpu().dot(b.cpu()).item()
+            result = result.view(-1)
+            rhs = rhs.view(-1)
+            if result.device == rhs.device:
+                return result.dot(rhs).item()
+            return result.cpu().dot(rhs.cpu()).item()

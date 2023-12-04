@@ -51,6 +51,8 @@ def sample_gradient_worker_fun(
                 in_dims=tuple(in_dims),
                 randomness="same",
             )(parameter_dict, torch.stack(targets), *dict_inputs)
+        case _:
+            raise NotImplementedError(inputs)
     result = {}
     for idx, sample_idx in enumerate(sample_indices):
         result[sample_idx] = {}
@@ -94,24 +96,17 @@ def get_sample_gradient_dict(
     return gradients
 
 
-def get_sample_gradient_dot_product_dict(vector, **kwargs) -> dict:
-    return get_sample_gradient_dict(
-        result_transform=functools.partial(dot_product, vector=vector), **kwargs
-    )
-
-
 def get_sample_gvp_dict(vector, **kwargs) -> dict:
     return get_sample_gradient_dict(
-        result_transform=functools.partial(dot_product, vector=vector), **kwargs
+        result_transform=functools.partial(dot_product, rhs=vector), **kwargs
     )
 
 
 def get_self_product(vectors, result, sample_index, **kwargs) -> float:
-    return dot_product(result, vectors[sample_index])
+    return dot_product(result=result, rhs=vectors[sample_index])
 
 
 def get_self_gvp_dict(vectors: dict, **kwargs) -> dict:
-
     return get_sample_gradient_dict(
         result_transform=functools.partial(get_self_product, vectors),
         computed_indices=set(vectors.keys()),
