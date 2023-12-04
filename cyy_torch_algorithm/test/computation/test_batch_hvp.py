@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import torch
 import torch.nn
 from cyy_naive_lib.log import get_logger
@@ -17,7 +16,6 @@ def test_CV_jvp():
     config.hyper_parameter_config.epoch = 1
     config.hyper_parameter_config.batch_size = 8
     config.hyper_parameter_config.learning_rate = 0.01
-    config.hyper_parameter_config.find_learning_rate = False
     trainer = config.create_trainer()
 
     time_counter = TimeCounter(debug_logging=False)

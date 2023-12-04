@@ -10,7 +10,7 @@ from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
     TorchProcessTaskQueue
 from cyy_torch_toolbox.hook import Hook
-from cyy_torch_toolbox.model_evaluator import ModelEvaluator
+from cyy_torch_toolbox.model.evaluator import ModelEvaluator
 from cyy_torch_toolbox.tensor import tensor_to
 
 

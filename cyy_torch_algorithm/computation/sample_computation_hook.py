@@ -34,13 +34,17 @@ class SampleComputationHook(ComputationHook):
         sample_indices,
         inputs,
         targets,
-        batch_dim=0,
     ) -> None:
+        res = model_evaluator.split_batch_input(inputs=inputs, targets=targets)
+        inputs = res["inputs"]
+        batch_dim = res["batch_dim"]
+
         processed_indices = []
         processed_inputs = []
         processed_targets = []
+
         for sample_index, sample_input, sample_target in zip(
-            sample_indices, inputs, targets
+            sample_indices.tolist(), inputs, targets
         ):
             if self.__sample_selector is not None and not self.__sample_selector(
                 sample_index, sample_input
@@ -76,7 +80,8 @@ class SampleComputationHook(ComputationHook):
         if not processed_indices:
             return
         self._broadcast_one_shot_data(
-            batch_index=self.__batch_index, model_evaluator=model_evaluator
+            batch_index=self.__batch_index,
+            model_evaluator=model_evaluator,
         )
         for item in zip(processed_indices, processed_inputs, processed_targets):
             self._add_task(
@@ -101,16 +106,11 @@ class SampleComputationHook(ComputationHook):
             model_evaluator = executor.model_evaluator
         else:
             model_evaluator = kwargs["model_evaluator"]
-        inputs, batch_dim = model_evaluator.split_batch_input(
-            inputs=inputs, targets=targets
-        )
-
         self.add_task(
             model_evaluator=model_evaluator,
-            sample_indices=sample_indices.tolist(),
+            sample_indices=sample_indices,
             inputs=inputs,
             targets=targets,
-            batch_dim=batch_dim,
         )
 
     @classmethod
@@ -141,6 +141,15 @@ class SampleComputationHook(ComputationHook):
                 worker_device=worker_device,
                 model_queue=model_queue,
             )
+            forward_fun: str | None = None
+            input_features = [
+                model_data["model_evaluator"].get_input_feature(input_element)
+                for input_element in inputs
+            ]
+            if input_features[0] is not None:
+                inputs = input_features
+                forward_fun = model_data["model_evaluator"].get_feature_forward_fun()
+                model_data["model_evaluator"].set_forward_fun(forward_fun)
 
             worker_fun = ComputationHook.get_cached_item(
                 "worker_fun", worker_fun, worker_device=worker_device
