@@ -37,8 +37,13 @@ def batch_hvp_worker_fun(
             (vector,),
         )[1]
 
-    vectors = {k: torch.stack([vector[k] for vector in vectors]) for k in vectors[0]}
-    vectors = collections.OrderedDict(list(get_mapping_items_by_key_order(vectors)))
+    if isinstance(vectors[0], dict):
+        vectors = {
+            k: torch.stack([vector[k] for vector in vectors]) for k in vectors[0]
+        }
+        vectors = collections.OrderedDict(list(get_mapping_items_by_key_order(vectors)))
+    else:
+        vectors = torch.stack(vectors)
     products = vmap(
         hvp_wrapper,
         in_dims=(collections.OrderedDict((k, 0) for k in vectors),),
