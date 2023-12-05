@@ -4,7 +4,8 @@ import functools
 import torch
 import torch.cuda
 from cyy_naive_lib.algorithm.mapping_op import get_mapping_items_by_key_order
-from cyy_torch_toolbox.tensor import decompose_like_tensor_dict
+from cyy_torch_toolbox.tensor import (cat_tensor_dict,
+                                      decompose_like_tensor_dict)
 from torch.func import grad, jvp, vmap
 
 from ..batch_computation_hook import BatchComputationHook
@@ -38,7 +39,9 @@ def batch_hvp_worker_fun(
             (vector,),
         )[1]
 
+    decompose_vector = False
     if not isinstance(vectors[0], dict):
+        decompose_vector = True
         vectors = [
             decompose_like_tensor_dict(parameter_dict, vector) for vector in vectors
         ]
@@ -50,7 +53,11 @@ def batch_hvp_worker_fun(
         in_dims=(collections.OrderedDict((k, 0) for k in vectors),),
         randomness="same",
     )(vectors)
-    return [{k: v[idx] for k, v in products.items()} for idx in range(vector_size)]
+    products = [{k: v[idx] for k, v in products.items()} for idx in range(vector_size)]
+    if decompose_vector:
+        products = [cat_tensor_dict(product) for product in products]
+    assert len(products) == vector_size
+    return products
 
 
 class BatchHVPHook(BatchComputationHook):
