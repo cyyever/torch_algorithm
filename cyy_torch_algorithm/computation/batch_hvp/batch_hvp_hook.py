@@ -4,6 +4,7 @@ import functools
 import torch
 import torch.cuda
 from cyy_naive_lib.algorithm.mapping_op import get_mapping_items_by_key_order
+from cyy_torch_toolbox.tensor import decompose_like_tensor_dict
 from torch.func import grad, jvp, vmap
 
 from ..batch_computation_hook import BatchComputationHook
@@ -37,13 +38,13 @@ def batch_hvp_worker_fun(
             (vector,),
         )[1]
 
-    if isinstance(vectors[0], dict):
-        vectors = {
-            k: torch.stack([vector[k] for vector in vectors]) for k in vectors[0]
-        }
-        vectors = collections.OrderedDict(list(get_mapping_items_by_key_order(vectors)))
-    else:
-        vectors = torch.stack(vectors)
+    if not isinstance(vectors[0], dict):
+        vectors = [
+            decompose_like_tensor_dict(parameter_dict, vector) for vector in vectors
+        ]
+        assert len(vectors) == vector_size
+    vectors = {k: torch.stack([vector[k] for vector in vectors]) for k in vectors[0]}
+    vectors = collections.OrderedDict(list(get_mapping_items_by_key_order(vectors)))
     products = vmap(
         hvp_wrapper,
         in_dims=(collections.OrderedDict((k, 0) for k in vectors),),
