@@ -1,4 +1,5 @@
 import torch
+import torch.ao.quantization
 from cyy_naive_lib.log import get_logger
 from cyy_torch_toolbox.hook import Hook
 from cyy_torch_toolbox.model.util import ModelUtil
@@ -12,21 +13,16 @@ class QuantizationAwareTraining(Hook):
     Quantization-aware training
     """
 
-    def __init__(self):
-        super().__init__()
-        self.__trainer = None
-
     def _before_execute(self, **kwargs):
         trainer = kwargs["executor"]
         self.__prepare_quantization(trainer)
 
     def __prepare_quantization(self, trainer: Trainer) -> None:
-        self.__trainer = trainer
-        model_util = self.__trainer.model_util
+        model_util = trainer.model_util
 
         if model_util.have_module(module_type=torch.ao.quantization.QuantStub):
             return
-        model_util.model.qconfig = torch.ao.quantization.get_default_qconfig("fbgemm")
+        model_util.model.qconfig = torch.ao.quantization.get_default_qconfig()
         quant_model = torch.ao.quantization.QuantWrapper(model_util.model)
         quant_model.eval()
 
@@ -44,9 +40,8 @@ class QuantizationAwareTraining(Hook):
         )
         trainer.remove_optimizer()
 
-    def get_quantized_model(self, model=None) -> torch.nn.Module:
-        if model is None:
-            model = self.__trainer.model
+    @classmethod
+    def get_quantized_model(cls, model: torch.nn.Module) -> torch.nn.Module:
         model.cpu()
         model.eval()
         return torch.ao.quantization.convert(model)

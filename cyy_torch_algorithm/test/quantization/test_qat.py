@@ -1,15 +1,12 @@
-#!/usr/bin/env python3
-import torch
+from cyy_torch_algorithm.quantization.qat import QuantizationAwareTraining
 from cyy_torch_toolbox.default_config import Config
 
-from cyy_torch_algorithm.quantization.qat import QuantizationAwareTraining
 
-
-def test_training():
-    return
-    trainer = Config("CIFAR10", "densenet40").create_trainer()
-    trainer.hyper_parameter.set_epoch(1)
-    trainer.hyper_parameter.set_learning_rate(0.01)
+def test_training() -> None:
+    trainer = Config("MNIST", "Lenet5").create_trainer()
+    trainer.hyper_parameter.epoch = 1
+    trainer.hyper_parameter.learning_rate = 0.01
+    trainer.hook_config.use_amp = False
     qat = QuantizationAwareTraining()
     trainer.append_hook(qat)
     trainer.train()
