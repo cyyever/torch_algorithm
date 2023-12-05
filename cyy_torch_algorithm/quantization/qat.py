@@ -22,18 +22,19 @@ class QuantizationAwareTraining(Hook):
 
         if model_util.have_module(module_type=torch.ao.quantization.QuantStub):
             return
-        model_util.model.qconfig = torch.ao.quantization.get_default_qconfig()
-        quant_model = torch.ao.quantization.QuantWrapper(model_util.model)
-        quant_model.eval()
+        model_util.model.eval()
+        model_util.model.qconfig = torch.ao.quantization.get_default_qat_qconfig("x86")
+        torch.backends.quantized.engine = 'x86'
+        fused_modules = QuantizationAwareTraining.get_fused_modules(model_util.model)
+        get_logger().debug("fuse modules %s", fused_modules)
 
-        modules = QuantizationAwareTraining.get_fused_modules(quant_model)
-        quant_model = torch.ao.quantization.fuse_modules_qat(
-            quant_model,
-            modules,
+        fused_model = torch.ao.quantization.fuse_modules_qat(
+            model_util.model,
+            fused_modules,
         )
-        get_logger().info("fuse modules %s", modules)
-        quant_model.train()
-        quant_model = torch.ao.quantization.prepare_qat(quant_model)
+        fused_model.train()
+        quant_model = torch.ao.quantization.prepare_qat(fused_model)
+        quant_model = torch.ao.quantization.QuantWrapper(quant_model)
         get_logger().debug("quant_model is %s", quant_model)
         trainer.set_model_evaluator(
             trainer.model_evaluator.replace_model(model=quant_model)
@@ -47,9 +48,8 @@ class QuantizationAwareTraining(Hook):
         return torch.ao.quantization.convert(model)
 
     @staticmethod
-    def get_fused_modules(quantized_model) -> list:
-        quantized_model_util = ModelUtil(quantized_model)
-        module_blocks = quantized_model_util.get_module_blocks(
+    def get_fused_modules(model: torch.nn.Module) -> list:
+        module_blocks = ModelUtil(model).get_module_blocks(
             block_types=set(_DEFAULT_OP_LIST_TO_FUSER_METHOD.keys())
         )
         return [[module[0] for module in block] for block in module_blocks]
