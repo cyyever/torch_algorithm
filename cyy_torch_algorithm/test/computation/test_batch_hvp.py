@@ -1,3 +1,5 @@
+import importlib.util
+
 import torch
 import torch.nn
 from cyy_naive_lib.log import get_logger
@@ -8,9 +10,14 @@ from cyy_torch_toolbox.default_config import Config
 from cyy_torch_toolbox.ml_type import ExecutorHookPoint, StopExecutingException
 from cyy_torch_toolbox.tensor import cat_tensor_dict
 
+has_cyy_torch_vision: bool = importlib.util.find_spec("cyy_torch_vision") is not None
+
 
 def test_CV_jvp():
-    torch.autograd.set_detect_anomaly(True)
+    if not has_cyy_torch_vision:
+        return
+    import cyy_torch_vision  # noqa: F401
+
     config = Config("MNIST", "lenet5")
     config.trainer_config.hook_config.use_amp = False
     config.hyper_parameter_config.epoch = 1

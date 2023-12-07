@@ -2,6 +2,7 @@ import importlib.util
 
 import torch
 
+has_cyy_torch_vision: bool = importlib.util.find_spec("cyy_torch_vision") is not None
 has_cyy_torch_text: bool = importlib.util.find_spec("cyy_torch_text") is not None
 from cyy_torch_algorithm.computation.sample_gvjp.sample_gvjp_hook import \
     SampleGradientVJPHook
@@ -11,6 +12,10 @@ from torch import nn
 
 
 def test_CV_vjp():
+    if not has_cyy_torch_vision:
+        return
+    import cyy_torch_vision  # noqa: F401
+
     config = Config("MNIST", "lenet5")
     config.hyper_parameter_config.epoch = 1
     config.hyper_parameter_config.batch_size = 8

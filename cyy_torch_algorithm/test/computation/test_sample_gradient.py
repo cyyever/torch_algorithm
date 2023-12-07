@@ -1,6 +1,7 @@
 import importlib.util
 
 has_cyy_torch_text: bool = importlib.util.find_spec("cyy_torch_text") is not None
+has_cyy_torch_vision: bool = importlib.util.find_spec("cyy_torch_vision") is not None
 
 from cyy_torch_algorithm.computation.sample_gradient.sample_gradient_hook import \
     SampleGradientHook
@@ -9,6 +10,10 @@ from cyy_torch_toolbox.ml_type import ExecutorHookPoint, StopExecutingException
 
 
 def test_CV_sample_gradient():
+    if not has_cyy_torch_vision:
+        return
+    import cyy_torch_vision  # noqa: F401
+
     config = Config("MNIST", "lenet5")
     config.hyper_parameter_config.epoch = 2
     config.hyper_parameter_config.batch_size = 8
