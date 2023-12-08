@@ -6,8 +6,7 @@ import torch
 import torch.nn
 from cyy_torch_algorithm.computation.sample_gjvp.sample_gjvp_hook import \
     SampleGradientJVPHook
-from cyy_torch_toolbox.default_config import Config
-from cyy_torch_toolbox.ml_type import ExecutorHookPoint, StopExecutingException
+from cyy_torch_toolbox import Config, ExecutorHookPoint, StopExecutingException
 
 
 def test_CV_jvp():

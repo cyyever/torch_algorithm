@@ -6,8 +6,7 @@ has_cyy_torch_vision: bool = importlib.util.find_spec("cyy_torch_vision") is not
 has_cyy_torch_text: bool = importlib.util.find_spec("cyy_torch_text") is not None
 from cyy_torch_algorithm.computation.sample_gvjp.sample_gvjp_hook import \
     SampleGradientVJPHook
-from cyy_torch_toolbox.default_config import Config
-from cyy_torch_toolbox.ml_type import ExecutorHookPoint, StopExecutingException
+from cyy_torch_toolbox import Config, ExecutorHookPoint, StopExecutingException
 from torch import nn
 
 

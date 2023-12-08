@@ -6,8 +6,7 @@ from cyy_naive_lib.log import get_logger
 from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_algorithm.computation.batch_hvp.batch_hvp_hook import \
     BatchHVPHook
-from cyy_torch_toolbox.default_config import Config
-from cyy_torch_toolbox.ml_type import ExecutorHookPoint, StopExecutingException
+from cyy_torch_toolbox import Config, ExecutorHookPoint, StopExecutingException
 from cyy_torch_toolbox.tensor import cat_tensor_dict
 
 has_cyy_torch_vision: bool = importlib.util.find_spec("cyy_torch_vision") is not None

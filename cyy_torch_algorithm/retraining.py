@@ -1,10 +1,8 @@
 import math
 from typing import Any, Callable
 
-from cyy_torch_toolbox.default_config import Config
-from cyy_torch_toolbox.ml_type import ExecutorHookPoint
+from cyy_torch_toolbox import Config, ExecutorHookPoint, Trainer
 from cyy_torch_toolbox.reproducible_env import global_reproducible_env
-from cyy_torch_toolbox.trainer import Trainer
 
 
 class DeterministicTraining:

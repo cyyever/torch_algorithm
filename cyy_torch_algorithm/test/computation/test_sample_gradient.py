@@ -5,8 +5,7 @@ has_cyy_torch_vision: bool = importlib.util.find_spec("cyy_torch_vision") is not
 
 from cyy_torch_algorithm.computation.sample_gradient.sample_gradient_hook import \
     SampleGradientHook
-from cyy_torch_toolbox.default_config import Config
-from cyy_torch_toolbox.ml_type import ExecutorHookPoint, StopExecutingException
+from cyy_torch_toolbox import Config, ExecutorHookPoint, StopExecutingException
 
 
 def test_CV_sample_gradient():
