@@ -11,7 +11,7 @@ def test_training() -> None:
         return
     trainer = Config("MNIST", "Lenet5").create_trainer()
     trainer.hyper_parameter.epoch = 1
-    trainer.hyper_parameter.learning_rate = 0.01
+    trainer.hyper_parameter.optimizer_kwargs["learning_rate"] = 0.01
     trainer.hook_config.use_amp = False
     qat = QuantizationAwareTraining()
     trainer.append_hook(qat)
