@@ -205,7 +205,9 @@ class ComputationHook(Hook):
         ComputationHook.__local_data.batch_index = batch_index
         if "model_evaluator" in new_data:
             new_data["model_evaluator"] = copy.deepcopy(new_data["model_evaluator"])
-            new_data["model_evaluator"].to(device=worker_device, non_blocking=True)
+            new_data["model_evaluator"].model_util.to_device(
+                device=worker_device, non_blocking=True
+            )
         if "parameter_dict" in new_data:
             new_data["parameter_dict"] = tensor_to(
                 new_data["parameter_dict"], device=worker_device, non_blocking=True
