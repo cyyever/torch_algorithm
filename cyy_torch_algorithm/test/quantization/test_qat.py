@@ -9,6 +9,8 @@ has_cyy_torch_vision: bool = importlib.util.find_spec("cyy_torch_vision") is not
 def test_training() -> None:
     if not has_cyy_torch_vision:
         return
+    import cyy_torch_vision  # noqa: F401
+
     trainer = Config("MNIST", "Lenet5").create_trainer()
     trainer.hyper_parameter.epoch = 1
     trainer.hyper_parameter.learning_rate = 0.01

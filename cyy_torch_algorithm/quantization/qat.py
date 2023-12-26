@@ -24,7 +24,7 @@ class QuantizationAwareTraining(Hook):
             return
         model_util.model.eval()
         model_util.model.qconfig = torch.ao.quantization.get_default_qat_qconfig("x86")
-        torch.backends.quantized.engine = 'x86'
+        torch.backends.quantized.engine = "x86"
         fused_modules = QuantizationAwareTraining.get_fused_modules(model_util.model)
         get_logger().debug("fuse modules %s", fused_modules)
 
@@ -36,9 +36,8 @@ class QuantizationAwareTraining(Hook):
         quant_model = torch.ao.quantization.prepare_qat(fused_model)
         quant_model = torch.ao.quantization.QuantWrapper(quant_model)
         get_logger().debug("quant_model is %s", quant_model)
-        trainer.set_model_evaluator(
-            trainer.model_evaluator.replace_model(model=quant_model)
-        )
+        ModelUtil(quant_model).to_device(device=trainer.device)
+        trainer.replace_model(lambda model: quant_model)
         trainer.remove_optimizer()
 
     @classmethod
