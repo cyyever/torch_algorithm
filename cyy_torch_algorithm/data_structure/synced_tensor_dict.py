@@ -1,34 +1,36 @@
 from collections.abc import MutableMapping
-from typing import Generator
+from typing import Generator, Iterable
 
+import torch
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
 from cyy_naive_lib.fs.tempdir import get_temp_dir
 from cyy_naive_lib.log import get_logger
+from cyy_torch_toolbox.typing import TensorDict
 
 try:
     from cyy_torch_cpp_extension.data_structure import SyncedTensorDictIMPL
 
     class SyncedTensorDict(MutableMapping):
-        def __init__(self, tensor_dict, key_type=int):
+        def __init__(self, tensor_dict: TensorDict, key_type=int) -> None:
             self.__tensor_dict = tensor_dict
             self.__key_type = key_type
             self.__iterated_keys = None
-            self.__cache_size = self.__tensor_dict.get_in_memory_number()
+            self.__cache_size: int = self.__tensor_dict.get_in_memory_number()
             self.__prefetch_size: int = 0
 
-        def __contains__(self, key):
+        def __contains__(self, key) -> bool:
             return self.__tensor_dict.__contains__(str(key))
 
-        def __getitem__(self, key):
+        def __getitem__(self, key) -> torch.Tensor:
             return self.__tensor_dict.__getitem__(str(key))
 
-        def __setitem__(self, key, value):
+        def __setitem__(self, key, value: torch.Tensor) -> None:
             self.__tensor_dict.__setitem__(str(key), value.detach().cpu())
 
-        def __delitem__(self, key):
+        def __delitem__(self, key) -> None:
             self.__tensor_dict.__delitem__(str(key))
 
-        def __len__(self):
+        def __len__(self) -> int:
             return len(self.__tensor_dict)
 
         def __iter__(self):
@@ -62,11 +64,11 @@ try:
         def __getattr__(self, name):
             return getattr(self.__tensor_dict, name)
 
-        def iterate(self, keys: set | list | None = None) -> Generator:
+        def iterate(self, keys: Iterable | None = None) -> Generator:
             if keys is None:
                 keys = list(self.__tensor_dict.keys())
             else:
-                keys = list(set(str(k) for k in keys))
+                keys = list({str(k) for k in keys})
             for chunk in split_list_to_chunks(keys, self.__cache_size // 2):
                 self.__tensor_dict.prefetch(chunk)
                 for k in chunk:
@@ -75,9 +77,9 @@ try:
         @classmethod
         def create(
             cls,
-            storage_dir=None,
+            storage_dir: str | None = None,
             key_type=int,
-            cache_size=None,
+            cache_size: int | None = None,
         ):
             if storage_dir is None:
                 storage_dir = get_temp_dir().name
