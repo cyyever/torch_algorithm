@@ -14,7 +14,7 @@ class SampleComputationHook(ComputationHook):
         self.__input_transform: Callable | None = None
         self.__batch_index: int = 0
 
-    def __getstate__(self):
+    def __getstate__(self) -> dict:
         state = self.__dict__.copy()
         state["_SampleComputationHook__sample_selector"] = None
         return state
@@ -116,10 +116,10 @@ class SampleComputationHook(ComputationHook):
     @classmethod
     def common_worker_fun(
         cls,
-        result_transform,
-        worker_fun,
-        tasks,
-        device,
+        result_transform: Callable,
+        worker_fun: Callable,
+        tasks: list,
+        device: torch.device,
         model_queue,
         **kwargs,
     ) -> tuple:
@@ -186,7 +186,7 @@ class SampleComputationHook(ComputationHook):
 
 
 def dot_product(result, rhs, **kwargs) -> float:
-    assert type(result)==type(rhs)
+    assert type(result) is type(rhs)
     match rhs:
         case dict():
             product = 0

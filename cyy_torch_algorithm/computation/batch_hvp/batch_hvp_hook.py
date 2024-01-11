@@ -1,11 +1,13 @@
 import collections
 import functools
+from typing import Callable
 
 import torch
 import torch.cuda
 from cyy_naive_lib.algorithm.mapping_op import get_mapping_items_by_key_order
 from cyy_torch_toolbox.tensor import (cat_tensor_dict,
                                       decompose_like_tensor_dict)
+from cyy_torch_toolbox.typing import TensorDict
 from torch.func import grad, jvp, vmap
 
 from ..batch_computation_hook import BatchComputationHook
@@ -14,7 +16,7 @@ from ..evaluation import eval_model
 
 def batch_hvp_worker_fun(
     model_evaluator, inputs, targets, data, worker_device, parameter_dict, **kwargs
-) -> list:
+) -> list[TensorDict] | list[torch.Tensor]:
     vector_size = len(data)
     vectors = data
     parameter_dict = collections.OrderedDict(
@@ -48,12 +50,14 @@ def batch_hvp_worker_fun(
         assert len(vectors) == vector_size
     vectors = {k: torch.stack([vector[k] for vector in vectors]) for k in vectors[0]}
     vectors = collections.OrderedDict(list(get_mapping_items_by_key_order(vectors)))
-    products = vmap(
+    res = vmap(
         hvp_wrapper,
         in_dims=(collections.OrderedDict((k, 0) for k in vectors),),
         randomness="same",
     )(vectors)
-    products = [{k: v[idx] for k, v in products.items()} for idx in range(vector_size)]
+    products: list[TensorDict] | list[torch.Tensor] = [
+        {k: v[idx] for k, v in res.items()} for idx in range(vector_size)
+    ]
     if decompose_vector:
         products = [cat_tensor_dict(product) for product in products]
     assert len(products) == vector_size
@@ -70,5 +74,5 @@ class BatchHVPHook(BatchComputationHook):
         self.vectors = vectors
         self.set_data_fun(self.get_vectors)
 
-    def _get_batch_computation_fun(self):
+    def _get_batch_computation_fun(self) -> Callable:
         return batch_hvp_worker_fun
