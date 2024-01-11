@@ -2,6 +2,7 @@ import copy
 import functools
 
 import torch
+from cyy_torch_toolbox.typing import TensorDict
 from torch.func import grad, vmap
 
 from ..evaluation import eval_model
@@ -10,12 +11,12 @@ from ..sample_computation_hook import SampleComputationHook, dot_product
 
 def sample_gradient_worker_fun(
     model_evaluator,
-    sample_indices,
+    sample_indices: list[int],
     inputs,
     targets,
-    worker_device,
-    parameter_dict,
-) -> dict:
+    worker_device: torch.device,
+    parameter_dict: TensorDict,
+) -> dict[int, TensorDict]:
     def wrapper(parameter_dict, target, *args, input_keys=None):
         if input_keys is not None:
             inputs = dict(zip(input_keys, args))
@@ -34,7 +35,11 @@ def sample_gradient_worker_fun(
 
     match inputs[0]:
         case torch.Tensor():
-            gradient_dicts = vmap(wrapper, in_dims=(None, 0, 0), randomness="same",)(
+            gradient_dicts = vmap(
+                wrapper,
+                in_dims=(None, 0, 0),
+                randomness="same",
+            )(
                 parameter_dict,
                 torch.stack(targets),
                 torch.stack(inputs),
@@ -44,7 +49,7 @@ def sample_gradient_worker_fun(
             dict_inputs = []
             for k in input_keys:
                 dict_inputs.append(torch.stack([a[k] for a in inputs]))
-            in_dims = [0] * (len(dict_inputs) + 2)
+            in_dims: list[int | None] = [0] * (len(dict_inputs) + 2)
             in_dims[0] = None
             gradient_dicts = vmap(
                 functools.partial(wrapper, input_keys=input_keys),
@@ -53,7 +58,7 @@ def sample_gradient_worker_fun(
             )(parameter_dict, torch.stack(targets), *dict_inputs)
         case _:
             raise NotImplementedError(inputs)
-    result = {}
+    result: dict[int, TensorDict] = {}
     for idx, sample_idx in enumerate(sample_indices):
         result[sample_idx] = {}
         for k, v in gradient_dicts.items():
@@ -110,5 +115,5 @@ def get_self_gvp_dict(vectors: dict, **kwargs) -> dict:
     return get_sample_gradient_dict(
         result_transform=functools.partial(get_self_product, vectors),
         computed_indices=set(vectors.keys()),
-        **kwargs
+        **kwargs,
     )
