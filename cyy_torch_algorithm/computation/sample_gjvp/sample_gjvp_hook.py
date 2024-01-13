@@ -1,4 +1,5 @@
 import functools
+from typing import Callable
 
 import torch
 import torch.cuda
@@ -17,8 +18,7 @@ def sample_gjvp_worker_fun(
     inputs,
     targets,
     worker_device,
-    **kwargs
-):
+) -> dict:
     def jvp_wrapper(parameter_dict, input_tensor, target):
         f = functools.partial(
             eval_model,
@@ -50,5 +50,5 @@ class SampleGradientJVPHook(SampleComputationHook):
     def set_vector(self, vector):
         self.__vector = vector
 
-    def _get_sample_computation_fun(self):
+    def _get_sample_computation_fun(self) -> Callable:
         return functools.partial(sample_gjvp_worker_fun, self.__vector)

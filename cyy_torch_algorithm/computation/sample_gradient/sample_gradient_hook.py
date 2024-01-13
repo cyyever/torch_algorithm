@@ -2,6 +2,7 @@ import copy
 import functools
 
 import torch
+from cyy_torch_toolbox import ModelEvaluator
 from cyy_torch_toolbox.typing import TensorDict
 from torch.func import grad, vmap
 
@@ -10,10 +11,10 @@ from ..sample_computation_hook import SampleComputationHook, dot_product
 
 
 def sample_gradient_worker_fun(
-    model_evaluator,
+    model_evaluator: ModelEvaluator,
     sample_indices: list[int],
     inputs,
-    targets,
+    targets: torch.Tensor,
     worker_device: torch.device,
     parameter_dict: TensorDict,
 ) -> dict[int, TensorDict]:
