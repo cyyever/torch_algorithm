@@ -16,10 +16,12 @@ class BatchComputationHook(ComputationHook):
     def set_data(self, data: Any) -> None:
         self.__data = data
 
-    def set_data_fun(self, data_fun):
+    def set_data_fun(self, data_fun: Callable) -> None:
         self.__data_fun = data_fun
 
-    def _before_batch(self, executor, inputs, targets, batch_index, **kwargs) -> None:
+    def _before_batch(
+        self, executor, inputs, targets, batch_index: int, **kwargs: Any
+    ) -> None:
         data = self.__data
         if data is None:
             assert self.__data_fun is not None
@@ -35,7 +37,7 @@ class BatchComputationHook(ComputationHook):
             batch_index=batch_index,
         )
 
-    def _get_batch_computation_fun(self):
+    def _get_batch_computation_fun(self) -> Callable:
         raise NotImplementedError()
 
     def _get_worker_fun(self) -> Callable:
@@ -45,7 +47,7 @@ class BatchComputationHook(ComputationHook):
             self._get_batch_computation_fun(),
         )
 
-    def add_task(self, executor, inputs, targets, data, batch_index):
+    def add_task(self, executor, inputs, targets, data, batch_index: int) -> None:
         assert not self.has_unfetched_result()
         self._broadcast_one_shot_data(
             batch_index=batch_index,
@@ -64,9 +66,9 @@ class BatchComputationHook(ComputationHook):
         result_transform: Callable | None,
         worker_fun: Callable,
         tasks: list,
-        device,
+        device: torch.device,
         model_queue,
-        **kwargs
+        **kwargs: Any,
     ) -> tuple:
         batch_size = len(tasks)
         worker_device, worker_stream = ComputationHook._setup_device(device)

@@ -1,13 +1,16 @@
 import torch
-from cyy_torch_toolbox.ml_type import EvaluationMode
+from cyy_torch_toolbox import EvaluationMode, ModelEvaluator
+from cyy_torch_toolbox.typing import TensorDict
 
 
 def eval_model(
-    parameter_dict, model_evaluator, input_shape=None, **kwargs
+    parameter_dict: TensorDict,
+    model_evaluator: ModelEvaluator,
+    input_shape: None | torch.Tensor = None,
+    **kwargs,
 ) -> torch.Tensor:
     model_evaluator.model_util.load_buffer_dict(parameter_dict)
     kwargs |= {
-        "non_blocking": True,
         "evaluation_mode": EvaluationMode.Test,
     }
     if input_shape is not None:

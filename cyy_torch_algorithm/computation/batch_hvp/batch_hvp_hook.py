@@ -5,6 +5,7 @@ from typing import Callable
 import torch
 import torch.cuda
 from cyy_naive_lib.algorithm.mapping_op import get_mapping_items_by_key_order
+from cyy_torch_toolbox import ModelEvaluator
 from cyy_torch_toolbox.tensor import (cat_tensor_dict,
                                       decompose_like_tensor_dict)
 from cyy_torch_toolbox.typing import TensorDict
@@ -15,7 +16,12 @@ from ..evaluation import eval_model
 
 
 def batch_hvp_worker_fun(
-    model_evaluator, inputs, targets, data, worker_device, parameter_dict, **kwargs
+    model_evaluator: ModelEvaluator,
+    inputs,
+    targets,
+    data,
+    worker_device: torch.device,
+    parameter_dict: TensorDict,
 ) -> list[TensorDict] | list[torch.Tensor]:
     vector_size = len(data)
     vectors = data
@@ -65,12 +71,12 @@ def batch_hvp_worker_fun(
 
 
 class BatchHVPHook(BatchComputationHook):
-    vectors = None
+    vectors: None | torch.Tensor = None
 
     def get_vectors(self):
         return self.vectors
 
-    def set_vectors(self, vectors):
+    def set_vectors(self, vectors: torch.Tensor) -> None:
         self.vectors = vectors
         self.set_data_fun(self.get_vectors)
 
