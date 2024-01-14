@@ -1,8 +1,9 @@
 import copy
 import functools
+from typing import Iterable
 
 import torch
-from cyy_torch_toolbox import ModelEvaluator
+from cyy_torch_toolbox import Inferencer, ModelEvaluator
 from cyy_torch_toolbox.typing import TensorDict
 from torch.func import grad, vmap
 
@@ -72,9 +73,26 @@ class SampleGradientHook(SampleComputationHook):
         return sample_gradient_worker_fun
 
 
+def get_sample_gradients(
+    inferencer: Inferencer,
+    computed_indices: None | Iterable[int] = None,
+) -> dict[int, TensorDict]:
+    tmp_inferencer = copy.deepcopy(inferencer)
+    tmp_inferencer.disable_hook("logger")
+    hook = SampleGradientHook()
+    if computed_indices is not None:
+        hook.set_computed_indices(computed_indices)
+    tmp_inferencer.append_hook(hook)
+    tmp_inferencer.inference()
+    gradients = hook.result_dict
+    assert gradients
+    hook.reset()
+    return gradients
+
+
 def get_sample_gradient_dict(
-    inferencer,
-    computed_indices=None,
+    inferencer: Inferencer,
+    computed_indices: None | Iterable[int] = None,
     sample_selector=None,
     input_transform=None,
     result_transform=None,
