@@ -1,6 +1,6 @@
 import copy
 import functools
-from typing import Iterable
+from typing import Any, Callable, Iterable
 
 import torch
 from cyy_torch_toolbox import Inferencer, ModelEvaluator
@@ -73,15 +73,18 @@ class SampleGradientHook(SampleComputationHook):
         return sample_gradient_worker_fun
 
 
-def get_sample_gradients(
+def get_sample_gradients_impl(
     inferencer: Inferencer,
     computed_indices: None | Iterable[int] = None,
-) -> dict[int, TensorDict]:
+    result_transform: None | Callable = None,
+) -> dict[int, Any]:
     tmp_inferencer = copy.deepcopy(inferencer)
     tmp_inferencer.disable_hook("logger")
     hook = SampleGradientHook()
     if computed_indices is not None:
         hook.set_computed_indices(computed_indices)
+    if result_transform is not None:
+        hook.set_result_transform(result_transform)
     tmp_inferencer.append_hook(hook)
     tmp_inferencer.inference()
     gradients = hook.result_dict
@@ -90,49 +93,57 @@ def get_sample_gradients(
     return gradients
 
 
-def get_sample_gradient_dict(
+# def get_sample_gradient_dict(
+#     inferencer: Inferencer,
+#     computed_indices: None | Iterable[int] = None,
+#     input_transform=None,
+#     result_transform=None,
+#     result_collection_fun=None,
+# ) -> dict:
+#     tmp_inferencer = copy.deepcopy(inferencer)
+#     tmp_inferencer.disable_hook("logger")
+#     hook = SampleGradientHook()
+#     if computed_indices is not None:
+#         hook.set_computed_indices(computed_indices)
+#     if input_transform is not None:
+#         hook.set_input_transform(input_transform)
+#     if result_transform is not None:
+#         hook.set_result_transform(result_transform)
+#     if result_collection_fun is not None:
+#         hook.set_result_collection_fun(result_collection_fun)
+#     tmp_inferencer.append_hook(hook)
+#     tmp_inferencer.inference()
+#     gradients = hook.result_dict
+#     if result_collection_fun is None:
+#         assert gradients
+#     hook.reset()
+#     return gradients
+
+
+def get_sample_gradients(
     inferencer: Inferencer,
     computed_indices: None | Iterable[int] = None,
-    sample_selector=None,
-    input_transform=None,
-    result_transform=None,
-    result_collection_fun=None,
-) -> dict:
-    tmp_inferencer = copy.deepcopy(inferencer)
-    tmp_inferencer.disable_hook("logger")
-    hook = SampleGradientHook()
-    if computed_indices is not None:
-        hook.set_computed_indices(computed_indices)
-    if sample_selector is not None:
-        hook.set_sample_selector(sample_selector)
-    if input_transform is not None:
-        hook.set_input_transform(input_transform)
-    if result_transform is not None:
-        hook.set_result_transform(result_transform)
-    if result_collection_fun is not None:
-        hook.set_result_collection_fun(result_collection_fun)
-    tmp_inferencer.append_hook(hook)
-    tmp_inferencer.inference()
-    gradients = hook.result_dict
-    if result_collection_fun is None:
-        assert gradients
-    hook.reset()
-    return gradients
+) -> dict[int, TensorDict]:
+    return get_sample_gradients_impl(
+        inferencer=inferencer, computed_indices=computed_indices
+    )
 
 
-def get_sample_gvp_dict(vector, **kwargs) -> dict:
-    return get_sample_gradient_dict(
+def get_sample_gvps(vector, **kwargs) -> dict[int, float]:
+    return get_sample_gradients_impl(
         result_transform=functools.partial(dot_product, rhs=vector), **kwargs
     )
 
 
-def get_self_product(vectors, result, sample_index, **kwargs) -> float:
+def __get_self_product(
+    vectors: dict[int, TensorDict], result: TensorDict, sample_index: int, **kwargs
+) -> float:
     return dot_product(result=result, rhs=vectors[sample_index])
 
 
-def get_self_gvp_dict(vectors: dict, **kwargs) -> dict:
-    return get_sample_gradient_dict(
-        result_transform=functools.partial(get_self_product, vectors),
+def get_self_gvps(vectors: dict[int, TensorDict], **kwargs) -> dict[int, float]:
+    return get_sample_gradients_impl(
+        result_transform=functools.partial(__get_self_product, vectors),
         computed_indices=set(vectors.keys()),
         **kwargs,
     )
