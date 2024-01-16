@@ -16,19 +16,24 @@ class BatchComputationHook(ComputationHook):
     def set_data(self, data: Any) -> None:
         self.__data = data
 
+    @property
+    def data(self) -> Any:
+        if self.__data is None:
+            assert self.__data_fun is not None
+            return self.__data_fun()
+        return self.__data
+
     def set_data_fun(self, data_fun: Callable) -> None:
         self.__data_fun = data_fun
 
     def _before_batch(
         self, executor, inputs, targets, batch_index: int, **kwargs: Any
     ) -> None:
-        data = self.__data
+        data = self.data
         if data is None:
             assert self.__data_fun is not None
             data = self.__data_fun()
         assert data is not None
-        if data is None:
-            return
         self.add_task(
             executor=executor,
             inputs=inputs,
