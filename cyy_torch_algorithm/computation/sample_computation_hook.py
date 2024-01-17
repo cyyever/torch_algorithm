@@ -16,7 +16,7 @@ class SampleComputationHook(ComputationHook):
         self.__batch_index: int = 0
 
     def __getstate__(self) -> dict:
-        state = self.__dict__.copy()
+        state = super().__getstate__()
         state["_SampleComputationHook__sample_selector"] = None
         return state
 
@@ -95,8 +95,7 @@ class SampleComputationHook(ComputationHook):
 
     def _get_worker_fun(self):
         return functools.partial(
-            SampleComputationHook.common_worker_fun,
-            self._result_transform,
+            self.common_worker_fun,
             self._get_sample_computation_fun(),
         )
 
@@ -114,17 +113,15 @@ class SampleComputationHook(ComputationHook):
             targets=targets,
         )
 
-    @classmethod
     def common_worker_fun(
-        cls,
-        result_transform: Callable,
+        self,
         worker_fun: Callable,
         tasks: list,
         device: torch.device,
         model_queue,
         **kwargs,
     ) -> tuple:
-        worker_device, worker_stream = ComputationHook._setup_device(
+        worker_device, worker_stream = self._setup_device(
             device,
         )
 
@@ -137,7 +134,7 @@ class SampleComputationHook(ComputationHook):
             sample_indices = [task[1] for task in tasks]
             inputs = [task[2] for task in tasks]
             targets = [task[3] for task in tasks]
-            model_data = cls.get_cached_one_shot_data(
+            model_data = self.get_cached_one_shot_data(
                 batch_index=batch_index,
                 worker_device=worker_device,
                 model_queue=model_queue,
@@ -152,7 +149,7 @@ class SampleComputationHook(ComputationHook):
                 forward_fun = model_data["model_evaluator"].get_feature_forward_fun()
                 model_data["model_evaluator"].set_forward_fun(forward_fun)
 
-            worker_fun = ComputationHook.get_cached_item(
+            worker_fun = self.get_cached_item(
                 "worker_fun", worker_fun, worker_device=worker_device
             )
             res = worker_fun(
@@ -162,8 +159,8 @@ class SampleComputationHook(ComputationHook):
                 worker_device=worker_device,
                 **model_data,
             )
-            result_transform = ComputationHook.get_cached_item(
-                "result_transform", result_transform, worker_device=worker_device
+            result_transform = self.get_cached_item(
+                "result_transform", self._result_transform, worker_device=worker_device
             )
             if result_transform is not None:
                 for sample_index, input_tensor, target in zip(

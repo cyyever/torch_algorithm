@@ -47,8 +47,7 @@ class BatchComputationHook(ComputationHook):
 
     def _get_worker_fun(self) -> Callable:
         return functools.partial(
-            BatchComputationHook.common_worker_fun,
-            self._result_transform,
+            self.common_worker_fun,
             self._get_batch_computation_fun(),
         )
 
@@ -65,10 +64,8 @@ class BatchComputationHook(ComputationHook):
                 task=(batch_index, data_idx, data_piece),
             )
 
-    @classmethod
     def common_worker_fun(
-        cls,
-        result_transform: Callable | None,
+        self,
         worker_fun: Callable,
         tasks: list,
         device: torch.device,
@@ -76,24 +73,24 @@ class BatchComputationHook(ComputationHook):
         **kwargs: Any,
     ) -> tuple:
         batch_size = len(tasks)
-        worker_device, worker_stream = ComputationHook._setup_device(device)
+        worker_device, worker_stream = self._setup_device(device)
         batch_index = tasks[0][0]
         data_indices = [task[1] for task in tasks]
         data = [task[2] for task in tasks]
         with torch.cuda.stream(worker_stream):
-            one_shot_data = cls.get_cached_one_shot_data(
+            one_shot_data = self.get_cached_one_shot_data(
                 batch_index=batch_index,
                 worker_device=worker_device,
                 model_queue=model_queue,
             )
             data = tensor_to(data, device=worker_device, non_blocking=True)
-            worker_fun = ComputationHook.get_cached_item(
+            worker_fun = self.get_cached_item(
                 "worker_fun", worker_fun, worker_device=worker_device
             )
             res = worker_fun(data=data, worker_device=worker_device, **one_shot_data)
 
-            result_transform = ComputationHook.get_cached_item(
-                "result_transform", result_transform, worker_device=worker_device
+            result_transform = self.get_cached_item(
+                "result_transform", self._result_transform, worker_device=worker_device
             )
             if result_transform is not None:
                 new_res: dict = {

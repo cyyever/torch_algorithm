@@ -15,10 +15,9 @@ from cyy_torch_toolbox.tensor import tensor_to
 
 
 class ComputationHook(Hook):
-    __local_data = threading.local()
-
     def __init__(self, **kwargs) -> None:
         super().__init__(stripable=True, **kwargs)
+        self.__local_data = threading.local()
         self.__result_dict: dict = {}
         self.__task_queue: TorchProcessTaskQueue | None = None
         self.__model_queue: TorchProcessTaskQueue | None = None
@@ -28,8 +27,15 @@ class ComputationHook(Hook):
         self.__result_collection_fun: Callable | None = None
         self.__shared_models: dict = {}
 
+    def __getstate__(self):
+        # capture what is normally pickled
+        state = self.__dict__.copy()
+        state["_ComputationHook__local_data"] = None
+        return state
+
     def set_result_transform(self, f: Callable) -> None:
         self._result_transform = f
+        self._remove_cached_item("result_transform")
 
     def set_result_collection_fun(self, f: Callable) -> None:
         self.__result_collection_fun = f
@@ -159,50 +165,52 @@ class ComputationHook(Hook):
             self.__model_queue = None
         self.__shared_models.clear()
 
-    @classmethod
-    def _setup_device(cls, advised_device) -> tuple:
-        worker_device = getattr(cls.__local_data, "worker_device", None)
-        if worker_device is None:
-            worker_device = advised_device
-            cls.__local_data.worker_device = worker_device
+    def _setup_device(self, advised_device) -> tuple:
+        worker_device = self.get_cached_item("worker_device", advised_device)
         if not torch.cuda.is_available():
             return worker_device, None
-        worker_stream = getattr(cls.__local_data, "worker_stream", None)
+        worker_stream = getattr(self.__local_data, "worker_stream", None)
         if worker_stream is None:
-            worker_stream = torch.cuda.Stream(device=worker_device)
-            cls.__local_data.worker_stream = worker_stream
+            worker_stream = self.get_cached_item(
+                "worker_stream", torch.cuda.Stream(device=worker_device)
+            )
         torch.cuda.set_device(worker_device)
         return worker_device, worker_stream
 
-    @classmethod
-    def get_cached_item(cls, name: str, value: Any, worker_device) -> Any:
-        if not hasattr(cls.__local_data, name):
-            value = tensor_to(
-                value,
-                device=worker_device,
-                non_blocking=True,
-            )
-            setattr(cls.__local_data, name, value)
-            return value
-        return getattr(cls.__local_data, name)
+    def _remove_cached_item(self, name: str) -> None:
+        if self.__local_data is not None:
+            delattr(self.__local_data, name)
 
-    @classmethod
+    def get_cached_item(self, name: str, value: Any, worker_device=None) -> Any:
+        if not hasattr(self.__local_data, name):
+            if worker_device is not None:
+                value = tensor_to(
+                    value,
+                    device=worker_device,
+                    non_blocking=True,
+                )
+            if self.__local_data is None:
+                self.__local_data = threading.local()
+            setattr(self.__local_data, name, value)
+            return value
+        return getattr(self.__local_data, name)
+
     def get_cached_one_shot_data(
-        cls,
+        self,
         batch_index: int,
         worker_device: torch.device,
         model_queue: TorchProcessTaskQueue,
     ) -> dict:
-        data = getattr(ComputationHook.__local_data, "data", {})
+        data = getattr(self.__local_data, "data", {})
         if (
-            hasattr(ComputationHook.__local_data, "batch_index")
-            and ComputationHook.__local_data.batch_index == batch_index
+            hasattr(self.__local_data, "batch_index")
+            and self.__local_data.batch_index == batch_index
         ):
             return data
         model_queue.add_task((batch_index, "model_evaluator" not in data))
         new_data: dict = model_queue.get_data()[0]
 
-        ComputationHook.__local_data.batch_index = batch_index
+        self.__local_data.batch_index = batch_index
         if "model_evaluator" in new_data:
             new_data["model_evaluator"] = copy.deepcopy(new_data["model_evaluator"])
             new_data["model_evaluator"].model_util.to_device(
@@ -219,6 +227,6 @@ class ComputationHook(Hook):
         new_data = tensor_to(new_data, device=worker_device, non_blocking=True)
         data.update(new_data)
 
-        setattr(ComputationHook.__local_data, "data", data)
+        setattr(self.__local_data, "data", data)
         assert "model_evaluator" in data
         return data
