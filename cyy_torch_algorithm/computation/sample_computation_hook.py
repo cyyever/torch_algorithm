@@ -2,6 +2,7 @@ import functools
 from typing import Callable
 
 import torch
+from cyy_torch_toolbox.tensor import dot_product as dot_product_impl
 from cyy_torch_toolbox.tensor import recursive_tensor_op, tensor_to
 
 from .computation_hook import ComputationHook
@@ -186,19 +187,4 @@ class SampleComputationHook(ComputationHook):
 
 
 def dot_product(result, rhs, **kwargs) -> float:
-    assert type(result) is type(rhs)
-    match rhs:
-        case dict():
-            product = 0
-            for k, v in rhs.items():
-                if v.device == result[k].device:
-                    product += v.view(-1).dot(result[k].view(-1)).item()
-                else:
-                    product += v.cpu().view(-1).dot(result[k].cpu().view(-1)).item()
-            return product
-        case _:
-            result = result.view(-1)
-            rhs = rhs.view(-1)
-            if result.device == rhs.device:
-                return result.dot(rhs).item()
-            return result.cpu().dot(rhs.cpu()).item()
+    return dot_product_impl(result, rhs)
