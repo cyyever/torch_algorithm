@@ -178,7 +178,7 @@ class ComputationHook(Hook):
         return worker_device, worker_stream
 
     def _remove_cached_item(self, name: str) -> None:
-        if self.__local_data is not None:
+        if self.__local_data is not None and hasattr(self.__local_data, name):
             delattr(self.__local_data, name)
 
     def get_cached_item(self, name: str, value: Any, worker_device=None) -> Any:
