@@ -1,5 +1,5 @@
 import functools
-from typing import Callable
+from typing import Callable, Iterable
 
 import torch
 from cyy_torch_toolbox.tensor import dot_product as dot_product_impl
@@ -26,8 +26,9 @@ class SampleComputationHook(ComputationHook):
     def set_input_transform(self, transform: Callable) -> None:
         self.__input_transform = transform
 
-    def set_computed_indices(self, indices):
-        self.set_sample_selector(lambda sample_index, *args: sample_index in indices)
+    def set_computed_indices(self, indices: Iterable[int]) -> None:
+        index_set = set(indices)
+        self.set_sample_selector(lambda sample_index, *args: sample_index in index_set)
 
     def add_task(
         self,
@@ -93,7 +94,7 @@ class SampleComputationHook(ComputationHook):
     def _get_sample_computation_fun(self):
         raise NotImplementedError()
 
-    def _get_worker_fun(self):
+    def _get_worker_fun(self) -> Callable:
         return functools.partial(
             self.common_worker_fun,
             self._get_sample_computation_fun(),
