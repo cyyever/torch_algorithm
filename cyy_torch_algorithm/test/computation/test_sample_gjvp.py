@@ -1,12 +1,13 @@
 import importlib.util
 
-has_cyy_torch_text: bool = importlib.util.find_spec("cyy_torch_text") is not None
-has_cyy_torch_vision: bool = importlib.util.find_spec("cyy_torch_vision") is not None
 import torch
 import torch.nn
 from cyy_torch_algorithm.computation.sample_gjvp.sample_gjvp_hook import \
     SampleGradientJVPHook
 from cyy_torch_toolbox import Config, ExecutorHookPoint, StopExecutingException
+
+has_cyy_torch_text: bool = importlib.util.find_spec("cyy_torch_text") is not None
+has_cyy_torch_vision: bool = importlib.util.find_spec("cyy_torch_vision") is not None
 
 
 def test_CV_jvp():
@@ -41,9 +42,8 @@ def test_NLP_vjp():
     import cyy_torch_text  # noqa: F401
 
     config = Config("imdb", "TransformerClassificationModel")
-    config.dc_config.dataset_kwargs["max_len"] = 300
+    config.dc_config.dataset_kwargs["input_max_len"] = 300
     config.dc_config.dataset_kwargs["tokenizer"] = {"type": "spacy"}
-    config.model_config.model_kwargs["max_len"] = 300
     config.model_config.model_kwargs["d_model"] = 100
     config.model_config.model_kwargs["nhead"] = 5
     config.model_config.model_kwargs["num_encoder_layer"] = 1

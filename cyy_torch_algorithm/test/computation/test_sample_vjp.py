@@ -1,13 +1,13 @@
 import importlib.util
 
 import torch
-
-has_cyy_torch_vision: bool = importlib.util.find_spec("cyy_torch_vision") is not None
-has_cyy_torch_text: bool = importlib.util.find_spec("cyy_torch_text") is not None
 from cyy_torch_algorithm.computation.sample_gvjp.sample_gvjp_hook import \
     SampleGradientVJPHook
 from cyy_torch_toolbox import Config, ExecutorHookPoint, StopExecutingException
 from torch import nn
+
+has_cyy_torch_vision: bool = importlib.util.find_spec("cyy_torch_vision") is not None
+has_cyy_torch_text: bool = importlib.util.find_spec("cyy_torch_text") is not None
 
 
 def test_CV_vjp():
@@ -24,7 +24,7 @@ def test_CV_vjp():
     hook.set_vector(torch.ones_like(trainer.model_util.get_parameter_list()).view(-1))
     trainer.append_hook(hook)
 
-    def print_result(**kwargs):
+    def print_result(**kwargs) -> None:
         if hook.result_dict:
             print(hook.result_dict)
             raise StopExecutingException()
@@ -42,9 +42,8 @@ def test_NLP_vjp():
     import cyy_torch_text  # noqa: F401
 
     config = Config("imdb", "TransformerClassificationModel")
-    config.dc_config.dataset_kwargs["max_len"] = 300
+    config.dc_config.dataset_kwargs["input_max_len"] = 300
     config.dc_config.dataset_kwargs["tokenizer"] = {"type": "spacy"}
-    config.model_config.model_kwargs["max_len"] = 300
     config.model_config.model_kwargs["d_model"] = 100
     config.model_config.model_kwargs["nhead"] = 5
     config.model_config.model_kwargs["num_encoder_layer"] = 1
