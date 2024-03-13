@@ -21,22 +21,18 @@ def sample_gvjp_worker_fun(
 ) -> dict:
     hugging_face_batch_encoding = None
     if isinstance(inputs[0], dict):
-        hugging_face_batch_encoding = inputs
+        hugging_face_batch_encoding = inputs[0]
         inputs = [i.pop("inputs_embeds") for i in inputs]
     input_shape = inputs[0].shape
 
-    def vjp_wrapper(parameter_dict, input_tensor, target, idx):
+    def vjp_wrapper(parameter_dict, input_tensor, target):
         f = functools.partial(
             eval_model,
             targets=target,
             device=worker_device,
             model_evaluator=model_evaluator,
             input_shape=input_shape,
-            hugging_face_batch_encoding=(
-                hugging_face_batch_encoding[idx]
-                if hugging_face_batch_encoding is not None
-                else None
-            ),
+            hugging_face_batch_encoding=hugging_face_batch_encoding,
         )
 
         def grad_f(input_tensor):
@@ -47,11 +43,10 @@ def sample_gvjp_worker_fun(
         vjpfunc = vjp(grad_f, input_tensor.view(-1))[1]
         return vjpfunc(vector)[0]
 
-    products = vmap(vjp_wrapper, in_dims=(None, 0, 0, 0), randomness="same")(
+    products = vmap(vjp_wrapper, in_dims=(None, 0, 0), randomness="same")(
         parameter_dict,
         torch.stack(inputs),
         torch.stack(targets),
-        torch.arange(start=0, end=len(inputs)),
     )
     return dict(zip(sample_indices, products))
 
