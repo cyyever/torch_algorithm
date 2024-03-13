@@ -78,7 +78,10 @@ def test_hugging_face_vjp() -> None:
     config.dc_config.dataset_kwargs["input_max_len"] = 300
     config.model_config.model_kwargs["pretrained"] = True
     config.model_config.model_kwargs["n_layers"] = 1
-    config.model_config.model_kwargs["frozen_modules"] = ["distilbert.embeddings"]
+    config.model_config.model_kwargs["frozen_modules"] = {}
+    config.model_config.model_kwargs["frozen_modules"]["names"] = [
+        "distilbert.embeddings"
+    ]
     config.hyper_parameter_config.epoch = 1
     config.hyper_parameter_config.learning_rate = 0.1
     trainer = config.create_trainer()
