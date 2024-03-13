@@ -17,15 +17,22 @@ def sample_gvjp_worker_fun(
     targets,
     worker_device,
     parameter_dict,
-    **kwargs
-):
+    **kwargs,
+) -> dict:
+    hugging_face_batch_encoding = None
+    if isinstance(inputs[0], dict):
+        hugging_face_batch_encoding = inputs[0]
+        inputs = [i.pop("inputs_embeds") for i in inputs]
+    input_shape = inputs[0].shape
+
     def vjp_wrapper(parameter_dict, input_tensor, target):
         f = functools.partial(
             eval_model,
             targets=target,
             device=worker_device,
             model_evaluator=model_evaluator,
-            input_shape=inputs[0].shape,
+            input_shape=input_shape,
+            hugging_face_batch_encoding=hugging_face_batch_encoding,
         )
 
         def grad_f(input_tensor):
