@@ -10,7 +10,7 @@ has_cyy_torch_vision: bool = importlib.util.find_spec("cyy_torch_vision") is not
 has_cyy_torch_text: bool = importlib.util.find_spec("cyy_torch_text") is not None
 
 
-def test_CV_vjp():
+def test_CV_vjp() -> None:
     if not has_cyy_torch_vision:
         return
     import cyy_torch_vision  # noqa: F401
@@ -36,7 +36,7 @@ def test_CV_vjp():
     hook.reset()
 
 
-def test_NLP_vjp():
+def test_NLP_vjp() -> None:
     if not has_cyy_torch_text:
         return
     import cyy_torch_text  # noqa: F401
