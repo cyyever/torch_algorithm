@@ -130,18 +130,18 @@ class SampleComputationHook(ComputationHook):
             tasks = tensor_to(
                 tasks, device=worker_device, non_blocking=True, check_slowdown=False
             )
-            batch_index = tasks[0][0]
-            batch_size = len(tasks)
-            sample_indices = [task[1] for task in tasks]
-            inputs = [task[2] for task in tasks]
-            targets = [task[3] for task in tasks]
-            model_data = self.get_cached_one_shot_data(
+            batch_index: int = tasks[0][0]
+            batch_size: int = len(tasks)
+            sample_indices: list[int] = [task[1] for task in tasks]
+            inputs: list = [task[2] for task in tasks]
+            targets: list = [task[3] for task in tasks]
+            model_data: dict = self.get_cached_one_shot_data(
                 batch_index=batch_index,
                 worker_device=worker_device,
                 model_queue=model_queue,
             )
             forward_fun: str | None = None
-            input_features = [
+            input_features: list = [
                 model_data["model_evaluator"].get_input_feature(input_element)
                 for input_element in inputs
             ]

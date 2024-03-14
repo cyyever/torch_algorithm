@@ -1,7 +1,6 @@
 import functools
 
 import torch
-import torch.cuda
 from cyy_torch_toolbox.tensor import cat_tensor_dict
 from torch.func import grad, vjp, vmap
 
@@ -19,10 +18,11 @@ def sample_gvjp_worker_fun(
     parameter_dict,
     **kwargs,
 ) -> dict:
-    hugging_face_batch_encoding = None
+    hugging_face_batch_encoding: None | dict = None
     if isinstance(inputs[0], dict):
         hugging_face_batch_encoding = inputs[0]
-        inputs = [i.pop("inputs_embeds") for i in inputs]
+        new_inputs = [i.copy() for i in inputs]
+        inputs = [i.pop("inputs_embeds") for i in new_inputs]
     input_shape = inputs[0].shape
 
     def vjp_wrapper(parameter_dict, input_tensor, target):
