@@ -37,7 +37,9 @@ class SampleComputationHook(ComputationHook):
         inputs,
         targets,
     ) -> None:
-        res = model_evaluator.split_batch_input(inputs=inputs, targets=targets)
+        res = model_evaluator.split_batch_input(
+            inputs=inputs, batch_size=targets.shape[0]
+        )
         inputs = res["inputs"]
         batch_dim = res["batch_dim"]
 
