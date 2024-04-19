@@ -1,7 +1,7 @@
 import copy
 import math
 
-from cyy_naive_lib.log import get_logger
+from cyy_naive_lib.log import log_info, log_warning
 
 from .shapley_value import ShapleyValue
 
@@ -22,10 +22,10 @@ class MultiRoundShapleyValue(ShapleyValue):
         self.shapley_values.clear()
         self.shapley_values_S.clear()
         assert self.metric_fun is not None
-        metrics: dict = {tuple(): self.last_round_metric}
+        metrics: dict = {(): self.last_round_metric}
         this_round_metric = self.metric_fun(self.complete_player_indices)
         if this_round_metric is None:
-            get_logger().warning("force stop")
+            log_warning("force stop")
             return
         metrics[self.complete_player_indices] = this_round_metric
         if self.round_trunc_threshold is not None and (
@@ -39,7 +39,7 @@ class MultiRoundShapleyValue(ShapleyValue):
                     self.shapley_values,
                     self.shapley_values_S,
                 )
-            get_logger().info(
+            log_info(
                 "skip round %s, this_round_metric %s last_round_metric %s round_trunc_threshold %s",
                 round_number,
                 this_round_metric,
@@ -57,12 +57,10 @@ class MultiRoundShapleyValue(ShapleyValue):
                 else:
                     metric = self.metric_fun(subset)
                     if metric is None:
-                        get_logger().warning("force stop")
+                        log_warning("force stop")
                         return
                 metrics[key] = metric
-                get_logger().info(
-                    "round %s subset %s metric %s", round_number, key, metric
-                )
+                log_info("round %s subset %s metric %s", round_number, key, metric)
 
         # best subset in metrics
         subset_rank = sorted(
@@ -127,5 +125,5 @@ class MultiRoundShapleyValue(ShapleyValue):
                 self.shapley_values_S,
             )
         self.last_round_metric = this_round_metric
-        get_logger().info("shapley_value %s", self.shapley_values)
-        get_logger().info("shapley_value_best_set %s", self.shapley_values_S)
+        log_info("shapley_value %s", self.shapley_values)
+        log_info("shapley_value_best_set %s", self.shapley_values_S)

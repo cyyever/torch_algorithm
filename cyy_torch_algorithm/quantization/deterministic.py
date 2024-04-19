@@ -3,7 +3,7 @@ from typing import Any, Callable, Tuple
 
 import numpy
 import torch
-from cyy_naive_lib.log import get_logger
+from cyy_naive_lib.log import log_info
 from cyy_torch_toolbox.tensor import tensor_to
 
 
@@ -166,8 +166,8 @@ class NeuralNetworkAdaptiveDeterministicQuant(AdaptiveDeterministicQuant):
             prefix = ""
         avg_level = sum(a * b for a, b in zip(quantization_levels, parameter_ratio))
         compression_ratio = compressed_parameter_num / total_parameter_num
-        get_logger().info("%s avg quantization level %s", prefix, avg_level)
-        get_logger().info("%s NNABQ compression ratio is %s", prefix, compression_ratio)
+        log_info("%s avg quantization level %s", prefix, avg_level)
+        log_info("%s NNABQ compression ratio is %s", prefix, compression_ratio)
         return avg_level, compression_ratio
 
 

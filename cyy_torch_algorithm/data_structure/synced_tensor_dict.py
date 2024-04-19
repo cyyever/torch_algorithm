@@ -4,7 +4,7 @@ from typing import Generator, Iterable
 import torch
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
 from cyy_naive_lib.fs.tempdir import get_temp_dir
-from cyy_naive_lib.log import get_logger
+from cyy_naive_lib.log import log_info
 from cyy_torch_toolbox.typing import TensorDict
 
 try:
@@ -89,9 +89,7 @@ try:
                 impl.set_permanent_storage()
             if cache_size is not None:
                 impl.set_in_memory_number(cache_size)
-            get_logger().info(
-                "tensor_dict use cache size %s", impl.get_in_memory_number()
-            )
+            log_info("tensor_dict use cache size %s", impl.get_in_memory_number())
             return cls(tensor_dict=impl, key_type=key_type)
 
 except BaseException:

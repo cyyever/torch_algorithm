@@ -5,7 +5,7 @@ import threading
 from typing import Any, Callable
 
 import torch
-from cyy_naive_lib.log import get_logger
+from cyy_naive_lib.log import log_debug
 from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
     TorchProcessTaskQueue
@@ -141,9 +141,7 @@ class ComputationHook(Hook):
                     v.requires_grad_(False)
                     v.share_memory_()
             self.__shared_models[batch_index] = data
-            get_logger().debug(
-                "_broadcast_one_shot_data use %s", cnt.elapsed_milliseconds()
-            )
+            log_debug("_broadcast_one_shot_data use %s", cnt.elapsed_milliseconds())
 
     def _before_execute(self, **_):
         self.reset()

@@ -2,7 +2,7 @@ import importlib.util
 
 import torch
 import torch.nn
-from cyy_naive_lib.log import get_logger
+from cyy_naive_lib.log import log_error
 from cyy_naive_lib.time_counter import TimeCounter
 from cyy_torch_algorithm.computation.batch_hvp.batch_hvp_hook import \
     BatchHVPHook
@@ -29,7 +29,7 @@ def test_CV_jvp():
         ExecutorHookPoint.AFTER_BATCH,
         "reset_time",
         lambda **kwargs: time_counter.reset_start_time()
-        and get_logger().error("begin count time"),
+        and log_error("begin count time"),
     )
     hook = BatchHVPHook()
     trainer.append_hook(hook)
@@ -38,7 +38,7 @@ def test_CV_jvp():
         if hook.result_dict:
             products = hook.result_dict
             assert len(products) == 10
-            get_logger().error("use time %s", time_counter.elapsed_milliseconds())
+            log_error("use time %s", time_counter.elapsed_milliseconds())
             assert (
                 torch.linalg.vector_norm(
                     cat_tensor_dict(products[1]).cpu() * 4

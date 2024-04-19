@@ -1,6 +1,6 @@
 import torch
 import torch.ao.quantization
-from cyy_naive_lib.log import get_logger
+from cyy_naive_lib.log import log_debug
 from cyy_torch_toolbox.hook import Hook
 from cyy_torch_toolbox.model.util import ModelUtil
 from cyy_torch_toolbox.trainer import Trainer
@@ -26,7 +26,7 @@ class QuantizationAwareTraining(Hook):
         model_util.model.qconfig = torch.ao.quantization.get_default_qat_qconfig("x86")
         torch.backends.quantized.engine = "x86"
         fused_modules = QuantizationAwareTraining.get_fused_modules(model_util.model)
-        get_logger().debug("fuse modules %s", fused_modules)
+        log_debug("fuse modules %s", fused_modules)
 
         fused_model = torch.ao.quantization.fuse_modules_qat(
             model_util.model,
@@ -35,7 +35,7 @@ class QuantizationAwareTraining(Hook):
         fused_model.train()
         quant_model = torch.ao.quantization.prepare_qat(fused_model)
         quant_model = torch.ao.quantization.QuantWrapper(quant_model)
-        get_logger().debug("quant_model is %s", quant_model)
+        log_debug("quant_model is %s", quant_model)
         ModelUtil(quant_model).to_device(device=trainer.device)
         trainer.replace_model(lambda model: quant_model)
         trainer.remove_optimizer()

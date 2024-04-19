@@ -1,7 +1,7 @@
 import copy
 
 import numpy as np
-from cyy_naive_lib.log import get_logger
+from cyy_naive_lib.log import log_debug, log_info, log_warning
 
 from .shapley_value import ShapleyValue
 
@@ -28,7 +28,7 @@ class GTGShapleyValue(ShapleyValue):
                 + np.random.randint(-5, +5),
             ),
         )
-        get_logger().info("max_number %s", self.max_number)
+        log_info("max_number %s", self.max_number)
 
     def compute(self, round_number: int) -> None:
         self.shapley_values.clear()
@@ -36,7 +36,7 @@ class GTGShapleyValue(ShapleyValue):
         assert self.metric_fun is not None
         this_round_metric = self.metric_fun(self.complete_player_indices)
         if this_round_metric is None:
-            get_logger().warning("force stop")
+            log_warning("force stop")
             return
         if (
             abs(self.last_round_metric - this_round_metric)
@@ -49,7 +49,7 @@ class GTGShapleyValue(ShapleyValue):
                     self.shapley_values,
                     self.shapley_values_S,
                 )
-            get_logger().info(
+            log_info(
                 "skip round %s, this_round_metric %s last_round_metric %s round_trunc_threshold %s",
                 round_number,
                 this_round_metric,
@@ -90,9 +90,9 @@ class GTGShapleyValue(ShapleyValue):
                             else:
                                 metric = self.metric_fun(subset)
                                 if metric is None:
-                                    get_logger().warning("force stop")
+                                    log_warning("force stop")
                                     return
-                            get_logger().info(
+                            log_info(
                                 "round %s subset %s metric %s",
                                 round_number,
                                 subset,
@@ -155,13 +155,13 @@ class GTGShapleyValue(ShapleyValue):
                 self.shapley_values,
                 self.shapley_values_S,
             )
-        get_logger().info("shapley_value %s", self.shapley_values)
-        get_logger().info("shapley_value_S %s", self.shapley_values_S)
+        log_info("shapley_value %s", self.shapley_values)
+        log_info("shapley_value_S %s", self.shapley_values_S)
         self.last_round_metric = this_round_metric
 
     def not_convergent(self, index, contribution_records):
         if index >= self.max_number:
-            get_logger().info("convergent for max_number %s", self.max_number)
+            log_info("convergent for max_number %s", self.max_number)
             return False
         if index <= self.converge_min:
             return True
@@ -176,7 +176,7 @@ class GTGShapleyValue(ShapleyValue):
         )
         if np.max(errors) > self.converge_criteria:
             return True
-        get_logger().debug(
+        log_debug(
             "convergent in index %s and min index for convergent %s max error %s error threshold %s",
             index,
             self.converge_min,
