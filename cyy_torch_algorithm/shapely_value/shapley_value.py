@@ -17,9 +17,7 @@ class ShapleyValue:
     ) -> None:
         self.players: tuple = tuple(players)
         self.last_round_metric = last_round_metric
-        self.round_number = 0
         self.metric_fun: None | Callable = None
-        self.save_fun: None | Callable = None
 
     @property
     def player_number(self) -> int:
@@ -27,15 +25,6 @@ class ShapleyValue:
 
     def set_metric_function(self, metric_fun) -> None:
         self.metric_fun = lambda subset: metric_fun(self.__get_players(subset))
-
-    def set_save_function(self, save_fun) -> None:
-        def new_save_fun(sv1, sv2) -> None:
-            save_fun(
-                {self.players[k]: v for k, v in sv1.items()},
-                {self.players[k]: v for k, v in sv2.items()},
-            )
-
-        self.save_fun = new_save_fun
 
     def __get_players(self, indices) -> tuple:
         return tuple(self.players[i] for i in indices)

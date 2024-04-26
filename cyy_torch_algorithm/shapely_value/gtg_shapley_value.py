@@ -44,11 +44,6 @@ class GTGShapleyValue(ShapleyValue):
         ):
             self.shapley_values = {i: 0 for i in self.complete_player_indices}
             self.shapley_values_S = {i: 0 for i in self.complete_player_indices}
-            if self.save_fun is not None:
-                self.save_fun(
-                    self.shapley_values,
-                    self.shapley_values_S,
-                )
             log_info(
                 "skip round %s, this_round_metric %s last_round_metric %s round_trunc_threshold %s",
                 round_number,
@@ -150,11 +145,6 @@ class GTGShapleyValue(ShapleyValue):
                 round_shapley_value_dict, round_marginal_gain
             )
 
-        if self.save_fun is not None:
-            self.save_fun(
-                self.shapley_values,
-                self.shapley_values_S,
-            )
         log_info("shapley_value %s", self.shapley_values)
         log_info("shapley_value_S %s", self.shapley_values_S)
         self.last_round_metric = this_round_metric
