@@ -89,3 +89,9 @@ class MultiRoundShapleyValue(RoundBasedShapleyValue):
 
         log_info("shapley_value %s", self.shapley_values[round_number])
         log_info("shapley_value_best_set %s", self.shapley_values_S[round_number])
+
+    def get_result(self) -> dict:
+        return {
+            "round_shapley_values": self.shapley_values,
+            "round_subset_shapley_values": self.shapley_values_S,
+        }

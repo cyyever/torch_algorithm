@@ -89,5 +89,8 @@ class RoundBasedShapleyValue(ShapleyValue):
         self._compute_impl(round_number=round_number)
         return None
 
+    def get_result(self) -> Any:
+        return None
+
     def _compute_impl(self, round_number: int) -> None:
         raise NotImplementedError()
