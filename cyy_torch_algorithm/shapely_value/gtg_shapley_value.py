@@ -133,6 +133,12 @@ class GTGShapleyValue(RoundBasedShapleyValue):
         log_info("shapley_value %s", self.shapley_values[round_number])
         log_info("shapley_value_S %s", self.shapley_values_S[round_number])
 
+    def get_result(self) -> dict:
+        return {
+            "round_shapley_values": self.shapley_values,
+            "round_shapley_values_approximated": self.shapley_values_S,
+        }
+
     def not_convergent(self, index: int, contribution_records: list) -> bool:
         if index >= self.max_number:
             log_info("convergent for max_number %s", self.max_number)

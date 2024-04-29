@@ -93,5 +93,5 @@ class MultiRoundShapleyValue(RoundBasedShapleyValue):
     def get_result(self) -> dict:
         return {
             "round_shapley_values": self.shapley_values,
-            "round_subset_shapley_values": self.shapley_values_S,
+            "round_shapley_values_approximated": self.shapley_values_S,
         }
