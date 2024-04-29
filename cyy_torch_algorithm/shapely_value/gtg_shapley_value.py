@@ -3,14 +3,14 @@ import copy
 import numpy as np
 from cyy_naive_lib.log import log_debug, log_info, log_warning
 
-from .shapley_value import ShapleyValue
+from .shapley_value import RoundBasedShapleyValue
 
 
-class GTGShapleyValue(ShapleyValue):
-    def __init__(self, players: list, last_round_metric: float = 0) -> None:
-        super().__init__(players=players, last_round_metric=last_round_metric)
-        self.shapley_values: dict = {}
-        self.shapley_values_S: dict = {}
+class GTGShapleyValue(RoundBasedShapleyValue):
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.shapley_values: dict[int, dict] = {}
+        self.shapley_values_S: dict[int, dict] = {}
 
         self.eps = 0.001
         self.round_trunc_threshold = 0.001
@@ -30,29 +30,11 @@ class GTGShapleyValue(ShapleyValue):
         )
         log_info("max_number %s", self.max_number)
 
-    def compute(self, round_number: int) -> None:
-        self.shapley_values.clear()
-        self.shapley_values_S.clear()
+    def _compute_impl(self, round_number: int) -> None:
+        self.shapley_values[round_number] = {}
+        self.shapley_values_S[round_number] = {}
         assert self.metric_fun is not None
         this_round_metric = self.metric_fun(self.complete_player_indices)
-        if this_round_metric is None:
-            log_warning("force stop")
-            return
-        if (
-            abs(self.last_round_metric - this_round_metric)
-            <= self.round_trunc_threshold
-        ):
-            self.shapley_values = {i: 0 for i in self.complete_player_indices}
-            self.shapley_values_S = {i: 0 for i in self.complete_player_indices}
-            log_info(
-                "skip round %s, this_round_metric %s last_round_metric %s round_trunc_threshold %s",
-                round_number,
-                this_round_metric,
-                self.last_round_metric,
-                self.round_trunc_threshold,
-            )
-            self.last_round_metric = this_round_metric
-            return
         metrics = {}
 
         # for best_S
@@ -60,11 +42,12 @@ class GTGShapleyValue(ShapleyValue):
 
         index = 0
         contribution_records: list = []
+        last_round_metric = self.get_last_round_metric(round_number=round_number)
         while self.not_convergent(index, contribution_records):
             for player_id in self.complete_player_indices:
                 index += 1
                 v: list = [0] * (self.player_number + 1)
-                v[0] = self.last_round_metric
+                v[0] = last_round_metric
                 marginal_contribution = [0] * self.player_number
                 perturbed_indices = np.concatenate(
                     (
@@ -81,7 +64,7 @@ class GTGShapleyValue(ShapleyValue):
                     if abs(this_round_metric - v[j]) >= self.eps:
                         if subset not in metrics:
                             if not subset:
-                                metric = self.last_round_metric
+                                metric = last_round_metric
                             else:
                                 metric = self.metric_fun(subset)
                                 if metric is None:
@@ -117,39 +100,40 @@ class GTGShapleyValue(ShapleyValue):
             v for k, v in perm_records.items() if set(k[: len(best_S)]) == set(best_S)
         ]
         SV_calc_temp = np.sum(contrib_S, 0) / len(contrib_S)
-        round_marginal_gain_S = metrics[best_S] - self.last_round_metric
+        round_marginal_gain_S = metrics[best_S] - last_round_metric
         round_SV_S: dict = {}
         for client_id in best_S:
             round_SV_S[client_id] = float(SV_calc_temp[client_id])
 
-        self.shapley_values_S = ShapleyValue.normalize_shapley_values(
+        self.shapley_values_S[round_number] = self.normalize_shapley_values(
             round_SV_S, round_marginal_gain_S
         )
 
         # calculating fullset SV
         # shapley value calculation
         if set(best_S) == set(self.complete_player_indices):
-            self.shapley_values = copy.deepcopy(self.shapley_values_S)
+            self.shapley_values[round_number] = copy.deepcopy(
+                self.shapley_values_S[round_number]
+            )
         else:
             round_shapley_values = np.sum(contribution_records, 0) / len(
                 contribution_records
             )
             assert len(round_shapley_values) == self.player_number
 
-            round_marginal_gain = this_round_metric - self.last_round_metric
+            round_marginal_gain = this_round_metric - last_round_metric
             round_shapley_value_dict = {}
             for idx, value in enumerate(round_shapley_values):
                 round_shapley_value_dict[idx] = float(value)
 
-            self.shapley_values = ShapleyValue.normalize_shapley_values(
+            self.shapley_values[round_number] = self.normalize_shapley_values(
                 round_shapley_value_dict, round_marginal_gain
             )
 
-        log_info("shapley_value %s", self.shapley_values)
-        log_info("shapley_value_S %s", self.shapley_values_S)
-        self.last_round_metric = this_round_metric
+        log_info("shapley_value %s", self.shapley_values[round_number])
+        log_info("shapley_value_S %s", self.shapley_values_S[round_number])
 
-    def not_convergent(self, index, contribution_records):
+    def not_convergent(self, index: int, contribution_records: list) -> bool:
         if index >= self.max_number:
             log_info("convergent for max_number %s", self.max_number)
             return False
