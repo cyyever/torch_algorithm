@@ -62,10 +62,9 @@ class RoundBasedShapleyValue(ShapleyValue):
 
     def get_last_round_metric(self, round_number: int) -> float:
         last_round_metric = self.initial_metric
-        if self.round_metrics:
-            last_round_metric = self.round_metrics[
-                max(k for k in self.round_metrics if k < round_number)
-            ]
+        previous_rounds = tuple(k for k in self.round_metrics if k < round_number)
+        if previous_rounds:
+            last_round_metric = self.round_metrics[max(previous_rounds)]
         return last_round_metric
 
     def compute(self, round_number: int) -> None:
