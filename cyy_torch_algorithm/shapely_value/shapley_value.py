@@ -11,6 +11,14 @@ class ShapleyValue:
         self.metric_fun: None | Callable = None
         self.batch_metric_fun: None | Callable = None
 
+    def __getstate__(self):
+        # capture what is normally pickled
+        state = self.__dict__.copy()
+        print(state.keys())
+        state["batch_metric_fun"] = None
+        state["metric_fun"] = None
+        return state
+
     @property
     def player_number(self) -> int:
         return len(self.players)
