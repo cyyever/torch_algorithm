@@ -9,6 +9,7 @@ class ShapleyValue:
     def __init__(self, players: list) -> None:
         self.players: tuple = tuple(players)
         self.metric_fun: None | Callable = None
+        self.batch_metric_fun: None | Callable = None
 
     @property
     def player_number(self) -> int:
@@ -20,6 +21,19 @@ class ShapleyValue:
 
     def set_metric_function(self, metric_fun) -> None:
         self.metric_fun = lambda subset: metric_fun(self.__get_players(subset))
+        assert self.batch_metric_fun is None
+        self.batch_metric_fun = lambda subsets: {
+            subset: metric_fun(self.__get_players(subset)) for subset in subsets
+        }
+
+    def set_batch_metric_function(self, metric_fun) -> None:
+        self.batch_metric_fun = lambda subsets: metric_fun(
+            tuple(self.__get_players(subset) for subset in subsets)
+        )
+        assert self.metric_fun is None
+        self.metric_fun = lambda subset: list(self.batch_metric_fun([subset]).values())[
+            0
+        ]
 
     def get_shapely_values(self) -> Any:
         return None

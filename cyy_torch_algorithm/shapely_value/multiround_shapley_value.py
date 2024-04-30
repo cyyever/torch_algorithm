@@ -22,11 +22,17 @@ class MultiRoundShapleyValue(RoundBasedShapleyValue):
             self.complete_player_indices: self.round_metrics[round_number],
         }
 
+        subsets = set()
         for subset in self.powerset(self.complete_player_indices):
-            key = tuple(sorted(subset))
-            if key not in metrics:
-                metrics[key] = self.metric_fun(subset)
-            log_info("round %s subset %s metric %s", round_number, key, metrics[key])
+            sorted_subset = tuple(sorted(subset))
+            if sorted_subset not in metrics:
+                subsets.add(sorted_subset)
+
+        assert self.batch_metric_fun is not None
+        resulting_metrics = self.batch_metric_fun(subsets)
+        for subset, metric in resulting_metrics.items():
+            log_info("round %s subset %s metric %s", round_number, subset, metric)
+        metrics |= resulting_metrics
 
         # best subset in metrics
         subset_rank = sorted(
