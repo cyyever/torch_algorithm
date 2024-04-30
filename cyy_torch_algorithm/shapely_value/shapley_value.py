@@ -14,7 +14,6 @@ class ShapleyValue:
     def __getstate__(self):
         # capture what is normally pickled
         state = self.__dict__.copy()
-        print(state.keys())
         state["batch_metric_fun"] = None
         state["metric_fun"] = None
         return state
