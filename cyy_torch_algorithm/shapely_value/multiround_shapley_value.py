@@ -96,6 +96,9 @@ class MultiRoundShapleyValue(RoundBasedShapleyValue):
         log_info("shapley_value %s", self.shapley_values[round_number])
         log_info("shapley_value_best_set %s", self.shapley_values_S[round_number])
 
+    def get_best_players(self, round_number: int) -> set | None:
+        return set(self.get_players(self.shapley_values_S[round_number].keys()))
+
     def get_result(self) -> dict:
         return {
             "round_shapley_values": self.shapley_values,

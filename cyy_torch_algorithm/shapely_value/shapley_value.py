@@ -27,23 +27,22 @@ class ShapleyValue:
         return tuple(range(len(self.players)))
 
     def set_metric_function(self, metric_fun) -> None:
-        self.metric_fun = lambda subset: metric_fun(self.__get_players(subset))
+        assert self.metric_fun is None
+        self.metric_fun = lambda subset: metric_fun(self.get_players(subset))
         assert self.batch_metric_fun is None
         self.batch_metric_fun = lambda subsets: {
-            subset: metric_fun(self.__get_players(subset)) for subset in subsets
+            subset: metric_fun(self.get_players(subset)) for subset in subsets
         }
 
     def set_batch_metric_function(self, metric_fun) -> None:
+        assert self.batch_metric_fun is None
         self.batch_metric_fun = lambda subsets: metric_fun(
-            tuple(self.__get_players(subset) for subset in subsets)
+            tuple(self.get_players(subset) for subset in subsets)
         )
         assert self.metric_fun is None
         self.metric_fun = lambda subset: list(self.batch_metric_fun([subset]).values())[
             0
         ]
-
-    def get_shapely_values(self) -> Any:
-        return None
 
     @classmethod
     def powerset(cls, iterable: Iterable) -> chain:
@@ -67,7 +66,7 @@ class ShapleyValue:
 
         return {k: marginal_gain * v / sum_value for k, v in shapley_values.items()}
 
-    def __get_players(self, indices) -> tuple:
+    def get_players(self, indices) -> tuple:
         return tuple(self.players[i] for i in indices)
 
 
@@ -107,6 +106,9 @@ class RoundBasedShapleyValue(ShapleyValue):
             )
             return None
         self._compute_impl(round_number=round_number)
+        return None
+
+    def get_best_players(self, round_number: int) -> set | None:
         return None
 
     def get_result(self) -> Any:
