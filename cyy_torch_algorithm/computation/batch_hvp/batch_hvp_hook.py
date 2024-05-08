@@ -8,7 +8,7 @@ from cyy_naive_lib.algorithm.mapping_op import get_mapping_items_by_key_order
 from cyy_torch_toolbox import ModelEvaluator
 from cyy_torch_toolbox.tensor import (cat_tensor_dict,
                                       decompose_like_tensor_dict)
-from cyy_torch_toolbox.typing import TensorDict
+from cyy_torch_toolbox.typing import OptionalTensor, TensorDict
 from torch.func import grad, jvp, vmap
 
 from ..batch_computation_hook import BatchComputationHook
@@ -71,7 +71,7 @@ def batch_hvp_worker_fun(
 
 
 class BatchHVPHook(BatchComputationHook):
-    vectors: None | torch.Tensor = None
+    vectors: OptionalTensor = None
 
     def get_vectors(self):
         return self.vectors

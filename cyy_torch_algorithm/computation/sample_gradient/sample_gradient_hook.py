@@ -15,8 +15,8 @@ from ..sample_computation_hook import SampleComputationHook, dot_product
 def sample_gradient_worker_fun(
     model_evaluator: ModelEvaluator,
     sample_indices: IndicesType,
-    inputs: list,
-    targets: torch.Tensor,
+    inputs: list[torch.Tensor] | list[dict],
+    targets: list[torch.Tensor],
     worker_device: torch.device,
     parameter_dict: TensorDict,
 ) -> dict[int, TensorDict]:
