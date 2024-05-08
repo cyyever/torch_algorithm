@@ -1,9 +1,11 @@
 import functools
-from typing import Callable, Iterable
+from typing import Callable
 
 import torch
+from cyy_torch_toolbox import Executor, ModelEvaluator
 from cyy_torch_toolbox.tensor import dot_product as dot_product_impl
 from cyy_torch_toolbox.tensor import recursive_tensor_op, tensor_to
+from cyy_torch_toolbox.typing import IndicesType
 
 from .computation_hook import ComputationHook
 
@@ -26,16 +28,16 @@ class SampleComputationHook(ComputationHook):
     def set_input_transform(self, transform: Callable) -> None:
         self.__input_transform = transform
 
-    def set_computed_indices(self, indices: Iterable[int]) -> None:
+    def set_computed_indices(self, indices: IndicesType) -> None:
         index_set = set(indices)
         self.set_sample_selector(lambda sample_index, *args: sample_index in index_set)
 
     def add_task(
         self,
-        model_evaluator,
-        sample_indices,
+        model_evaluator: ModelEvaluator,
+        sample_indices: torch.Tensor,
         inputs,
-        targets,
+        targets: torch.Tensor,
     ) -> None:
         res = model_evaluator.split_batch_input(
             inputs=inputs, batch_size=targets.shape[0]
@@ -103,7 +105,12 @@ class SampleComputationHook(ComputationHook):
         )
 
     def _before_batch(
-        self, executor, inputs, targets, sample_indices, **kwargs
+        self,
+        executor: Executor | None,
+        inputs: torch.Tensor,
+        targets: torch.Tensor,
+        sample_indices: torch.Tensor,
+        **kwargs,
     ) -> None:
         if executor is not None:
             model_evaluator = executor.model_evaluator

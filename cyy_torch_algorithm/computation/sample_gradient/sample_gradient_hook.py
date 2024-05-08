@@ -1,10 +1,11 @@
 import copy
 import functools
-from typing import Any, Callable, Iterable
+from typing import Any, Callable
 
 import torch
 from cyy_torch_toolbox import Inferencer, ModelEvaluator
-from cyy_torch_toolbox.typing import TensorDict
+from cyy_torch_toolbox.typing import (IndicesType, OptionalIndicesType,
+                                      TensorDict)
 from torch.func import grad, vmap
 
 from ..evaluation import eval_model
@@ -13,8 +14,8 @@ from ..sample_computation_hook import SampleComputationHook, dot_product
 
 def sample_gradient_worker_fun(
     model_evaluator: ModelEvaluator,
-    sample_indices: list[int],
-    inputs,
+    sample_indices: IndicesType,
+    inputs: list,
     targets: torch.Tensor,
     worker_device: torch.device,
     parameter_dict: TensorDict,
@@ -75,7 +76,7 @@ class SampleGradientHook(SampleComputationHook):
 
 def get_sample_gradients_impl(
     inferencer: Inferencer,
-    computed_indices: None | Iterable[int] = None,
+    computed_indices: OptionalIndicesType = None,
     result_transform: None | Callable = None,
 ) -> dict[int, Any]:
     tmp_inferencer = copy.deepcopy(inferencer)
@@ -122,7 +123,7 @@ def get_sample_gradients_impl(
 
 def get_sample_gradients(
     inferencer: Inferencer,
-    computed_indices: None | Iterable[int] = None,
+    computed_indices: OptionalIndicesType = None,
 ) -> dict[int, TensorDict]:
     return get_sample_gradients_impl(
         inferencer=inferencer, computed_indices=computed_indices
