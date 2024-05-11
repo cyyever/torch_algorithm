@@ -1,7 +1,5 @@
-
 import torch
-from cyy_torch_toolbox import EvaluationMode, ModelEvaluator
-from cyy_torch_toolbox.typing import TensorDict
+from cyy_torch_toolbox import EvaluationMode, ModelEvaluator, TensorDict
 
 
 def eval_model(

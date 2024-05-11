@@ -4,8 +4,8 @@ from typing import Any, Callable
 
 import torch
 from cyy_torch_toolbox import Inferencer, ModelEvaluator
-from cyy_torch_toolbox.typing import (IndicesType, OptionalIndicesType,
-                                      TensorDict)
+from cyy_torch_toolbox.typing import (IndicesType, ModelGradient,
+                                      OptionalIndicesType, TensorDict)
 from torch.func import grad, vmap
 
 from ..evaluation import eval_model
@@ -19,7 +19,7 @@ def sample_gradient_worker_fun(
     targets: list[torch.Tensor],
     worker_device: torch.device,
     parameter_dict: TensorDict,
-) -> dict[int, TensorDict]:
+) -> dict[int, ModelGradient]:
     def wrapper(parameter_dict, target, *args, input_keys=None):
         if input_keys is not None:
             inputs = dict(zip(input_keys, args))
@@ -61,7 +61,7 @@ def sample_gradient_worker_fun(
             )(parameter_dict, torch.stack(targets), *dict_inputs)
         case _:
             raise NotImplementedError(inputs)
-    result: dict[int, TensorDict] = {}
+    result: dict[int, ModelGradient] = {}
     for idx, sample_idx in enumerate(sample_indices):
         result[sample_idx] = {}
         for k, v in gradient_dicts.items():
@@ -124,7 +124,7 @@ def get_sample_gradients_impl(
 def get_sample_gradients(
     inferencer: Inferencer,
     computed_indices: OptionalIndicesType = None,
-) -> dict[int, TensorDict]:
+) -> dict[int, ModelGradient]:
     return get_sample_gradients_impl(
         inferencer=inferencer, computed_indices=computed_indices
     )
