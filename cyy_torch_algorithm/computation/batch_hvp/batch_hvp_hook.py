@@ -8,7 +8,7 @@ from cyy_naive_lib.algorithm.mapping_op import get_mapping_items_by_key_order
 from cyy_torch_toolbox import ModelEvaluator
 from cyy_torch_toolbox.tensor import (cat_tensor_dict,
                                       decompose_like_tensor_dict)
-from cyy_torch_toolbox.typing import OptionalTensor, TensorDict
+from cyy_torch_toolbox.typing import TensorDict
 from torch.func import grad, jvp, vmap
 
 from ..batch_computation_hook import BatchComputationHook
@@ -23,6 +23,7 @@ def batch_hvp_worker_fun(
     worker_device: torch.device,
     parameter_dict: TensorDict,
 ) -> list[TensorDict] | list[torch.Tensor]:
+    assert data
     vector_size = len(data)
     vectors = data
     parameter_dict = collections.OrderedDict(
@@ -54,13 +55,17 @@ def batch_hvp_worker_fun(
             decompose_like_tensor_dict(parameter_dict, vector) for vector in vectors
         ]
         assert len(vectors) == vector_size
-    vectors = {k: torch.stack([vector[k] for vector in vectors]) for k in vectors[0]}
-    vectors = collections.OrderedDict(list(get_mapping_items_by_key_order(vectors)))
+    new_vectors = {
+        k: torch.stack([vector[k] for vector in vectors]) for k in vectors[0]
+    }
+    new_vectors = collections.OrderedDict(
+        list(get_mapping_items_by_key_order(new_vectors))
+    )
     res = vmap(
         hvp_wrapper,
-        in_dims=(collections.OrderedDict((k, 0) for k in vectors),),
+        in_dims=(collections.OrderedDict((k, 0) for k in new_vectors),),
         randomness="same",
-    )(vectors)
+    )(new_vectors)
     products: list[TensorDict] | list[torch.Tensor] = [
         {k: v[idx] for k, v in res.items()} for idx in range(vector_size)
     ]
@@ -71,12 +76,12 @@ def batch_hvp_worker_fun(
 
 
 class BatchHVPHook(BatchComputationHook):
-    vectors: OptionalTensor = None
+    vectors: list[torch.Tensor] | list[TensorDict] = []
 
-    def get_vectors(self):
+    def get_vectors(self) -> list[torch.Tensor] | list[TensorDict]:
         return self.vectors
 
-    def set_vectors(self, vectors: torch.Tensor) -> None:
+    def set_vectors(self, vectors: list[torch.Tensor] | list[TensorDict]) -> None:
         self.vectors = vectors
         self.set_data_fun(self.get_vectors)
 
