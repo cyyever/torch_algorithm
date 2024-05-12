@@ -58,7 +58,7 @@ class ComputationHook(Hook):
     def result_dict(self) -> dict:
         return self.__fetch_result()
 
-    def has_unfetched_result(self):
+    def has_unfetched_result(self) -> bool:
         return self.__pending_task_cnt != 0
 
     def _drop_result(self) -> None:
@@ -142,13 +142,13 @@ class ComputationHook(Hook):
             self.__shared_models[batch_index] = data
             log_debug("_broadcast_one_shot_data use %s", cnt.elapsed_milliseconds())
 
-    def _before_execute(self, **_):
+    def _before_execute(self, **_) -> None:
         self.reset()
 
     def __del__(self):
         self.reset()
 
-    def release_queue(self):
+    def release_queue(self) -> None:
         self.reset()
 
     def reset(self) -> None:

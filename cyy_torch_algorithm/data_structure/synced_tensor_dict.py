@@ -1,5 +1,5 @@
 from collections.abc import MutableMapping
-from typing import Generator, Iterable
+from typing import Generator, Iterable, Self
 
 import torch
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
@@ -80,7 +80,7 @@ try:
             storage_dir: str | None = None,
             key_type=int,
             cache_size: int | None = None,
-        ):
+        ) -> Self:
             if storage_dir is None:
                 storage_dir = get_temp_dir().name
                 impl = SyncedTensorDictIMPL(storage_dir)
