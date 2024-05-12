@@ -145,9 +145,6 @@ class ComputationHook(Hook):
     def _before_execute(self, **_) -> None:
         self.reset()
 
-    def __del__(self):
-        self.reset()
-
     def release_queue(self) -> None:
         self.reset()
 
