@@ -58,7 +58,7 @@ try:
                 return eval(k)
             return self.__key_type(k)
 
-        def prefetch(self, keys: list) -> None:
+        def prefetch(self, keys: Iterable) -> None:
             self.__tensor_dict.prefetch([str(k) for k in keys])
 
         def __getattr__(self, name):
