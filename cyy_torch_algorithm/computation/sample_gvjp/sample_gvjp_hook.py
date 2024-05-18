@@ -9,7 +9,7 @@ from ..evaluation import eval_model
 from ..sample_computation_hook import SampleComputationHook
 
 
-def __sample_gvjp_worker_fun(
+def sample_gvjp_worker_fun(
     vector,
     model_evaluator,
     sample_indices,
@@ -59,4 +59,4 @@ class SampleGradientVJPHook(SampleComputationHook):
         self.__vector = vector
 
     def _get_sample_computation_fun(self) -> Callable:
-        return functools.partial(__sample_gvjp_worker_fun, self.__vector)
+        return functools.partial(sample_gvjp_worker_fun, self.__vector)

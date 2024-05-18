@@ -72,7 +72,7 @@ def sample_gradient_worker_fun(
 
 class SampleGradientHook(SampleComputationHook):
     def _get_sample_computation_fun(self):
-        return ample_gradient_worker_fun
+        return sample_gradient_worker_fun
 
 
 def get_sample_gradients_impl(
