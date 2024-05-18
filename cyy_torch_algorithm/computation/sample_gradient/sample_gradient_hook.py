@@ -5,7 +5,8 @@ from typing import Any, Callable
 import torch
 from cyy_torch_toolbox import Inferencer, ModelEvaluator
 from cyy_torch_toolbox.typing import (IndicesType, ModelGradient,
-                                      OptionalIndicesType, TensorDict)
+                                      ModelParameter, OptionalIndicesType,
+                                      TensorDict)
 from torch.func import grad, vmap
 
 from ..evaluation import eval_model
@@ -15,12 +16,12 @@ from ..sample_computation_hook import SampleComputationHook, dot_product
 def sample_gradient_worker_fun(
     model_evaluator: ModelEvaluator,
     sample_indices: IndicesType,
-    inputs: list[torch.Tensor] | list[dict],
+    inputs: list[torch.Tensor] | list[TensorDict],
     targets: list[torch.Tensor],
     worker_device: torch.device,
-    parameter_dict: TensorDict,
+    parameters: ModelParameter,
 ) -> dict[int, ModelGradient]:
-    def wrapper(parameter_dict, target, *args, input_keys=None):
+    def wrapper(parameters, target, *args, input_keys=None):
         if input_keys is not None:
             inputs = dict(zip(input_keys, args))
         else:
@@ -34,7 +35,7 @@ def sample_gradient_worker_fun(
             model_evaluator=model_evaluator,
             inputs=inputs,
         )
-        return grad(f, argnums=0)(parameter_dict)
+        return grad(f, argnums=0)(parameters)
 
     match inputs[0]:
         case torch.Tensor():
@@ -43,7 +44,7 @@ def sample_gradient_worker_fun(
                 in_dims=(None, 0, 0),
                 randomness="same",
             )(
-                parameter_dict,
+                parameters,
                 torch.stack(targets),
                 torch.stack(inputs),
             )
@@ -58,7 +59,7 @@ def sample_gradient_worker_fun(
                 functools.partial(wrapper, input_keys=input_keys),
                 in_dims=tuple(in_dims),
                 randomness="same",
-            )(parameter_dict, torch.stack(targets), *dict_inputs)
+            )(parameters, torch.stack(targets), *dict_inputs)
         case _:
             raise NotImplementedError(inputs)
     result: dict[int, ModelGradient] = {}
@@ -71,7 +72,7 @@ def sample_gradient_worker_fun(
 
 class SampleGradientHook(SampleComputationHook):
     def _get_sample_computation_fun(self):
-        return sample_gradient_worker_fun
+        return ample_gradient_worker_fun
 
 
 def get_sample_gradients_impl(
@@ -80,7 +81,8 @@ def get_sample_gradients_impl(
     result_transform: None | Callable = None,
 ) -> dict[int, Any]:
     tmp_inferencer = copy.deepcopy(inferencer)
-    tmp_inferencer.disable_hook("logger")
+    tmp_inferencer.hook_config.use_performance_metric = False
+    tmp_inferencer.hook_config.summarize_executor = False
     hook = SampleGradientHook()
     if computed_indices is not None:
         hook.set_computed_indices(computed_indices)

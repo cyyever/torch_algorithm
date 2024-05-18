@@ -8,7 +8,7 @@ from cyy_naive_lib.algorithm.mapping_op import get_mapping_items_by_key_order
 from cyy_torch_toolbox import ModelEvaluator
 from cyy_torch_toolbox.tensor import (cat_tensor_dict,
                                       decompose_like_tensor_dict)
-from cyy_torch_toolbox.typing import TensorDict
+from cyy_torch_toolbox.typing import ModelParameter, TensorDict
 from torch.func import grad, jvp, vmap
 
 from ..batch_computation_hook import BatchComputationHook
@@ -21,13 +21,13 @@ def batch_hvp_worker_fun(
     targets,
     data,
     worker_device: torch.device,
-    parameter_dict: TensorDict,
+    parameters: ModelParameter,
 ) -> list[TensorDict] | list[torch.Tensor]:
     assert data
     vector_size = len(data)
     vectors = data
-    parameter_dict = collections.OrderedDict(
-        list(get_mapping_items_by_key_order(parameter_dict))
+    parameters = collections.OrderedDict(
+        list(get_mapping_items_by_key_order(parameters))
     )
 
     def hvp_wrapper(vector):
@@ -39,21 +39,19 @@ def batch_hvp_worker_fun(
             model_evaluator=model_evaluator,
         )
 
-        def grad_f(parameter_dict):
-            return grad(f, argnums=0)(parameter_dict)
+        def grad_f(parameters):
+            return grad(f, argnums=0)(parameters)
 
         return jvp(
             grad_f,
-            (parameter_dict,),
+            (parameters,),
             (vector,),
         )[1]
 
     decompose_vector = False
     if not isinstance(vectors[0], dict):
         decompose_vector = True
-        vectors = [
-            decompose_like_tensor_dict(parameter_dict, vector) for vector in vectors
-        ]
+        vectors = [decompose_like_tensor_dict(parameters, vector) for vector in vectors]
         assert len(vectors) == vector_size
     new_vectors = {
         k: torch.stack([vector[k] for vector in vectors]) for k in vectors[0]

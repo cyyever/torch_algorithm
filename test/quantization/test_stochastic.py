@@ -10,7 +10,7 @@ try:
     def test_model_stochastic_quantization():
         model = BertModel.from_pretrained("bert-large-cased")
         model_util = ModelUtil(model)
-        model_dict = model_util.get_parameter_dict()
+        model_dict = model_util.get_parameters()
         model_vect = cat_tensors_to_vector(get_mapping_values_by_key_order(model_dict))
 
         quant, dequant = stochastic_quantization(quantization_level=255)

@@ -3,7 +3,7 @@ from typing import Callable
 
 import torch
 import torch.cuda
-from cyy_torch_toolbox.tensor import cat_tensor_dict
+from cyy_torch_toolbox import ModelParameter, cat_tensor_dict
 from torch.func import grad, jvp, vmap
 
 from ..evaluation import eval_model
@@ -13,13 +13,13 @@ from ..sample_computation_hook import SampleComputationHook
 def sample_gjvp_worker_fun(
     vector,
     model_evaluator,
-    parameter_dict,
+    parameters: ModelParameter,
     sample_indices,
-    inputs,
-    targets,
+    inputs: list[torch.Tensor],
+    targets: list[torch.Tensor],
     worker_device,
 ) -> dict:
-    def jvp_wrapper(parameter_dict, input_tensor, target):
+    def jvp_wrapper(parameters, input_tensor, target):
         f = functools.partial(
             eval_model,
             inputs=input_tensor,
@@ -30,12 +30,12 @@ def sample_gjvp_worker_fun(
         )
 
         def grad_f(input_tensor):
-            return cat_tensor_dict(grad(f, argnums=0)(parameter_dict))
+            return cat_tensor_dict(grad(f, argnums=0)(parameters))
 
         return jvp(grad_f, (input_tensor.view(-1),), (vector,))[1]
 
     products = vmap(jvp_wrapper, in_dims=(None, 0, 0), randomness="same")(
-        parameter_dict,
+        parameters,
         torch.stack(inputs),
         torch.stack(targets),
     )

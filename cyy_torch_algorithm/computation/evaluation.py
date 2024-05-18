@@ -1,15 +1,15 @@
 import torch
-from cyy_torch_toolbox import EvaluationMode, ModelEvaluator, TensorDict
+from cyy_torch_toolbox import EvaluationMode, ModelEvaluator, ModelParameter
 
 
 def eval_model(
-    parameter_dict: TensorDict,
+    parameters: ModelParameter,
     model_evaluator: ModelEvaluator,
-    input_shape: None | torch.Tensor = None,
+    input_shape: None | torch.Size = None,
     hugging_face_batch_encoding: dict | None = None,
     **kwargs,
 ) -> torch.Tensor:
-    model_evaluator.model_util.load_buffer_dict(parameter_dict)
+    model_evaluator.model_util.load_buffers(parameters)
     kwargs |= {
         "evaluation_mode": EvaluationMode.Test,
     }

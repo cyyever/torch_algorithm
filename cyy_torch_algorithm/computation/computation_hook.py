@@ -132,10 +132,10 @@ class ComputationHook(Hook):
                 data["model_evaluator"].model.requires_grad_(False)
                 data["model_evaluator"].model.share_memory()
             else:
-                data["parameter_dict"] = model_evaluator.model_util.get_parameter_dict(
+                data["parameters"] = model_evaluator.model_util.get_parameters(
                     detach=True
                 )
-                for v in data["parameter_dict"].values():
+                for v in data["parameters"].values():
                     v.grad = None
                     v.requires_grad_(False)
                     v.share_memory_()
@@ -210,14 +210,14 @@ class ComputationHook(Hook):
             new_data["model_evaluator"].model_util.to_device(
                 device=worker_device, non_blocking=True
             )
-        if "parameter_dict" in new_data:
-            new_data["parameter_dict"] = tensor_to(
-                new_data["parameter_dict"], device=worker_device, non_blocking=True
+        if "parameters" in new_data:
+            new_data["parameters"] = tensor_to(
+                new_data["parameters"], device=worker_device, non_blocking=True
             )
         else:
-            new_data["parameter_dict"] = new_data[
+            new_data["parameters"] = new_data[
                 "model_evaluator"
-            ].model_util.get_parameter_dict(detach=False)
+            ].model_util.get_parameters(detach=False)
         new_data = tensor_to(new_data, device=worker_device, non_blocking=True)
         data.update(new_data)
 
