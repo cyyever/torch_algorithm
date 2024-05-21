@@ -1,6 +1,6 @@
 import copy
 import functools
-from typing import Any, Callable
+from typing import Callable
 
 import torch
 from cyy_torch_toolbox import Inferencer, ModelEvaluator
@@ -79,7 +79,7 @@ def get_sample_gradients_impl(
     inferencer: Inferencer,
     computed_indices: OptionalIndicesType = None,
     result_transform: None | Callable = None,
-) -> dict[int, Any]:
+) -> dict[int, ModelGradient]:
     tmp_inferencer = copy.deepcopy(inferencer)
     tmp_inferencer.hook_config.use_performance_metric = False
     tmp_inferencer.hook_config.summarize_executor = False
@@ -90,9 +90,9 @@ def get_sample_gradients_impl(
         hook.set_result_transform(result_transform)
     tmp_inferencer.append_hook(hook)
     tmp_inferencer.inference()
-    gradients = hook.result_dict
+    gradients = copy.deepcopy(hook.result_dict)
     assert gradients
-    hook.reset()
+    hook.release()
     return gradients
 
 
