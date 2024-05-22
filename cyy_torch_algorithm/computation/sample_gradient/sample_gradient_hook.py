@@ -1,6 +1,6 @@
 import copy
 import functools
-from typing import Callable
+from typing import Any, Callable
 
 import torch
 from cyy_torch_toolbox import Inferencer, ModelEvaluator
@@ -79,7 +79,7 @@ def get_sample_gradients_impl(
     inferencer: Inferencer,
     computed_indices: OptionalIndicesType = None,
     result_transform: None | Callable = None,
-) -> dict[int, ModelGradient]:
+) -> dict[int, ModelGradient] | dict[int, Any]:
     tmp_inferencer = copy.deepcopy(inferencer)
     tmp_inferencer.hook_config.use_performance_metric = False
     tmp_inferencer.hook_config.summarize_executor = False
@@ -98,33 +98,6 @@ def get_sample_gradients_impl(
     assert gradients
     hook.release()
     return gradients
-
-
-# def get_sample_gradient_dict(
-#     inferencer: Inferencer,
-#     computed_indices: None | Iterable[int] = None,
-#     input_transform=None,
-#     result_transform=None,
-#     result_collection_fun=None,
-# ) -> dict:
-#     tmp_inferencer = copy.deepcopy(inferencer)
-#     tmp_inferencer.disable_hook("logger")
-#     hook = SampleGradientHook()
-#     if computed_indices is not None:
-#         hook.set_computed_indices(computed_indices)
-#     if input_transform is not None:
-#         hook.set_input_transform(input_transform)
-#     if result_transform is not None:
-#         hook.set_result_transform(result_transform)
-#     if result_collection_fun is not None:
-#         hook.set_result_collection_fun(result_collection_fun)
-#     tmp_inferencer.append_hook(hook)
-#     tmp_inferencer.inference()
-#     gradients = hook.result_dict
-#     if result_collection_fun is None:
-#         assert gradients
-#     hook.reset()
-#     return gradients
 
 
 def get_sample_gradients(
