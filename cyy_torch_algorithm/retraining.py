@@ -9,8 +9,13 @@ class DeterministicTraining:
     def __init__(self, config: Config) -> None:
         self.config = config
         self.trainer_fun: Callable = self.config.create_trainer
-        self.last_trainer: None | Trainer = None
+        self.__last_trainer: None | Trainer = None
         self.seed_path: None | str = None
+
+    @property
+    def last_trainer(self) -> Trainer:
+        assert self.__last_trainer is not None
+        return self.__last_trainer
 
     def create_deterministic_trainer(
         self, trainer_fun: None | Callable = None
@@ -19,12 +24,11 @@ class DeterministicTraining:
         self.config.apply_global_config()
         if trainer_fun is not None:
             self.trainer_fun = trainer_fun
-        self.last_trainer = self.trainer_fun()
+        self.__last_trainer = self.trainer_fun()
         self.seed_path = global_reproducible_env.last_seed_path
         return self.last_trainer
 
     def recreate_trainer(self) -> Trainer:
-        assert self.last_trainer is not None
         previous_training_loss = {
             epoch: self.last_trainer.performance_metric.get_loss(epoch)
             for epoch in range(1, self.last_trainer.hyper_parameter.epoch + 1)
