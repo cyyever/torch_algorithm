@@ -7,9 +7,13 @@ from cyy_naive_lib.log import log_info
 
 class ShapleyValue:
     def __init__(self, players: list) -> None:
-        self.players: tuple = tuple(players)
+        self.players: tuple = ()
+        self.set_players(players)
         self.metric_fun: None | Callable = None
         self.batch_metric_fun: None | Callable = None
+
+    def set_players(self, players: list) -> None:
+        self.players = tuple(players)
 
     def __getstate__(self):
         # capture what is normally pickled
@@ -40,6 +44,7 @@ class ShapleyValue:
             tuple(self.get_players(subset) for subset in subsets)
         )
         assert self.metric_fun is None
+        assert self.batch_metric_fun is not None
         self.metric_fun = lambda subset: list(self.batch_metric_fun([subset]).values())[
             0
         ]
@@ -80,35 +85,35 @@ class RoundBasedShapleyValue(ShapleyValue):
     def set_round_truncation_threshold(self, threshold: float) -> None:
         self.round_trunc_threshold = threshold
 
-    def get_last_round_metric(self, round_number: int) -> float:
+    def get_last_round_metric(self, round_index: int) -> float:
         last_round_metric = self.initial_metric
-        previous_rounds = tuple(k for k in self.round_metrics if k < round_number)
+        previous_rounds = tuple(k for k in self.round_metrics if k < round_index)
         if previous_rounds:
             last_round_metric = self.round_metrics[max(previous_rounds)]
         return last_round_metric
 
-    def compute(self, round_number: int) -> None:
+    def compute(self, round_index: int) -> None:
         assert self.metric_fun is not None
-        self.round_metrics[round_number] = self.metric_fun(self.complete_player_indices)
+        self.round_metrics[round_index] = self.metric_fun(self.complete_player_indices)
         if self.round_trunc_threshold is not None and (
             abs(
-                self.round_metrics[round_number]
-                - self.get_last_round_metric(round_number=round_number)
+                self.round_metrics[round_index]
+                - self.get_last_round_metric(round_index=round_index)
             )
             <= self.round_trunc_threshold
         ):
             log_info(
                 "skip round %s, current_round_metric %s last_round_metric %s round_trunc_threshold %s",
-                round_number,
-                self.round_metrics[round_number],
-                self.get_last_round_metric(round_number=round_number),
+                round_index,
+                self.round_metrics[round_index],
+                self.get_last_round_metric(round_index=round_index),
                 self.round_trunc_threshold,
             )
             return None
-        self._compute_impl(round_number=round_number)
+        self._compute_impl(round_index=round_index)
         return None
 
-    def get_best_players(self, round_number: int) -> set | None:
+    def get_best_players(self, round_index: int) -> set | None:
         return None
 
     def get_result(self) -> Any:
@@ -117,5 +122,5 @@ class RoundBasedShapleyValue(ShapleyValue):
     def exit(self) -> None:
         pass
 
-    def _compute_impl(self, round_number: int) -> None:
+    def _compute_impl(self, round_index: int) -> None:
         raise NotImplementedError()

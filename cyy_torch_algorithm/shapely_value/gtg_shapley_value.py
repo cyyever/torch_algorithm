@@ -30,9 +30,9 @@ class GTGShapleyValue(RoundBasedShapleyValue):
         )
         log_info("max_number %s", self.max_number)
 
-    def _compute_impl(self, round_number: int) -> None:
-        self.shapley_values[round_number] = {}
-        self.shapley_values_S[round_number] = {}
+    def _compute_impl(self, round_index: int) -> None:
+        self.shapley_values[round_index] = {}
+        self.shapley_values_S[round_index] = {}
         assert self.metric_fun is not None
         this_round_metric = self.metric_fun(self.complete_player_indices)
         metrics = {}
@@ -42,7 +42,7 @@ class GTGShapleyValue(RoundBasedShapleyValue):
 
         index = 0
         contribution_records: list = []
-        last_round_metric = self.get_last_round_metric(round_number=round_number)
+        last_round_metric = self.get_last_round_metric(round_index=round_index)
         while self.not_convergent(index, contribution_records):
             for player_id in self.complete_player_indices:
                 index += 1
@@ -72,7 +72,7 @@ class GTGShapleyValue(RoundBasedShapleyValue):
                                     return
                             log_info(
                                 "round %s subset %s metric %s",
-                                round_number,
+                                round_index,
                                 subset,
                                 metric,
                             )
@@ -105,15 +105,15 @@ class GTGShapleyValue(RoundBasedShapleyValue):
         for client_id in best_S:
             round_SV_S[client_id] = float(SV_calc_temp[client_id])
 
-        self.shapley_values_S[round_number] = self.normalize_shapley_values(
+        self.shapley_values_S[round_index] = self.normalize_shapley_values(
             round_SV_S, round_marginal_gain_S
         )
 
         # calculating fullset SV
         # shapley value calculation
         if set(best_S) == set(self.complete_player_indices):
-            self.shapley_values[round_number] = copy.deepcopy(
-                self.shapley_values_S[round_number]
+            self.shapley_values[round_index] = copy.deepcopy(
+                self.shapley_values_S[round_index]
             )
         else:
             round_shapley_values = np.sum(contribution_records, 0) / len(
@@ -126,15 +126,15 @@ class GTGShapleyValue(RoundBasedShapleyValue):
             for idx, value in enumerate(round_shapley_values):
                 round_shapley_value_dict[idx] = float(value)
 
-            self.shapley_values[round_number] = self.normalize_shapley_values(
+            self.shapley_values[round_index] = self.normalize_shapley_values(
                 round_shapley_value_dict, round_marginal_gain
             )
 
-        log_info("shapley_value %s", self.shapley_values[round_number])
-        log_info("shapley_value_S %s", self.shapley_values_S[round_number])
+        log_info("shapley_value %s", self.shapley_values[round_index])
+        log_info("shapley_value_S %s", self.shapley_values_S[round_index])
 
-    def get_best_players(self, round_number: int) -> set | None:
-        return set(self.get_players(self.shapley_values_S[round_number].keys()))
+    def get_best_players(self, round_index: int) -> set | None:
+        return set(self.get_players(self.shapley_values_S[round_index].keys()))
 
     def get_result(self) -> dict:
         return {

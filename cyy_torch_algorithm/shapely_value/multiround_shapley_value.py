@@ -12,14 +12,14 @@ class MultiRoundShapleyValue(RoundBasedShapleyValue):
         self.shapley_values: dict[int, dict] = {}
         self.shapley_values_S: dict[int, dict] = {}
 
-    def _compute_impl(self, round_number: int) -> None:
-        self.shapley_values[round_number] = {}
-        self.shapley_values_S[round_number] = {}
+    def _compute_impl(self, round_index: int) -> None:
+        self.shapley_values[round_index] = {}
+        self.shapley_values_S[round_index] = {}
         assert self.metric_fun is not None
-        last_round_metric = self.get_last_round_metric(round_number=round_number)
+        last_round_metric = self.get_last_round_metric(round_index=round_index)
         metrics: dict = {
             (): last_round_metric,
-            self.complete_player_indices: self.round_metrics[round_number],
+            self.complete_player_indices: self.round_metrics[round_index],
         }
 
         subsets = set()
@@ -31,7 +31,7 @@ class MultiRoundShapleyValue(RoundBasedShapleyValue):
         assert self.batch_metric_fun is not None
         resulting_metrics = self.batch_metric_fun(subsets)
         for subset, metric in resulting_metrics.items():
-            log_info("round %s subset %s metric %s", round_number, subset, metric)
+            log_info("round %s subset %s metric %s", round_index, subset, metric)
         metrics |= resulting_metrics
 
         # best subset in metrics
@@ -62,14 +62,14 @@ class MultiRoundShapleyValue(RoundBasedShapleyValue):
                 )
         round_marginal_gain_S = metrics_S[best_S] - last_round_metric
 
-        self.shapley_values_S[round_number] = self.normalize_shapley_values(
+        self.shapley_values_S[round_index] = self.normalize_shapley_values(
             round_SV_S, round_marginal_gain_S
         )
 
         # calculating fullset SV
         if set(best_S) == set(self.complete_player_indices):
-            self.shapley_values[round_number] = copy.deepcopy(
-                self.shapley_values_S[round_number]
+            self.shapley_values[round_index] = copy.deepcopy(
+                self.shapley_values_S[round_index]
             )
         else:
             round_shapley_values = {}
@@ -88,16 +88,16 @@ class MultiRoundShapleyValue(RoundBasedShapleyValue):
                         * self.player_number
                     )
 
-            round_marginal_gain = self.round_metrics[round_number] - last_round_metric
-            self.shapley_values[round_number] = self.normalize_shapley_values(
+            round_marginal_gain = self.round_metrics[round_index] - last_round_metric
+            self.shapley_values[round_index] = self.normalize_shapley_values(
                 round_shapley_values, round_marginal_gain
             )
 
-        log_info("shapley_value %s", self.shapley_values[round_number])
-        log_info("shapley_value_best_set %s", self.shapley_values_S[round_number])
+        log_info("shapley_value %s", self.shapley_values[round_index])
+        log_info("shapley_value_best_set %s", self.shapley_values_S[round_index])
 
-    def get_best_players(self, round_number: int) -> set | None:
-        return set(self.get_players(self.shapley_values_S[round_number].keys()))
+    def get_best_players(self, round_index: int) -> set | None:
+        return set(self.get_players(self.shapley_values_S[round_index].keys()))
 
     def get_result(self) -> dict:
         return {
