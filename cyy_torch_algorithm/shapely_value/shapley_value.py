@@ -6,7 +6,7 @@ from cyy_naive_lib.log import log_info
 
 
 class ShapleyValue:
-    def __init__(self, players: list) -> None:
+    def __init__(self, players: list, **kwargs) -> None:
         self.players: tuple = ()
         self.set_players(players)
         self.metric_fun: None | Callable = None
