@@ -40,9 +40,7 @@ class ShapleyValue:
 
     def set_batch_metric_function(self, metric_fun) -> None:
         assert self.batch_metric_fun is None
-        self.batch_metric_fun = lambda subsets: metric_fun(
-            tuple(self.get_players(subset) for subset in subsets)
-        )
+        self.batch_metric_fun = metric_fun
         assert self.metric_fun is None
         assert self.batch_metric_fun is not None
         self.metric_fun = lambda subset: list(self.batch_metric_fun([subset]).values())[
