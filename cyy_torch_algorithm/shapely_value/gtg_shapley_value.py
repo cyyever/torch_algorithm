@@ -73,7 +73,7 @@ class GTGShapleyValue(RoundBasedShapleyValue):
                             log_info(
                                 "round %s subset %s metric %s",
                                 round_index,
-                                subset,
+                                self.get_players(subset),
                                 metric,
                             )
                             metrics[subset] = metric

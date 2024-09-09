@@ -31,7 +31,12 @@ class MultiRoundShapleyValue(RoundBasedShapleyValue):
         assert self.batch_metric_fun is not None
         resulting_metrics = self.batch_metric_fun(subsets)
         for subset, metric in resulting_metrics.items():
-            log_info("round %s subset %s metric %s", round_index, subset, metric)
+            log_info(
+                "round %s subset %s metric %s",
+                round_index,
+                self.get_players(subset),
+                metric,
+            )
         metrics |= resulting_metrics
 
         # best subset in metrics

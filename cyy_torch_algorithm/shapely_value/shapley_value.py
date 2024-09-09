@@ -6,13 +6,13 @@ from cyy_naive_lib.log import log_info
 
 
 class ShapleyValue:
-    def __init__(self, players: list, **kwargs) -> None:
+    def __init__(self, players: Iterable, **kwargs: Any) -> None:
         self.players: tuple = ()
         self.set_players(players)
         self.metric_fun: None | Callable = None
         self.batch_metric_fun: None | Callable = None
 
-    def set_players(self, players: list) -> None:
+    def set_players(self, players: Iterable) -> None:
         self.players = tuple(players)
 
     def __getstate__(self):
@@ -30,7 +30,7 @@ class ShapleyValue:
     def complete_player_indices(self) -> tuple:
         return tuple(range(len(self.players)))
 
-    def set_metric_function(self, metric_fun) -> None:
+    def set_metric_function(self, metric_fun: Callable) -> None:
         assert self.metric_fun is None
         self.metric_fun = lambda subset: metric_fun(self.get_players(subset))
         assert self.batch_metric_fun is None
@@ -38,7 +38,7 @@ class ShapleyValue:
             subset: metric_fun(self.get_players(subset)) for subset in subsets
         }
 
-    def set_batch_metric_function(self, metric_fun) -> None:
+    def set_batch_metric_function(self, metric_fun: Callable) -> None:
         assert self.batch_metric_fun is None
         self.batch_metric_fun = metric_fun
         assert self.metric_fun is None
@@ -69,7 +69,7 @@ class ShapleyValue:
 
         return {k: marginal_gain * v / sum_value for k, v in shapley_values.items()}
 
-    def get_players(self, indices) -> tuple:
+    def get_players(self, indices: Iterable) -> tuple:
         return tuple(self.players[i] for i in indices)
 
 
