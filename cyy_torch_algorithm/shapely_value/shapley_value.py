@@ -69,7 +69,9 @@ class ShapleyValue:
 
         return {k: marginal_gain * v / sum_value for k, v in shapley_values.items()}
 
-    def get_players(self, indices: Iterable) -> tuple:
+    def get_players(self, indices: Iterable | int) -> tuple | Any:
+        if isinstance(indices, int):
+            return self.players[indices]
         return tuple(self.players[i] for i in indices)
 
 
