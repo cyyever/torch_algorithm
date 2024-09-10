@@ -43,7 +43,7 @@ class GTGShapleyValue(RoundBasedShapleyValue):
         index = 0
         contribution_records: list = []
         last_round_metric = self.get_last_round_metric(round_index=round_index)
-        while self.not_convergent(index, contribution_records):
+        while not metrics or self.not_convergent(index, contribution_records):
             for player_id in self.complete_player_indices:
                 index += 1
                 v: list = [0] * (self.player_number + 1)
