@@ -2,10 +2,9 @@ import functools
 from typing import Callable
 
 import torch
-from cyy_torch_toolbox import Executor, ModelEvaluator
+from cyy_torch_toolbox import Executor, IndicesType, ModelEvaluator
 from cyy_torch_toolbox.tensor import dot_product as dot_product_impl
 from cyy_torch_toolbox.tensor import recursive_tensor_op, tensor_to
-from cyy_torch_toolbox.typing import IndicesType
 
 from .computation_hook import ComputationHook
 

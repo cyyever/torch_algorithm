@@ -3,10 +3,9 @@ import functools
 from typing import Any, Callable
 
 import torch
-from cyy_torch_toolbox import Inferencer, ModelEvaluator
-from cyy_torch_toolbox.typing import (IndicesType, ModelGradient,
-                                      ModelParameter, OptionalIndicesType,
-                                      TensorDict)
+from cyy_torch_toolbox import (IndicesType, Inferencer, ModelEvaluator,
+                               ModelGradient, ModelParameter,
+                               OptionalIndicesType, TensorDict)
 from torch.func import grad, vmap
 
 from ..evaluation import eval_model

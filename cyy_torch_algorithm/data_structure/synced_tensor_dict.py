@@ -5,7 +5,7 @@ import torch
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
 from cyy_naive_lib.fs.tempdir import get_temp_dir
 from cyy_naive_lib.log import log_info
-from cyy_torch_toolbox.typing import TensorDict
+from cyy_torch_toolbox import TensorDict
 
 try:
     from cyy_torch_cpp_extension.data_structure import SyncedTensorDictIMPL

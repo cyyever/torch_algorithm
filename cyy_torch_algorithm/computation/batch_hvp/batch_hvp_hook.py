@@ -5,10 +5,9 @@ from typing import Callable
 import torch
 import torch.cuda
 from cyy_naive_lib.algorithm.mapping_op import get_mapping_items_by_key_order
-from cyy_torch_toolbox import ModelEvaluator
+from cyy_torch_toolbox import ModelEvaluator, ModelParameter, TensorDict
 from cyy_torch_toolbox.tensor import (cat_tensor_dict,
                                       decompose_like_tensor_dict)
-from cyy_torch_toolbox.typing import ModelParameter, TensorDict
 from torch.func import grad, jvp, vmap
 
 from ..batch_computation_hook import BatchComputationHook
