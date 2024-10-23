@@ -1,11 +1,18 @@
 import copy
 import functools
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import torch
-from cyy_torch_toolbox import (IndicesType, Inferencer, ModelEvaluator,
-                               ModelGradient, ModelParameter,
-                               OptionalIndicesType, TensorDict)
+from cyy_torch_toolbox import (
+    IndicesType,
+    Inferencer,
+    ModelEvaluator,
+    ModelGradient,
+    ModelParameter,
+    OptionalIndicesType,
+    TensorDict,
+)
 from torch.func import grad, vmap
 
 from ..evaluation import eval_model
@@ -22,7 +29,7 @@ def sample_gradient_worker_fun(
 ) -> dict[int, ModelGradient]:
     def wrapper(parameters, target, *args, input_keys=None):
         if input_keys is not None:
-            inputs = dict(zip(input_keys, args))
+            inputs = dict(zip(input_keys, args, strict=False))
         else:
             assert len(args) == 1
             inputs = args[0]

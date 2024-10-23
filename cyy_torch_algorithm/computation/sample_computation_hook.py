@@ -1,5 +1,5 @@
 import functools
-from typing import Callable
+from collections.abc import Callable
 
 import torch
 from cyy_torch_toolbox import Executor, IndicesType, ModelEvaluator
@@ -49,7 +49,7 @@ class SampleComputationHook(ComputationHook):
         processed_targets = []
 
         for sample_index, sample_input, sample_target in zip(
-            sample_indices.tolist(), inputs, targets
+            sample_indices.tolist(), inputs, targets, strict=False
         ):
             if self.__sample_selector is not None and not self.__sample_selector(
                 sample_index, sample_input
@@ -88,7 +88,7 @@ class SampleComputationHook(ComputationHook):
             batch_index=self.__batch_index,
             model_evaluator=model_evaluator,
         )
-        for item in zip(processed_indices, processed_inputs, processed_targets):
+        for item in zip(processed_indices, processed_inputs, processed_targets, strict=False):
             self._add_task(
                 task=(self.__batch_index, *item),
             )
@@ -173,7 +173,7 @@ class SampleComputationHook(ComputationHook):
             )
             if result_transform is not None:
                 for sample_index, input_tensor, target in zip(
-                    sample_indices, inputs, targets
+                    sample_indices, inputs, targets, strict=False
                 ):
                     res[sample_index] = result_transform(
                         sample_index=sample_index,

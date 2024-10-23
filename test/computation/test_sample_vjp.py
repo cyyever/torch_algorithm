@@ -1,8 +1,9 @@
 import importlib.util
 
 import torch
-from cyy_torch_algorithm.computation.sample_gvjp.sample_gvjp_hook import \
-    SampleGradientVJPHook
+from cyy_torch_algorithm.computation.sample_gvjp.sample_gvjp_hook import (
+    SampleGradientVJPHook,
+)
 from cyy_torch_toolbox import Config, ExecutorHookPoint, StopExecutingException
 from torch import nn
 

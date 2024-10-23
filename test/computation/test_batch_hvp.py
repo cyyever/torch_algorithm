@@ -4,10 +4,13 @@ import torch
 import torch.nn
 from cyy_naive_lib.log import log_error
 from cyy_naive_lib.time_counter import TimeCounter
-from cyy_torch_algorithm.computation.batch_hvp.batch_hvp_hook import \
-    BatchHVPHook
-from cyy_torch_toolbox import (Config, ExecutorHookPoint,
-                               StopExecutingException, cat_tensor_dict)
+from cyy_torch_algorithm.computation.batch_hvp.batch_hvp_hook import BatchHVPHook
+from cyy_torch_toolbox import (
+    Config,
+    ExecutorHookPoint,
+    StopExecutingException,
+    cat_tensor_dict,
+)
 
 has_cyy_torch_vision: bool = importlib.util.find_spec("cyy_torch_vision") is not None
 

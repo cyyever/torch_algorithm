@@ -1,5 +1,5 @@
 import functools
-from typing import Callable
+from collections.abc import Callable
 
 import torch
 from cyy_torch_toolbox import ModelParameter, cat_tensor_dict
@@ -47,7 +47,7 @@ def sample_gvjp_worker_fun(
         torch.stack(inputs),
         torch.stack(targets),
     )
-    return dict(zip(sample_indices, products))
+    return dict(zip(sample_indices, products, strict=False))
 
 
 class SampleGradientVJPHook(SampleComputationHook):

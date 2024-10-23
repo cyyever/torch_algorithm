@@ -2,7 +2,8 @@ import copy
 import functools
 import os
 import threading
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import torch
 from cyy_naive_lib.log import log_debug
@@ -221,6 +222,6 @@ class ComputationHook(Hook):
         new_data = tensor_to(new_data, device=worker_device, non_blocking=True)
         data.update(new_data)
 
-        setattr(self.__local_data, "data", data)
+        self.__local_data.data = data
         assert "model_evaluator" in data
         return data

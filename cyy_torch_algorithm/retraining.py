@@ -1,5 +1,6 @@
 import math
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from cyy_torch_toolbox import Config, ExecutorHookPoint, Trainer
 from cyy_torch_toolbox.reproducible_env import global_reproducible_env

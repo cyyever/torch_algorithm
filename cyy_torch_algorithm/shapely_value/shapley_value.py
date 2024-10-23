@@ -1,6 +1,7 @@
 import math
+from collections.abc import Callable, Iterable
 from itertools import chain, combinations
-from typing import Any, Callable, Iterable
+from typing import Any
 
 from cyy_naive_lib.log import log_info
 

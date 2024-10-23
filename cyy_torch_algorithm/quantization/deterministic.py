@@ -1,5 +1,6 @@
 import math
-from typing import Any, Callable, Tuple
+from collections.abc import Callable
+from typing import Any
 
 import numpy
 import torch
@@ -164,7 +165,7 @@ class NeuralNetworkAdaptiveDeterministicQuant(AdaptiveDeterministicQuant):
         parameter_ratio = [a / total_parameter_num for a in parameter_numbers]
         if prefix is None:
             prefix = ""
-        avg_level = sum(a * b for a, b in zip(quantization_levels, parameter_ratio))
+        avg_level = sum(a * b for a, b in zip(quantization_levels, parameter_ratio, strict=False))
         compression_ratio = compressed_parameter_num / total_parameter_num
         log_info("%s avg quantization level %s", prefix, avg_level)
         log_info("%s NNABQ compression ratio is %s", prefix, compression_ratio)
@@ -182,7 +183,7 @@ class NeuralNetworkAdaptiveDeterministicDequant(AdaptiveDeterministicDequant):
                 return data
 
 
-def NNADQ(weight: float, use_l2_norm: bool = False) -> Tuple[Callable, Callable]:
+def NNADQ(weight: float, use_l2_norm: bool = False) -> tuple[Callable, Callable]:
     return (
         NeuralNetworkAdaptiveDeterministicQuant(
             weight=weight,
@@ -192,7 +193,7 @@ def NNADQ(weight: float, use_l2_norm: bool = False) -> Tuple[Callable, Callable]
     )
 
 
-def ADQ(weight: float, use_l2_norm: bool = False) -> Tuple[Callable, Callable]:
+def ADQ(weight: float, use_l2_norm: bool = False) -> tuple[Callable, Callable]:
     return (
         AdaptiveDeterministicQuant(weight=weight, use_l2_norm=use_l2_norm),
         AdaptiveDeterministicDequant(),

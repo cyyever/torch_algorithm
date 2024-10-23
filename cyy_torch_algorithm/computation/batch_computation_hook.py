@@ -1,5 +1,6 @@
 import functools
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import torch
 from cyy_torch_toolbox.tensor import tensor_to
@@ -97,8 +98,8 @@ class BatchComputationHook(ComputationHook):
                     data_index: result_transform(
                         data_index=data_index, result=v, data=data
                     )
-                    for data_index, v, data in zip(data_indices, res, data)
+                    for data_index, v, data in zip(data_indices, res, data, strict=False)
                 }
             else:
-                new_res = dict(zip(data_indices, res))
+                new_res = dict(zip(data_indices, res, strict=False))
             return batch_size, new_res

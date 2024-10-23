@@ -1,4 +1,4 @@
-from typing import Callable, Tuple
+from collections.abc import Callable
 
 import numpy
 import torch
@@ -76,6 +76,6 @@ class StochasticDequant:
 
 def stochastic_quantization(
     quantization_level: int, use_l2_norm: bool = False
-) -> Tuple[Callable, Callable]:
+) -> tuple[Callable, Callable]:
     """Implement Stochastic Quantization as described in QSGD: Communication-Efficient SGDvia Gradient Quantization and Encoding (https://arxiv.org/pdf/1610.02132.pdf)"""
     return StochasticQuant(quantization_level, use_l2_norm), StochasticDequant()

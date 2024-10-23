@@ -1,8 +1,7 @@
 import torch
 
 try:
-    from cyy_torch_algorithm.data_structure.synced_tensor_dict import \
-        SyncedTensorDict
+    from cyy_torch_algorithm.data_structure.synced_tensor_dict import SyncedTensorDict
 
     tensor_dict = SyncedTensorDict.create(cache_size=10)
 

@@ -2,8 +2,9 @@ import importlib.util
 
 import torch
 import torch.nn
-from cyy_torch_algorithm.computation.sample_gjvp.sample_gjvp_hook import \
-    SampleGradientJVPHook
+from cyy_torch_algorithm.computation.sample_gjvp.sample_gjvp_hook import (
+    SampleGradientJVPHook,
+)
 from cyy_torch_toolbox import Config, ExecutorHookPoint, StopExecutingException
 
 has_cyy_torch_text: bool = importlib.util.find_spec("cyy_torch_text") is not None

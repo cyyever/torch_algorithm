@@ -1,5 +1,5 @@
 import functools
-from typing import Callable
+from collections.abc import Callable
 
 import torch
 import torch.cuda
@@ -39,7 +39,7 @@ def sample_gjvp_worker_fun(
         torch.stack(inputs),
         torch.stack(targets),
     )
-    return dict(zip(sample_indices, products))
+    return dict(zip(sample_indices, products, strict=False))
 
 
 class SampleGradientJVPHook(SampleComputationHook):
