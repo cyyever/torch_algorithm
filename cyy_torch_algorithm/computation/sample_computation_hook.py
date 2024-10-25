@@ -88,7 +88,9 @@ class SampleComputationHook(ComputationHook):
             batch_index=self.__batch_index,
             model_evaluator=model_evaluator,
         )
-        for item in zip(processed_indices, processed_inputs, processed_targets, strict=False):
+        for item in zip(
+            processed_indices, processed_inputs, processed_targets, strict=False
+        ):
             self._add_task(
                 task=(self.__batch_index, *item),
             )

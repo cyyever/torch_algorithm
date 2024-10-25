@@ -43,10 +43,7 @@ class MultiRoundShapleyValue(RoundBasedShapleyValue):
         subset_rank = sorted(
             metrics.items(), key=lambda x: (x[1], -len(x[0])), reverse=True
         )
-        if subset_rank[0][0]:
-            best_S = subset_rank[0][0]
-        else:
-            best_S = subset_rank[1][0]
+        best_S = subset_rank[0][0] if subset_rank[0][0] else subset_rank[1][0]
 
         # calculating best subset SV
         N_S = len(best_S)

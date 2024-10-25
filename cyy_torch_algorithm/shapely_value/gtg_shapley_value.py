@@ -158,9 +158,9 @@ class GTGShapleyValue(RoundBasedShapleyValue):
         all_vals = (
             np.cumsum(contribution_records, 0)
             / np.reshape(np.arange(1, len(contribution_records) + 1), (-1, 1))
-        )[-self.last_k:]
+        )[-self.last_k :]
         errors = np.mean(
-            np.abs(all_vals[-self.last_k:] - all_vals[-1:])
+            np.abs(all_vals[-self.last_k :] - all_vals[-1:])
             / (np.abs(all_vals[-1:]) + 1e-12),
             -1,
         )

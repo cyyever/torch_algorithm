@@ -98,7 +98,9 @@ class BatchComputationHook(ComputationHook):
                     data_index: result_transform(
                         data_index=data_index, result=v, data=data
                     )
-                    for data_index, v, data in zip(data_indices, res, data, strict=False)
+                    for data_index, v, data in zip(
+                        data_indices, res, data, strict=False
+                    )
                 }
             else:
                 new_res = dict(zip(data_indices, res, strict=False))
