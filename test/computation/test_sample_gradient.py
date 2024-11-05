@@ -48,9 +48,9 @@ def test_huggingface_sample_gradient():
     config.hyper_parameter_config.epoch = 2
     config.hyper_parameter_config.batch_size = 8
     config.hyper_parameter_config.learning_rate = 0.001
-    config.model_config.model_kwargs = {"n_layers": 1, "max_len": 100}
+    config.model_config.model_kwargs = {"n_layers": 1, "input_max_len": 100}
     config.dc_config.dataset_kwargs = {
-        "max_len": 100,
+        "input_max_len": 100,
         "tokenizer": {"type": "hugging_face", "name": "distilbert-base-cased"},
     }
     trainer = config.create_trainer()
