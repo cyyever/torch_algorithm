@@ -34,7 +34,7 @@ try:
             return len(self.__tensor_dict)
 
         def __iter__(self):
-            self.__iterated_keys = [self.__eval_key(k) for k in self.__tensor_dict.keys()]
+            self.__iterated_keys = [self.__eval_key(k) for k in self.__tensor_dict.keys()] # noqa:SIM118
             if not self.__iterated_keys:
                 print("empty keys")
             self.__prefetch_size = self.__cache_size
@@ -52,8 +52,7 @@ try:
             return key
 
         def __eval_key(self, k):
-            if self.__key_type is None:
-                return eval(k)
+            assert self.__key_type is not None
             return self.__key_type(k)
 
         def prefetch(self, keys: Iterable) -> None:
