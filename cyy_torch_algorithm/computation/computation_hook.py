@@ -88,7 +88,7 @@ class ComputationHook(Hook):
 
     def _get_task_queue(self) -> TorchProcessTaskQueue:
         if self.__task_queue is None:
-            worker_num: int | None | str = os.getenv("cuda_device_num", None)
+            worker_num: int | None | str = os.getenv("CUDA_DEVICE_NUM", None)
             if worker_num is not None:
                 worker_num = int(worker_num)
             self.__task_queue = TorchProcessTaskQueue(
@@ -196,14 +196,16 @@ class ComputationHook(Hook):
         worker_device: torch.device,
         model_queue: TorchProcessTaskQueue,
     ) -> dict:
-        data = getattr(self.__local_data, "data", {})
+        data: dict = getattr(self.__local_data, "data", {})
         if (
             hasattr(self.__local_data, "batch_index")
             and self.__local_data.batch_index == batch_index
         ):
             return data
         model_queue.add_task((batch_index, "model_evaluator" not in data))
-        new_data: dict = model_queue.get_data()[0]
+        tmp_data = model_queue.get_data()
+        assert tmp_data is not None
+        new_data: dict = tmp_data[0]
 
         self.__local_data.batch_index = batch_index
         if "model_evaluator" in new_data:

@@ -1,8 +1,7 @@
 import torch
 from cyy_naive_lib.algorithm.mapping_op import get_mapping_values_by_key_order
 from cyy_torch_algorithm.quantization.stochastic import stochastic_quantization
-from cyy_torch_toolbox.model.util import ModelUtil
-from cyy_torch_toolbox.tensor import cat_tensors_to_vector
+from cyy_torch_toolbox import ModelUtil, cat_tensors_to_vector
 
 try:
     from transformers import BertModel
