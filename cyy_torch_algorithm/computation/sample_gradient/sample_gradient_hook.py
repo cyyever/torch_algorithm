@@ -96,7 +96,6 @@ def get_sample_gradients_impl(
         hook.set_result_transform(result_transform)
     tmp_inferencer.append_hook(hook)
     tmp_inferencer.inference()
-    assert hook.reset_result
     gradients = {
         k: {name: tensor.cpu() for name, tensor in v.items()}
         for k, v in hook.result_dict.items()
