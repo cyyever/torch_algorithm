@@ -51,7 +51,6 @@ def test_huggingface_sample_gradient():
     config.model_config.model_kwargs = {"n_layers": 1, "input_max_len": 100}
     config.dc_config.dataset_kwargs = {
         "input_max_len": 100,
-        "tokenizer": {"type": "hugging_face", "name": "distilbert-base-cased"},
     }
     trainer = config.create_trainer()
     hook = SampleGradientHook()
