@@ -3,7 +3,7 @@ from collections.abc import Callable
 from typing import Any
 
 import torch
-from cyy_torch_toolbox.tensor import tensor_to
+from cyy_torch_toolbox import tensor_to
 
 from .computation_hook import ComputationHook
 
