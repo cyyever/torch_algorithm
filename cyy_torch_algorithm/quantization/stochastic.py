@@ -7,11 +7,11 @@ from cyy_torch_toolbox.tensor import assemble_tensors, disassemble_tensor
 
 
 class StochasticQuant:
-    def __init__(self, quantization_level, use_l2_norm):
+    def __init__(self, quantization_level: int, use_l2_norm: bool) -> None:
         self.quantization_level = quantization_level
         self.use_l2_norm = use_l2_norm
 
-    def __call__(self, data):
+    def __call__(self, data: Any) -> Any:
         tensor, shapes = assemble_tensors(data)
         if tensor is None:
             return data
@@ -31,7 +31,7 @@ class StochasticQuant:
         prob_tensor = tmp - slot_tensor
         random_vector = torch.distributions.Bernoulli(prob_tensor).sample()
         slot_tensor += random_vector
-        sign_tensor = numpy.packbits(
+        packed_sign_tensor = numpy.packbits(
             ((sign_tensor + 1) / 2).to(torch.bool).to("cpu").numpy()
         )
         if self.quantization_level <= 256:
@@ -40,7 +40,7 @@ class StochasticQuant:
 
         return {
             "norm": norm,
-            "sign": sign_tensor,
+            "sign": packed_sign_tensor,
             "slot": slot_tensor,
             "quantization_level": self.quantization_level,
             "name_and_shapes": shapes,
@@ -48,7 +48,7 @@ class StochasticQuant:
 
 
 class StochasticDequant:
-    def __call__(self, data: Any):
+    def __call__(self, data: Any) -> Any:
         match data:
             case dict():
                 if "quantization_level" not in data:
