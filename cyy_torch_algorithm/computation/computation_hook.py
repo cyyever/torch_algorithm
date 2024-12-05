@@ -8,10 +8,7 @@ from typing import Any
 import torch
 from cyy_naive_lib.log import log_debug
 from cyy_naive_lib.time_counter import TimeCounter
-from cyy_torch_toolbox.concurrency import TorchProcessTaskQueue
-from cyy_torch_toolbox.hook import Hook
-from cyy_torch_toolbox.model.evaluator import ModelEvaluator
-from cyy_torch_toolbox.tensor import tensor_to
+from cyy_torch_toolbox import Hook, ModelEvaluator, TorchProcessTaskQueue, tensor_to
 
 
 class ComputationHook(Hook):
