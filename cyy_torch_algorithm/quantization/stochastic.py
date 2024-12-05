@@ -1,8 +1,8 @@
 from collections.abc import Callable
+from typing import Any
 
 import numpy
 import torch
-from cyy_torch_toolbox.device import get_cpu_device
 from cyy_torch_toolbox.tensor import assemble_tensors, disassemble_tensor
 
 
@@ -32,7 +32,7 @@ class StochasticQuant:
         random_vector = torch.distributions.Bernoulli(prob_tensor).sample()
         slot_tensor += random_vector
         sign_tensor = numpy.packbits(
-            ((sign_tensor + 1) / 2).to(torch.bool).to(get_cpu_device()).numpy()
+            ((sign_tensor + 1) / 2).to(torch.bool).to("cpu").numpy()
         )
         if self.quantization_level <= 256:
             slot_tensor = slot_tensor.to(torch.uint8)
@@ -48,7 +48,7 @@ class StochasticQuant:
 
 
 class StochasticDequant:
-    def __call__(self, data):
+    def __call__(self, data: Any):
         match data:
             case dict():
                 if "quantization_level" not in data:
