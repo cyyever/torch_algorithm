@@ -31,7 +31,7 @@ class StochasticQuant:
         prob_tensor = tmp - slot_tensor
         random_vector = torch.distributions.Bernoulli(prob_tensor).sample()
         slot_tensor += random_vector
-        packed_sign_tensor = numpy.packbits(
+        packed_sign = numpy.packbits(
             ((sign_tensor + 1) / 2).to(torch.bool).to("cpu").numpy()
         )
         if self.quantization_level <= 256:
@@ -40,7 +40,7 @@ class StochasticQuant:
 
         return {
             "norm": norm,
-            "sign": packed_sign_tensor,
+            "sign": packed_sign,
             "slot": slot_tensor,
             "quantization_level": self.quantization_level,
             "name_and_shapes": shapes,
