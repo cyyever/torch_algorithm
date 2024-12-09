@@ -2,7 +2,9 @@ import importlib.util
 
 from cyy_torch_toolbox import Config, ExecutorHookPoint, StopExecutingException
 
-has_cyy_torch_text: bool = importlib.util.find_spec("cyy_torch_text") is not None
+has_cyy_huggingface_toolbox: bool = (
+    importlib.util.find_spec("cyy_huggingface_toolbox") is not None
+)
 has_cyy_torch_vision: bool = importlib.util.find_spec("cyy_torch_vision") is not None
 
 from cyy_torch_algorithm import SampleGradientHook
@@ -36,9 +38,9 @@ def test_CV_sample_gradient():
 
 
 def test_huggingface_sample_gradient():
-    if not has_cyy_torch_text:
+    if not has_cyy_huggingface_toolbox:
         return
-    import cyy_torch_text  # noqa: F401
+    import cyy_huggingface_toolbox  # noqa: F401
 
     config = Config(
         "imdb", "hugging_face_sequence_classification_distilbert-base-cased"
@@ -47,10 +49,7 @@ def test_huggingface_sample_gradient():
     config.hyper_parameter_config.epoch = 2
     config.hyper_parameter_config.batch_size = 8
     config.hyper_parameter_config.learning_rate = 0.001
-    config.model_config.model_kwargs = {"n_layers": 1, "input_max_len": 100}
-    config.dc_config.dataset_kwargs = {
-        "input_max_len": 100,
-    }
+    config.model_config.model_kwargs = {"n_layers": 1}
     trainer = config.create_trainer()
     hook = SampleGradientHook()
     hook.set_computed_indices(set(range(10)))
