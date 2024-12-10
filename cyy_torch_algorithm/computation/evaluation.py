@@ -11,7 +11,7 @@ def eval_model(
 ) -> torch.Tensor:
     model_evaluator.model_util.load_buffers(parameters)
     kwargs |= {
-        "evaluation_mode": EvaluationMode.Test,
+        "evaluation_mode": EvaluationMode.SampleInference,
     }
     if input_shape is not None:
         kwargs["inputs"] = kwargs["inputs"].view(input_shape)
