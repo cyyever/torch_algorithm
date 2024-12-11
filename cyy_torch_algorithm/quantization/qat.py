@@ -13,7 +13,7 @@ class QuantizationAwareTraining(Hook):
     def _before_execute(self, **kwargs):
         trainer = kwargs["executor"]
         if isinstance(trainer, Trainer):
-            self.__prepare_quantization(trainer)
+            self.prepare_quantization(trainer)
 
     @classmethod
     def prepare_quantization(cls, trainer: Trainer) -> None:
@@ -32,6 +32,7 @@ class QuantizationAwareTraining(Hook):
             model_util.model,
             fused_modules,
         )
+        fused_model.train()
         quant_model = torch.ao.quantization.prepare_qat(fused_model)
         quant_model = torch.ao.quantization.QuantWrapper(quant_model)
         log_debug("quant_model is %s", quant_model)
