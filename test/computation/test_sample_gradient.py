@@ -1,7 +1,7 @@
 import importlib.util
 
-from cyy_torch_toolbox import Config, ExecutorHookPoint, StopExecutingException
 from cyy_torch_algorithm import SampleGradientHook
+from cyy_torch_toolbox import Config, ExecutorHookPoint, StopExecutingException
 
 has_cyy_huggingface_toolbox: bool = (
     importlib.util.find_spec("cyy_huggingface_toolbox") is not None

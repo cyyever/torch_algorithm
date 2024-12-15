@@ -35,7 +35,7 @@ class GTGShapleyValue(RoundBasedShapleyValue):
         self.shapley_values_S[round_index] = {}
         assert self.metric_fun is not None
         this_round_metric = self.metric_fun(self.complete_player_indices)
-        metrics = {}
+        metrics: dict = {}
 
         # for best_S
         perm_records = {}

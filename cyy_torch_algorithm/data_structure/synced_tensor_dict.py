@@ -34,7 +34,9 @@ try:
             return len(self.__tensor_dict)
 
         def __iter__(self):
-            self.__iterated_keys = [self.__eval_key(k) for k in self.__tensor_dict.keys()] # noqa:SIM118
+            self.__iterated_keys = [
+                self.__eval_key(k) for k in self.__tensor_dict.keys()
+            ]  # noqa:SIM118
             if not self.__iterated_keys:
                 print("empty keys")
             self.__prefetch_size = self.__cache_size
