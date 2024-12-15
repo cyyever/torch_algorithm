@@ -1,13 +1,12 @@
 import importlib.util
 
 from cyy_torch_toolbox import Config, ExecutorHookPoint, StopExecutingException
+from cyy_torch_algorithm import SampleGradientHook
 
 has_cyy_huggingface_toolbox: bool = (
     importlib.util.find_spec("cyy_huggingface_toolbox") is not None
 )
 has_cyy_torch_vision: bool = importlib.util.find_spec("cyy_torch_vision") is not None
-
-from cyy_torch_algorithm import SampleGradientHook
 
 
 def test_CV_sample_gradient() -> None:
