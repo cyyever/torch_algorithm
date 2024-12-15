@@ -10,7 +10,7 @@ has_cyy_torch_vision: bool = importlib.util.find_spec("cyy_torch_vision") is not
 from cyy_torch_algorithm import SampleGradientHook
 
 
-def test_CV_sample_gradient():
+def test_CV_sample_gradient() -> None:
     if not has_cyy_torch_vision:
         return
     import cyy_torch_vision  # noqa: F401
@@ -37,7 +37,7 @@ def test_CV_sample_gradient():
     hook.reset()
 
 
-def test_huggingface_sample_gradient():
+def test_huggingface_sample_gradient() -> None:
     if not has_cyy_huggingface_toolbox:
         return
     import cyy_huggingface_toolbox  # noqa: F401
