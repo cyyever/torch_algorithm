@@ -31,7 +31,7 @@ class SampleComputationHook(ComputationHook):
 
     def set_computed_indices(self, indices: IndicesType) -> None:
         index_set = set(indices)
-        self.set_sample_selector(lambda sample_index, _: sample_index in index_set)
+        self.set_sample_selector(lambda sample_index, **kwargs: sample_index in index_set)
 
     def add_task(
         self,
