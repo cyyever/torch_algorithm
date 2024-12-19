@@ -26,13 +26,12 @@ def sample_gjvp_worker_fun(
             targets=target,
             device=worker_device,
             model_evaluator=model_evaluator,
-            input_shape=inputs[0].shape,
         )
 
         def grad_f(input_tensor):
             return cat_tensor_dict(grad(f, argnums=0)(parameters))
 
-        return jvp(grad_f, (input_tensor.view(-1),), (vector,))[1]
+        return jvp(grad_f, (input_tensor,), (vector,))[1]
 
     products = vmap(jvp_wrapper, in_dims=(None, 0, 0), randomness="same")(
         parameters,
