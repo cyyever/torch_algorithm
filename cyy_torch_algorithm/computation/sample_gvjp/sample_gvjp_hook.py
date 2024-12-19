@@ -24,7 +24,6 @@ def sample_gvjp_worker_fun(
         hugging_face_batch_encoding = inputs[0]
         new_inputs = [i.copy() for i in inputs]
         inputs = [i.pop("inputs_embeds") for i in new_inputs]
-    input_shape = inputs[0].shape
 
     def vjp_wrapper(parameters, input_tensor, target):
         f = functools.partial(
@@ -32,14 +31,13 @@ def sample_gvjp_worker_fun(
             targets=target,
             device=worker_device,
             model_evaluator=model_evaluator,
-            input_shape=input_shape,
             hugging_face_batch_encoding=hugging_face_batch_encoding,
         )
 
         def grad_f(input_tensor):
             return cat_tensor_dict(grad(f, argnums=0)(parameters, inputs=input_tensor))
 
-        vjpfunc = vjp(grad_f, input_tensor.view(-1))[1]
+        vjpfunc = vjp(grad_f, input_tensor)[1]
         return vjpfunc(vector)[0]
 
     products = vmap(vjp_wrapper, in_dims=(None, 0, 0), randomness="same")(

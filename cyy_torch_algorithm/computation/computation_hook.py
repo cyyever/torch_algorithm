@@ -40,7 +40,7 @@ class ComputationHook(Hook):
     def _get_worker_fun(self) -> Callable:
         raise NotImplementedError()
 
-    def _model_worker_fun(self, task) -> Any:
+    def _model_worker_fun(self, task, **kwargs: Any) -> Any:
         batch_index, need_model_evaluator = task
         res = self.__shared_models[batch_index]
         if need_model_evaluator:

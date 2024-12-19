@@ -18,7 +18,7 @@ from ..batch_computation_hook import BatchComputationHook
 from ..evaluation import eval_model
 
 
-def batch_hvp_worker_fun(
+def __batch_hvp_worker_fun(
     model_evaluator: ModelEvaluator,
     inputs,
     targets,
@@ -87,4 +87,4 @@ class BatchHVPHook(BatchComputationHook):
         self.set_data_fun(self.get_vectors)
 
     def _get_batch_computation_fun(self) -> Callable:
-        return batch_hvp_worker_fun
+        return __batch_hvp_worker_fun
