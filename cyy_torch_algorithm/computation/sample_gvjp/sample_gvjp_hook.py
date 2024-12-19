@@ -2,7 +2,11 @@ import functools
 from collections.abc import Callable
 
 import torch
-from cyy_torch_toolbox import ModelParameter, cat_tensor_dict
+from cyy_torch_toolbox import (
+    ModelEvaluator,
+    ModelParameter,
+    cat_tensor_dict,
+)
 from torch.func import grad, vjp, vmap
 
 from ..evaluation import eval_model
@@ -10,12 +14,12 @@ from ..sample_computation_hook import SampleComputationHook
 
 
 def sample_gvjp_worker_fun(
-    vector,
-    model_evaluator,
-    sample_indices,
+    vector: torch.Tensor,
+    model_evaluator: ModelEvaluator,
+    sample_indices: list[int],
     inputs,
     targets,
-    worker_device,
+    worker_device: torch.device,
     parameters: ModelParameter,
     **kwargs,
 ) -> dict:
@@ -62,12 +66,11 @@ def sample_gvjp_worker_fun(
 
 
 class SampleGradientVJPHook(SampleComputationHook):
-    def __init__(self, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self.__vector = None
+    __vector: torch.Tensor | None = None
 
-    def set_vector(self, vector) -> None:
+    def set_vector(self, vector: torch.Tensor) -> None:
         self.__vector = vector
 
     def _get_sample_computation_fun(self) -> Callable:
+        assert self.__vector is not None
         return functools.partial(sample_gvjp_worker_fun, self.__vector)
