@@ -9,17 +9,14 @@ from cyy_torch_toolbox import (
     recursive_tensor_op,
     tensor_to,
 )
-from cyy_torch_toolbox.tensor import dot_product as dot_product_impl
 
 from .computation_hook import ComputationHook
 
 
 class SampleComputationHook(ComputationHook):
-    def __init__(self, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self.__sample_selector: Callable | None = None
-        self.__input_transform: Callable | None = None
-        self.__batch_index: int = 0
+    __sample_selector: Callable | None = None
+    __input_transform: Callable | None = None
+    __batch_index: int = 0
 
     def __getstate__(self) -> dict:
         state = super().__getstate__()
@@ -34,7 +31,7 @@ class SampleComputationHook(ComputationHook):
 
     def set_computed_indices(self, indices: IndicesType) -> None:
         index_set = set(indices)
-        self.set_sample_selector(lambda sample_index, *args: sample_index in index_set)
+        self.set_sample_selector(lambda sample_index, _: sample_index in index_set)
 
     def add_task(
         self,
@@ -57,7 +54,7 @@ class SampleComputationHook(ComputationHook):
             sample_indices.tolist(), inputs, targets, strict=False
         ):
             if self.__sample_selector is not None and not self.__sample_selector(
-                sample_index, sample_input
+                sample_index=sample_index, sample_input=sample_input
             ):
                 continue
             if isinstance(sample_input, torch.Tensor):
@@ -192,12 +189,7 @@ class SampleComputationHook(ComputationHook):
         def result_transform2(tensor, **kwargs):
             if tensor.numel() == 1:
                 return tensor.view(-1).item()
-            tensor.share_memory_()
             return tensor
 
         res = recursive_tensor_op(res, result_transform2)
         return batch_size, res
-
-
-def dot_product(result, rhs, **kwargs) -> float:
-    return dot_product_impl(result, rhs)

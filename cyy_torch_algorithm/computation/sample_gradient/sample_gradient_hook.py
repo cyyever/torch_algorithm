@@ -13,10 +13,11 @@ from cyy_torch_toolbox import (
     OptionalIndicesType,
     TensorDict,
 )
+from cyy_torch_toolbox.tensor import dot_product
 from torch.func import grad, vmap
 
 from ..evaluation import eval_model
-from ..sample_computation_hook import SampleComputationHook, dot_product
+from ..sample_computation_hook import SampleComputationHook
 
 
 def sample_gradient_worker_fun(
@@ -116,14 +117,14 @@ def get_sample_gradients(
 
 def get_sample_gvps(vector, **kwargs) -> dict[int, float]:
     return get_sample_gradients_impl(
-        result_transform=functools.partial(dot_product, rhs=vector), **kwargs
+        result_transform=functools.partial(dot_product, b=vector), **kwargs
     )
 
 
 def __get_self_product(
     vectors: dict[int, TensorDict], result: TensorDict, sample_index: int, **kwargs
 ) -> float:
-    return dot_product(result=result, rhs=vectors[sample_index])
+    return dot_product(result, vectors[sample_index])
 
 
 def get_self_gvps(vectors: dict[int, TensorDict], **kwargs) -> dict[int, float]:
