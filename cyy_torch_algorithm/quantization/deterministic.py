@@ -31,9 +31,6 @@ class AdaptiveDeterministicQuant:
         dtype = tensor.dtype
         element_bits = tensor.element_size() * 8
         old_tensor_shape = tensor.shape
-        # if torch.cuda.is_available():
-        #     tensor = tensor.to(dtype=torch.float64, device="cuda:0", non_blocking=True)
-        # else:
         tensor = tensor_to(tensor, dtype=torch.float64, non_blocking=True)
         tensor = tensor.view(-1)
         offset = self.__get_offset(tensor)
