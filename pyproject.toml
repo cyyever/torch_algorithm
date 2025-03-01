@@ -27,6 +27,8 @@ Repository = "https://github.com/cyyever/torch_algorithm"
 [tool.pyright]
 include = ["cyy_torch_algorithm"]
 
+[tool.setuptools.package-data]
+cyy_torch_algorithm = ["py.typed"]
 
 [tool.ruff]
 target-version = "py312"
