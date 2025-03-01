@@ -44,9 +44,7 @@ class ShapleyValue:
         assert self.metric_fun is None
         self.batch_metric_fun = metric_fun
         assert self.batch_metric_fun is not None
-        self.metric_fun = lambda subset: list(self.batch_metric_fun([subset]).values())[
-            0
-        ]
+        self.metric_fun = lambda subset: list(metric_fun([subset]).values())[0]
 
     @classmethod
     def powerset(cls, iterable: Iterable) -> chain:
