@@ -1,5 +1,5 @@
 from collections.abc import Generator, Iterable, MutableMapping
-from typing import Self, Any
+from typing import Any, Self
 
 import torch
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
@@ -34,9 +34,9 @@ try:
             return len(self.__tensor_dict)
 
         def __iter__(self):
-            self.__iterated_keys = [
+            self.__iterated_keys = list(
                 self.__eval_key(k) for k in self.__tensor_dict.keys()
-            ]  # noqa:SIM118
+            )  # noqa:SIM118
             if not self.__iterated_keys:
                 print("empty keys")
             self.__prefetch_size = self.__cache_size
