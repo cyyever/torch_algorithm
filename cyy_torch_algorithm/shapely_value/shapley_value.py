@@ -7,13 +7,13 @@ from cyy_naive_lib.log import log_info
 
 
 class ShapleyValue:
-    def __init__(self, players: Iterable, **kwargs: Any) -> None:
-        self.players: tuple = ()
+    def __init__(self, players: Iterable[Any], **kwargs: Any) -> None:
+        self.players: tuple[Any] = ()
         self.set_players(players)
         self.metric_fun: None | Callable = None
         self.batch_metric_fun: None | Callable = None
 
-    def set_players(self, players: Iterable) -> None:
+    def set_players(self, players: Iterable[Any]) -> None:
         self.players = tuple(players)
 
     def __getstate__(self):
@@ -48,7 +48,7 @@ class ShapleyValue:
 
     @classmethod
     def powerset(cls, iterable: Iterable) -> chain:
-        "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
+        "powerset([0,1,2]) --> () (0,) (1,) (2,) (0,1) (0,2) (1,2) (0,1,2)"
         s: list = list(iterable)
         return chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))
 
