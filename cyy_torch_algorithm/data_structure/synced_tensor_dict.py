@@ -1,5 +1,5 @@
 from collections.abc import Generator, Iterable, MutableMapping
-from typing import Self
+from typing import Self, Any
 
 import torch
 from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
@@ -60,7 +60,7 @@ try:
         def prefetch(self, keys: Iterable) -> None:
             self.__tensor_dict.prefetch([str(k) for k in keys])
 
-        def __getattr__(self, name):
+        def __getattr__(self, name: str) -> Any:
             return getattr(self.__tensor_dict, name)
 
         def iterate(self, keys: Iterable | None = None) -> Generator:
