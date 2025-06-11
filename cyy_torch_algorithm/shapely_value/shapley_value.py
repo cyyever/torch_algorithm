@@ -8,7 +8,7 @@ from cyy_naive_lib.log import log_info
 
 class ShapleyValue:
     def __init__(self, players: Iterable[Any], **kwargs: Any) -> None:
-        self.players: tuple[Any] = ()
+        self.players: tuple = ()
         self.set_players(players)
         self.metric_fun: None | Callable = None
         self.batch_metric_fun: None | Callable = None
@@ -93,6 +93,7 @@ class RoundBasedShapleyValue(ShapleyValue):
 
     def compute(self, round_index: int) -> None:
         assert self.metric_fun is not None
+        assert round_index not in self.round_metrics
         self.round_metrics[round_index] = self.metric_fun(self.complete_player_indices)
         if self.round_trunc_threshold is not None and (
             abs(
