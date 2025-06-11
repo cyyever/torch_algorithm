@@ -7,7 +7,8 @@ from .shapley_value import RoundBasedShapleyValue
 
 
 class MultiRoundShapleyValue(RoundBasedShapleyValue):
-    """ Implements MR SV from Profit Allocation for Federated Learning  """
+    """Implements MR SV from Profit Allocation for Federated Learning"""
+
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self.shapley_values: dict[int, dict] = {}
