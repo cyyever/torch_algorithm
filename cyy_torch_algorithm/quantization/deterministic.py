@@ -27,7 +27,6 @@ class AdaptiveDeterministicQuant:
     @torch.no_grad()
     def __call__(self, tensor):
         device = tensor.device
-        element_bits = None
         dtype = tensor.dtype
         element_bits = tensor.element_size() * 8
         old_tensor_shape = tensor.shape
