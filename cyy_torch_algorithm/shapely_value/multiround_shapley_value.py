@@ -70,7 +70,7 @@ class MultiRoundShapleyValue(RoundBasedShapleyValue):
             round_SV_S, round_marginal_gain_S
         )
 
-        # calculating fullset SV
+        # calculating full set SV
         if set(best_S) == set(self.complete_player_indices):
             self.shapley_values[round_index] = copy.deepcopy(
                 self.shapley_values_S[round_index]
