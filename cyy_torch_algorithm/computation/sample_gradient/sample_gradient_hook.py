@@ -4,6 +4,7 @@ from collections.abc import Callable
 from typing import Any
 
 import torch
+from cyy_preprocessing_pipeline import dot_product
 from cyy_torch_toolbox import (
     IndicesType,
     Inferencer,
@@ -13,7 +14,6 @@ from cyy_torch_toolbox import (
     OptionalIndicesType,
     TensorDict,
 )
-from cyy_torch_toolbox.tensor import dot_product
 from torch.func import grad, vmap
 
 from ..evaluation import eval_model
@@ -71,6 +71,7 @@ def sample_gradient_worker_fun(
             raise NotImplementedError(inputs)
     result: dict[int, ModelGradient] = {}
     for idx, sample_idx in enumerate(sample_indices):
+        assert isinstance(sample_idx, int)
         result[sample_idx] = {}
         for k, v in gradient_dicts.items():
             result[sample_idx][k] = v[idx]

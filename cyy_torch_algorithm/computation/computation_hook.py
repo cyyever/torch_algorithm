@@ -67,9 +67,7 @@ class ComputationHook(Hook):
         assert self.__pending_task_cnt >= 0
         while self.has_unfetched_result():
             assert self.__task_queue is not None
-            res = self.__task_queue.get_data()
-            assert res is not None
-            res = res[0]
+            res = self.__task_queue.get_data().value()
             self.__pending_task_cnt -= res[0]
             assert self.__pending_task_cnt >= 0
             if not drop:
@@ -200,9 +198,7 @@ class ComputationHook(Hook):
         ):
             return data
         model_queue.add_task((batch_index, "model_evaluator" not in data))
-        tmp_data = model_queue.get_data()
-        assert tmp_data is not None
-        new_data: dict = tmp_data[0]
+        new_data: dict = model_queue.get_data().value()
 
         self.__local_data.batch_index = batch_index
         if "model_evaluator" in new_data:

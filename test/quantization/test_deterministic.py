@@ -1,12 +1,12 @@
 import torch
 from cyy_naive_lib.algorithm.mapping_op import get_mapping_values_by_key_order
+from cyy_preprocessing_pipeline import cat_tensors_to_vector
 from cyy_torch_algorithm.quantization.deterministic import (
     ADQ,
     NNADQ,
     NeuralNetworkAdaptiveDeterministicQuant,
 )
 from cyy_torch_toolbox import ModelUtil
-from cyy_preprocessing_pipeline import cat_tensors_to_vector
 
 try:
     from transformers import BertModel
