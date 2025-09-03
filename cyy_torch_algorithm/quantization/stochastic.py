@@ -3,7 +3,7 @@ from typing import Any
 
 import numpy
 import torch
-from cyy_torch_toolbox.tensor import assemble_tensors, disassemble_tensor
+from cyy_preprocessing_pipeline import assemble_tensors, disassemble_tensor
 
 
 class StochasticQuant:

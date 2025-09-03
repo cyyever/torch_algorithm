@@ -5,8 +5,8 @@ from cyy_torch_algorithm.quantization.deterministic import (
     NNADQ,
     NeuralNetworkAdaptiveDeterministicQuant,
 )
-from cyy_torch_toolbox.model.util import ModelUtil
-from cyy_torch_toolbox.tensor import cat_tensors_to_vector
+from cyy_torch_toolbox import ModelUtil
+from cyy_preprocessing_pipeline import cat_tensors_to_vector
 
 try:
     from transformers import BertModel
