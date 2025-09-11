@@ -5,7 +5,7 @@ from typing import Any
 import numpy
 import torch
 from cyy_naive_lib.log import log_info
-from cyy_torch_toolbox import tensor_to
+from cyy_preprocessing_pipeline import tensor_to
 
 
 class AdaptiveDeterministicQuant:
