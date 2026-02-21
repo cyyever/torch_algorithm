@@ -17,7 +17,14 @@ from .computation_hook import ComputationHook
 class SampleComputationHook(ComputationHook):
     __sample_selector: Callable[..., bool] | None = None
     __input_transform: Callable[..., Any] | None = None
-    __batch_index: int = 0
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.__batch_index: int = 0
+
+    def reset(self) -> None:
+        super().reset()
+        self.__batch_index = 0
 
     def __getstate__(self) -> dict[str, Any]:
         state = super().__getstate__()

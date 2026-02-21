@@ -91,5 +91,5 @@ try:
             log_info("tensor_dict use cache size %s", impl.get_in_memory_number())
             return cls(tensor_dict=impl, key_type=key_type)
 
-except BaseException:
+except ImportError:
     pass

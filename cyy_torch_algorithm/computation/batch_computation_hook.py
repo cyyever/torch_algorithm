@@ -96,9 +96,9 @@ class BatchComputationHook(ComputationHook):
             if result_transform is not None:
                 new_res: dict[int, Any] = {
                     data_index: result_transform(
-                        data_index=data_index, result=v, data=data
+                        data_index=data_index, result=v, data=data_piece
                     )
-                    for data_index, v, data in zip(
+                    for data_index, v, data_piece in zip(
                         data_indices, res, data, strict=False
                     )
                 }

@@ -143,7 +143,7 @@ class NeuralNetworkAdaptiveDeterministicQuant(AdaptiveDeterministicQuant):
                 parameter_numbers.append(parameter_num)
                 quantization_levels.append(0)
             elif "quantization_level" in quantized_data:
-                parameter_num = numpy.prod(quantized_data["sign_tensor"].shape)
+                parameter_num = numpy.prod(quantized_data["quantized_tensor"].shape)
                 compressed_parameter_num += (
                     parameter_num * quantized_data["compression_ratio"]
                 )

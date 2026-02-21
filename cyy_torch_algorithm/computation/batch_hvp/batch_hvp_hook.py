@@ -78,7 +78,9 @@ def batch_hvp_worker_fun(
 
 
 class BatchHVPHook(BatchComputationHook):
-    vectors: list[torch.Tensor] | list[TensorDict] = []
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.vectors: list[torch.Tensor] | list[TensorDict] = []
 
     def get_vectors(self) -> list[torch.Tensor] | list[TensorDict]:
         return self.vectors
