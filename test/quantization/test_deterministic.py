@@ -35,7 +35,7 @@ try:
             / torch.linalg.norm(model_vect),
         )
 
-except BaseException:
+except ImportError:
     pass
 
 
