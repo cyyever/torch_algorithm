@@ -51,4 +51,5 @@ class SampleGradientJVPHook(SampleComputationHook):
         self.__vector = vector
 
     def _get_sample_computation_fun(self) -> Callable[..., Any]:
+        assert self.__vector is not None
         return functools.partial(sample_gjvp_worker_fun, self.__vector)

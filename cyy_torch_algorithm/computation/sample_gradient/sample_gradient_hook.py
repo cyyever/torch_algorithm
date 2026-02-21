@@ -98,6 +98,11 @@ def get_sample_gradients_impl(
         hook.set_result_transform(result_transform)
     tmp_inferencer.append_hook(hook)
     tmp_inferencer.inference()
+    if result_transform is not None:
+        results = dict(hook.result_dict)
+        assert results
+        hook.release()
+        return results
     gradients = {
         k: {name: tensor.cpu() for name, tensor in v.items()}
         for k, v in hook.result_dict.items()
@@ -117,8 +122,11 @@ def get_sample_gradients(
 
 
 def get_sample_gvps(vector: Any, **kwargs: Any) -> dict[int, float]:
+    def _gvp_transform(result: Any, **_kwargs: Any) -> float:
+        return dot_product(result, vector)
+
     return get_sample_gradients_impl(
-        result_transform=functools.partial(dot_product, b=vector), **kwargs
+        result_transform=_gvp_transform, **kwargs
     )
 
 
