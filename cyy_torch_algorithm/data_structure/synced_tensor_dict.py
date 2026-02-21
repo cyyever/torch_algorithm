@@ -1,7 +1,6 @@
 from collections.abc import Generator, Iterable, MutableMapping
-from typing import Any, Self
-
 from itertools import batched
+from typing import Any, Self
 
 import torch
 from cyy_naive_lib.fs.tempdir import get_temp_dir
