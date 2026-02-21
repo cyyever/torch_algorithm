@@ -24,6 +24,8 @@ class StochasticQuant:
             norm = torch.linalg.norm(tensor)
         else:
             norm = torch.linalg.norm(tensor, ord=float("inf"))
+        if norm == 0:
+            return data
         sign_tensor = torch.sign(tensor)
         normalized_abs_tensor = tensor.abs() / norm
         tmp = normalized_abs_tensor * self.quantization_level

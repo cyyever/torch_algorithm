@@ -15,7 +15,6 @@ def eval_model(
     }
     if "input_tensors" in kwargs:
         input_tensors = kwargs.pop("input_tensors")
-        kwargs["inputs"] = input_tensors
         input_keys = kwargs.pop("input_keys", None)
         if input_keys:
             kwargs["inputs"] = dict(zip(input_keys, input_tensors, strict=False))

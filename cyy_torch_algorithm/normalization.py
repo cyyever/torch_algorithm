@@ -18,8 +18,12 @@ def column_norms(mat: npt.NDArray) -> npt.NDArray:
 
 
 def normalize_for_heatmap(mat: npt.NDArray) -> npt.NDArray:
-    rn = 1 / (row_norms(mat) ** 0.5)
-    cn = 1 / (column_norms(mat) ** 0.5)
+    rn = row_norms(mat) ** 0.5
+    rn[rn == 0] = 1.0
+    rn = 1 / rn
+    cn = column_norms(mat) ** 0.5
+    cn[cn == 0] = 1.0
+    cn = 1 / cn
     mat = np.matmul(np.diag(rn), mat)
     mat = np.matmul(mat, np.diag(cn))
     return mat

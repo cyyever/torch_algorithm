@@ -31,9 +31,6 @@ class BatchComputationHook(ComputationHook):
         self, executor: Any, inputs: Any, targets: Any, batch_index: int, **kwargs: Any
     ) -> None:
         data = self.data
-        if data is None:
-            assert self.__data_fun is not None
-            data = self.__data_fun()
         assert data is not None
         self.add_task(
             executor=executor,

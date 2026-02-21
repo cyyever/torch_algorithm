@@ -67,7 +67,9 @@ def sample_gvjp_worker_fun(
 
 
 class SampleGradientVJPHook(SampleComputationHook):
-    __vector: torch.Tensor | None = None
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.__vector: torch.Tensor | None = None
 
     def set_vector(self, vector: torch.Tensor) -> None:
         self.__vector = vector
