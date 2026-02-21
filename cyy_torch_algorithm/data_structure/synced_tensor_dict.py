@@ -1,8 +1,9 @@
 from collections.abc import Generator, Iterable, MutableMapping
 from typing import Any, Self
 
+from itertools import batched
+
 import torch
-from cyy_naive_lib.algorithm.sequence_op import split_list_to_chunks
 from cyy_naive_lib.fs.tempdir import get_temp_dir
 from cyy_naive_lib.log import log_info, log_warning
 from cyy_torch_toolbox import TensorDict
@@ -68,7 +69,7 @@ try:
                 keys = list(self.__tensor_dict.keys())
             else:
                 keys = list({str(k) for k in keys})
-            for chunk in split_list_to_chunks(keys, self.__cache_size // 2):
+            for chunk in batched(keys, self.__cache_size // 2):
                 self.__tensor_dict.prefetch(chunk)
                 for k in chunk:
                     yield (self.__eval_key(k), self.__tensor_dict[k])

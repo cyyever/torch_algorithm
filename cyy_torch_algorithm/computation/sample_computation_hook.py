@@ -29,6 +29,7 @@ class SampleComputationHook(ComputationHook):
     def __getstate__(self) -> dict[str, Any]:
         state = super().__getstate__()
         state["_SampleComputationHook__sample_selector"] = None
+        state["_SampleComputationHook__input_transform"] = None
         return state
 
     def set_sample_selector(self, selector: Callable[..., bool]) -> None:
