@@ -9,10 +9,10 @@ from .computation_hook import ComputationHook
 
 
 class BatchComputationHook(ComputationHook):
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.__data_fun: Callable | None = None
-        self.__data: Any | None = None
+        self.__data_fun: Callable[[], Any] | None = None
+        self.__data: Any = None
 
     def set_data(self, data: Any) -> None:
         self.__data = data
@@ -24,11 +24,11 @@ class BatchComputationHook(ComputationHook):
             return self.__data_fun()
         return self.__data
 
-    def set_data_fun(self, data_fun: Callable) -> None:
+    def set_data_fun(self, data_fun: Callable[[], Any]) -> None:
         self.__data_fun = data_fun
 
     def _before_batch(
-        self, executor, inputs, targets, batch_index: int, **kwargs: Any
+        self, executor: Any, inputs: Any, targets: Any, batch_index: int, **kwargs: Any
     ) -> None:
         data = self.data
         if data is None:
@@ -43,16 +43,16 @@ class BatchComputationHook(ComputationHook):
             batch_index=batch_index,
         )
 
-    def _get_batch_computation_fun(self) -> Callable:
+    def _get_batch_computation_fun(self) -> Callable[..., Any]:
         raise NotImplementedError()
 
-    def _get_worker_fun(self) -> Callable:
+    def _get_worker_fun(self) -> Callable[..., Any]:
         return functools.partial(
             self.common_worker_fun,
             self._get_batch_computation_fun(),
         )
 
-    def add_task(self, executor, inputs, targets, data, batch_index: int) -> None:
+    def add_task(self, executor: Any, inputs: Any, targets: Any, data: Any, batch_index: int) -> None:
         assert not self.has_unfetched_result()
         self._broadcast_one_shot_data(
             batch_index=batch_index,
@@ -67,12 +67,12 @@ class BatchComputationHook(ComputationHook):
 
     def common_worker_fun(
         self,
-        worker_fun: Callable,
-        tasks: list,
+        worker_fun: Callable[..., Any],
+        tasks: list[tuple[int, int, Any]],
         device: torch.device,
-        model_queue,
+        model_queue: Any,
         **kwargs: Any,
-    ) -> tuple:
+    ) -> tuple[int, dict[int, Any]]:
         batch_size = len(tasks)
         worker_device, worker_stream = self._setup_device(device)
         batch_index = tasks[0][0]
@@ -94,7 +94,7 @@ class BatchComputationHook(ComputationHook):
                 "result_transform", self._result_transform, worker_device=worker_device
             )
             if result_transform is not None:
-                new_res: dict = {
+                new_res: dict[int, Any] = {
                     data_index: result_transform(
                         data_index=data_index, result=v, data=data
                     )

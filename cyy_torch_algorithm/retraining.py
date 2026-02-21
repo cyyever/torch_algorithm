@@ -9,9 +9,9 @@ from cyy_torch_toolbox.reproducible_env import global_reproducible_env
 class DeterministicTraining:
     def __init__(self, config: Config) -> None:
         self.config = config
-        self.trainer_fun: Callable = self.config.create_trainer
-        self.__last_trainer: None | Trainer = None
-        self.seed_path: None | str = None
+        self.trainer_fun: Callable[..., Trainer] = self.config.create_trainer
+        self.__last_trainer: Trainer | None = None
+        self.seed_path: str | None = None
 
     @property
     def last_trainer(self) -> Trainer:
@@ -19,7 +19,7 @@ class DeterministicTraining:
         return self.__last_trainer
 
     def create_deterministic_trainer(
-        self, trainer_fun: None | Callable = None
+        self, trainer_fun: Callable[..., Trainer] | None = None
     ) -> Trainer:
         self.config.reproducible_env_config.make_reproducible_env = True
         self.config.apply_global_config()

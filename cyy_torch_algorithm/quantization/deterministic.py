@@ -13,7 +13,7 @@ class AdaptiveDeterministicQuant:
         self.weight = weight
         self.use_l2_norm = use_l2_norm
 
-    def __get_offset(self, tensor):
+    def __get_offset(self, tensor: torch.Tensor) -> float:
         max_value = tensor.max().item()
         min_value = tensor.min().item()
         if min_value >= 0:
@@ -25,7 +25,7 @@ class AdaptiveDeterministicQuant:
         return (math.fabs(min_value) - max_value) / 2
 
     @torch.no_grad()
-    def __call__(self, tensor):
+    def __call__(self, tensor: torch.Tensor) -> dict[str, Any]:
         device = tensor.device
         dtype = tensor.dtype
         element_bits = tensor.element_size() * 8
@@ -88,7 +88,7 @@ class AdaptiveDeterministicQuant:
 
 
 class AdaptiveDeterministicDequant:
-    def __call__(self, quantized_dict: dict) -> torch.Tensor:
+    def __call__(self, quantized_dict: dict[str, Any]) -> torch.Tensor:
         device = quantized_dict["device"]
         dtype = quantized_dict["dtype"]
         offset = quantized_dict["offset"]
@@ -126,12 +126,12 @@ class NeuralNetworkAdaptiveDeterministicQuant(AdaptiveDeterministicQuant):
                 return data
 
     @classmethod
-    def check_compression_ratio(cls, quantized_data, prefix=None):
-        compressed_parameter_num = 0
-        quantization_levels = []
-        parameter_numbers = []
+    def check_compression_ratio(cls, quantized_data: dict[str, Any], prefix: str | None = None) -> tuple[float, float]:
+        compressed_parameter_num: float = 0
+        quantization_levels: list[int] = []
+        parameter_numbers: list[Any] = []
 
-        def collection(quantized_data):
+        def collection(quantized_data: Any) -> None:
             nonlocal quantization_levels, compressed_parameter_num
             if not isinstance(quantized_data, dict):
                 return

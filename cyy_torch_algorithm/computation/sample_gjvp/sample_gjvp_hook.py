@@ -1,9 +1,10 @@
 import functools
 from collections.abc import Callable
+from typing import Any
 
 import torch
 import torch.cuda
-from cyy_torch_toolbox import ModelParameter, cat_tensor_dict
+from cyy_torch_toolbox import ModelEvaluator, ModelParameter, cat_tensor_dict
 from torch.func import grad, jvp, vmap
 
 from ..evaluation import eval_model
@@ -11,14 +12,14 @@ from ..sample_computation_hook import SampleComputationHook
 
 
 def sample_gjvp_worker_fun(
-    vector,
-    model_evaluator,
+    vector: torch.Tensor,
+    model_evaluator: ModelEvaluator,
     parameters: ModelParameter,
-    sample_indices,
+    sample_indices: list[int],
     inputs: list[torch.Tensor],
     targets: list[torch.Tensor],
-    worker_device,
-) -> dict:
+    worker_device: torch.device,
+) -> dict[int, torch.Tensor]:
     def jvp_wrapper(parameters, input_tensor, target):
         f = functools.partial(
             eval_model,
@@ -42,12 +43,12 @@ def sample_gjvp_worker_fun(
 
 
 class SampleGradientJVPHook(SampleComputationHook):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.__vector = None
+        self.__vector: torch.Tensor | None = None
 
-    def set_vector(self, vector):
+    def set_vector(self, vector: torch.Tensor) -> None:
         self.__vector = vector
 
-    def _get_sample_computation_fun(self) -> Callable:
+    def _get_sample_computation_fun(self) -> Callable[..., Any]:
         return functools.partial(sample_gjvp_worker_fun, self.__vector)

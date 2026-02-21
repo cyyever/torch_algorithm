@@ -1,3 +1,5 @@
+from typing import Any
+
 import torch
 import torch.ao.quantization
 from cyy_naive_lib.log import log_debug, log_info
@@ -10,7 +12,7 @@ class QuantizationAwareTraining(Hook):
     Quantization-aware training
     """
 
-    def _before_execute(self, **kwargs):
+    def _before_execute(self, **kwargs: Any) -> None:
         trainer = kwargs["executor"]
         if isinstance(trainer, Trainer):
             self.prepare_quantization(trainer)
@@ -47,7 +49,7 @@ class QuantizationAwareTraining(Hook):
         return torch.ao.quantization.convert(model)
 
     @classmethod
-    def get_fused_modules(cls, model_util: ModelUtil) -> list:
+    def get_fused_modules(cls, model_util: ModelUtil) -> list[list[str]]:
         module_blocks = model_util.get_module_blocks(
             block_types=set(_DEFAULT_OP_LIST_TO_FUSER_METHOD.keys())
         )

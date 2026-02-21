@@ -1,4 +1,5 @@
 import copy
+from typing import Any
 
 import numpy as np
 from cyy_naive_lib.log import log_debug, log_info, log_warning
@@ -7,7 +8,7 @@ from .shapley_value import RoundBasedShapleyValue
 
 
 class GTGShapleyValue(RoundBasedShapleyValue):
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.shapley_values: dict[int, dict] = {}
         self.shapley_values_S: dict[int, dict] = {}
@@ -35,20 +36,20 @@ class GTGShapleyValue(RoundBasedShapleyValue):
         self.shapley_values_S[round_index] = {}
         assert self.metric_fun is not None
         this_round_metric = self.metric_fun(self.complete_player_indices)
-        metrics: dict = {}
+        metrics: dict[tuple[int, ...], float] = {}
 
         # for best_S
-        perm_records = {}
+        perm_records: dict[tuple[int, ...], list[float]] = {}
 
         index = 0
-        contribution_records: list = []
+        contribution_records: list[list[float]] = []
         last_round_metric = self.get_last_round_metric(round_index=round_index)
         while not metrics or self.not_convergent(index, contribution_records):
             for player_id in self.complete_player_indices:
                 index += 1
-                v: list = [0] * (self.player_number + 1)
+                v: list[float] = [0.0] * (self.player_number + 1)
                 v[0] = last_round_metric
-                marginal_contribution = [0] * self.player_number
+                marginal_contribution: list[float] = [0.0] * self.player_number
                 perturbed_indices = np.concatenate(
                     (
                         np.array([player_id]),
@@ -101,7 +102,7 @@ class GTGShapleyValue(RoundBasedShapleyValue):
         ]
         SV_calc_temp = np.sum(contrib_S, 0) / len(contrib_S)
         round_marginal_gain_S = metrics[best_S] - last_round_metric
-        round_SV_S: dict = {}
+        round_SV_S: dict[int, float] = {}
         for client_id in best_S:
             round_SV_S[client_id] = float(SV_calc_temp[client_id])
 
@@ -140,16 +141,16 @@ class GTGShapleyValue(RoundBasedShapleyValue):
         log_info("shapley_value %s", self.shapley_values[round_index])
         log_info("shapley_value_S %s", self.shapley_values_S[round_index])
 
-    def get_best_players(self, round_index: int) -> set | None:
+    def get_best_players(self, round_index: int) -> set[Any] | None:
         return set(self.shapley_values_S[round_index].keys())
 
-    def get_result(self) -> dict:
+    def get_result(self) -> dict[str, dict[int, dict[Any, float]]]:
         return {
             "round_shapley_values": self.shapley_values,
             "round_shapley_values_approximated": self.shapley_values_S,
         }
 
-    def not_convergent(self, index: int, contribution_records: list) -> bool:
+    def not_convergent(self, index: int, contribution_records: list[list[float]]) -> bool:
         if index >= self.max_number:
             log_info("convergent for max_number %s", self.max_number)
             return False

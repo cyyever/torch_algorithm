@@ -1,5 +1,6 @@
 import copy
 import math
+from typing import Any
 
 from cyy_naive_lib.log import log_info
 
@@ -9,7 +10,7 @@ from .shapley_value import RoundBasedShapleyValue
 class MultiRoundShapleyValue(RoundBasedShapleyValue):
     """Implements MR SV from Profit Allocation for Federated Learning"""
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.shapley_values: dict[int, dict] = {}
         self.shapley_values_S: dict[int, dict] = {}
@@ -19,7 +20,7 @@ class MultiRoundShapleyValue(RoundBasedShapleyValue):
         self.shapley_values_S[round_index] = {}
         assert self.metric_fun is not None
         last_round_metric = self.get_last_round_metric(round_index=round_index)
-        metrics: dict = {
+        metrics: dict[tuple[int, ...], float] = {
             (): last_round_metric,
             self.complete_player_indices: self.round_metrics[round_index],
         }
@@ -107,10 +108,10 @@ class MultiRoundShapleyValue(RoundBasedShapleyValue):
         log_info("shapley_value %s", self.shapley_values[round_index])
         log_info("shapley_value_best_set %s", self.shapley_values_S[round_index])
 
-    def get_best_players(self, round_index: int) -> set | None:
+    def get_best_players(self, round_index: int) -> set[Any] | None:
         return set(self.shapley_values_S[round_index].keys())
 
-    def get_result(self) -> dict:
+    def get_result(self) -> dict[str, dict[int, dict[Any, float]]]:
         return {
             "round_shapley_values": self.shapley_values,
             "round_shapley_values_approximated": self.shapley_values_S,

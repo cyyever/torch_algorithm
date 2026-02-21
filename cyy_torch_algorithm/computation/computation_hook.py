@@ -13,32 +13,32 @@ from cyy_torch_toolbox import Hook, ModelEvaluator, TorchProcessTaskQueue
 
 
 class ComputationHook(Hook):
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(stripable=True, **kwargs)
-        self.__local_data = threading.local()
-        self.__result_dict: dict = {}
+        self.__local_data: threading.local | None = threading.local()
+        self.__result_dict: dict[Any, Any] = {}
         self.__task_queue: TorchProcessTaskQueue | None = None
         self.__model_queue: TorchProcessTaskQueue | None = None
-        self._result_transform: Callable | None = None
+        self._result_transform: Callable[..., Any] | None = None
         self.__pending_task_cnt: int = 0
-        self.__prev_tasks: list = []
-        self.__result_collection_fun: Callable | None = None
-        self.__shared_models: dict = {}
+        self.__prev_tasks: list[Any] = []
+        self.__result_collection_fun: Callable[..., None] | None = None
+        self.__shared_models: dict[int, dict[str, Any]] = {}
 
-    def __getstate__(self):
+    def __getstate__(self) -> dict[str, Any]:
         # capture what is normally pickled
         state = self.__dict__.copy()
         state["_ComputationHook__local_data"] = None
         return state
 
-    def set_result_transform(self, f: Callable) -> None:
+    def set_result_transform(self, f: Callable[..., Any]) -> None:
         self._result_transform = f
         self._remove_cached_item("result_transform")
 
-    def set_result_collection_fun(self, f: Callable) -> None:
+    def set_result_collection_fun(self, f: Callable[..., None]) -> None:
         self.__result_collection_fun = f
 
-    def _get_worker_fun(self) -> Callable:
+    def _get_worker_fun(self) -> Callable[..., Any]:
         raise NotImplementedError()
 
     def _model_worker_fun(self, task, **kwargs: Any) -> Any:
@@ -54,7 +54,7 @@ class ComputationHook(Hook):
         self.__result_dict = {}
 
     @property
-    def result_dict(self) -> dict:
+    def result_dict(self) -> dict[Any, Any]:
         return self.__fetch_result()
 
     def has_unfetched_result(self) -> bool:
@@ -63,8 +63,8 @@ class ComputationHook(Hook):
     def _drop_result(self) -> None:
         self.__fetch_result(drop=True)
 
-    def __fetch_result(self, drop: bool = False) -> dict:
-        results: dict = {}
+    def __fetch_result(self, drop: bool = False) -> dict[Any, Any]:
+        results: dict[Any, Any] = {}
         assert self.__pending_task_cnt >= 0
         while self.has_unfetched_result():
             assert self.__task_queue is not None
@@ -113,7 +113,7 @@ class ComputationHook(Hook):
         self._get_task_queue().add_task(task)
 
     def _broadcast_one_shot_data(
-        self, batch_index: int, model_evaluator: ModelEvaluator, **kwargs
+        self, batch_index: int, model_evaluator: ModelEvaluator, **kwargs: Any
     ) -> None:
         with TimeCounter() as cnt:
             if self.__shared_models:
@@ -121,7 +121,7 @@ class ComputationHook(Hook):
                 self.__shared_models.clear()
                 self.__shared_models[0] = old_model_evaluator
             assert batch_index >= 0
-            data: dict = dict(kwargs)
+            data: dict[str, Any] = dict(kwargs)
             if batch_index == 0:
                 data["model_evaluator"] = copy.deepcopy(model_evaluator)
                 data["model_evaluator"].model.cpu()
@@ -156,7 +156,7 @@ class ComputationHook(Hook):
             self.__model_queue = None
         self.__shared_models.clear()
 
-    def _setup_device(self, advised_device) -> tuple:
+    def _setup_device(self, advised_device: torch.device) -> tuple[torch.device, torch.cuda.Stream | None]:
         worker_device = self.get_cached_item("worker_device", advised_device)
         if not torch.cuda.is_available():
             return worker_device, None
@@ -172,7 +172,7 @@ class ComputationHook(Hook):
         if self.__local_data is not None and hasattr(self.__local_data, name):
             delattr(self.__local_data, name)
 
-    def get_cached_item(self, name: str, value: Any, worker_device=None) -> Any:
+    def get_cached_item(self, name: str, value: Any, worker_device: torch.device | None = None) -> Any:
         if not hasattr(self.__local_data, name):
             if worker_device is not None:
                 value = tensor_to(
@@ -191,15 +191,15 @@ class ComputationHook(Hook):
         batch_index: int,
         worker_device: torch.device,
         model_queue: TorchProcessTaskQueue,
-    ) -> dict:
-        data: dict = getattr(self.__local_data, "data", {})
+    ) -> dict[str, Any]:
+        data: dict[str, Any] = getattr(self.__local_data, "data", {})
         if (
             hasattr(self.__local_data, "batch_index")
             and self.__local_data.batch_index == batch_index
         ):
             return data
         model_queue.add_task((batch_index, "model_evaluator" not in data))
-        new_data: dict = model_queue.get_data().value()
+        new_data: dict[str, Any] = model_queue.get_data().value()
 
         self.__local_data.batch_index = batch_index
         if "model_evaluator" in new_data:

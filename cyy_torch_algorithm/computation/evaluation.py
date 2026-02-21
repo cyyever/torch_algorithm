@@ -1,3 +1,5 @@
+from typing import Any
+
 import torch
 from cyy_torch_toolbox import EvaluationMode, ModelEvaluator, ModelParameter
 
@@ -5,7 +7,7 @@ from cyy_torch_toolbox import EvaluationMode, ModelEvaluator, ModelParameter
 def eval_model(
     parameters: ModelParameter,
     model_evaluator: ModelEvaluator,
-    **kwargs,
+    **kwargs: Any,
 ) -> torch.Tensor:
     model_evaluator.model_util.load_buffers(parameters)
     kwargs |= {

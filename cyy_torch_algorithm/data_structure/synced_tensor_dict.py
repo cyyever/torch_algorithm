@@ -11,10 +11,10 @@ try:
     from cyy_torch_cpp_extension.data_structure import SyncedTensorDictIMPL
 
     class SyncedTensorDict(MutableMapping):
-        def __init__(self, tensor_dict: TensorDict, key_type=int) -> None:
+        def __init__(self, tensor_dict: TensorDict, key_type: type = int) -> None:
             self.__tensor_dict = tensor_dict
-            self.__key_type = key_type
-            self.__iterated_keys = None
+            self.__key_type: type = key_type
+            self.__iterated_keys: list[Any] | None = None
             self.__cache_size: int = self.__tensor_dict.get_in_memory_number()
             self.__prefetch_size: int = 0
 
@@ -33,7 +33,7 @@ try:
         def __len__(self) -> int:
             return len(self.__tensor_dict)
 
-        def __iter__(self):
+        def __iter__(self) -> Self:
             self.__iterated_keys = list(
                 self.__eval_key(k) for k in self.__tensor_dict.keys()
             )  # noqa:SIM118
@@ -42,7 +42,7 @@ try:
             self.__prefetch_size = self.__cache_size
             return self
 
-        def __next__(self):
+        def __next__(self) -> Any:
             if not self.__iterated_keys:
                 raise StopIteration()
             key = self.__iterated_keys[0]
@@ -53,7 +53,7 @@ try:
                 self.prefetch(self.__iterated_keys[: self.__prefetch_size])
             return key
 
-        def __eval_key(self, k):
+        def __eval_key(self, k: str) -> Any:
             assert self.__key_type is not None
             return self.__key_type(k)
 
@@ -63,7 +63,7 @@ try:
         def __getattr__(self, name: str) -> Any:
             return getattr(self.__tensor_dict, name)
 
-        def iterate(self, keys: Iterable | None = None) -> Generator:
+        def iterate(self, keys: Iterable[Any] | None = None) -> Generator[tuple[Any, torch.Tensor], None, None]:
             if keys is None:
                 keys = list(self.__tensor_dict.keys())
             else:
@@ -77,7 +77,7 @@ try:
         def create(
             cls,
             storage_dir: str | None = None,
-            key_type=int,
+            key_type: type = int,
             cache_size: int | None = None,
         ) -> Self:
             if storage_dir is None:

@@ -1,5 +1,6 @@
 import functools
 from collections.abc import Callable
+from typing import Any
 
 import torch
 from cyy_torch_toolbox import (
@@ -17,14 +18,14 @@ def sample_gvjp_worker_fun(
     vector: torch.Tensor,
     model_evaluator: ModelEvaluator,
     sample_indices: list[int],
-    inputs,
-    targets,
+    inputs: list[torch.Tensor] | list[dict[str, torch.Tensor]],
+    targets: list[torch.Tensor],
     worker_device: torch.device,
     parameters: ModelParameter,
-    **kwargs,
-) -> dict:
-    input_list = []
-    input_keys: list = []
+    **kwargs: Any,
+) -> dict[int, torch.Tensor]:
+    input_list: list[torch.Tensor] = []
+    input_keys: list[str] = []
     if isinstance(inputs[0], dict):
         input_key_sets = set(inputs[0].keys())
         for k in input_key_sets.copy():
@@ -71,6 +72,6 @@ class SampleGradientVJPHook(SampleComputationHook):
     def set_vector(self, vector: torch.Tensor) -> None:
         self.__vector = vector
 
-    def _get_sample_computation_fun(self) -> Callable:
+    def _get_sample_computation_fun(self) -> Callable[..., Any]:
         assert self.__vector is not None
         return functools.partial(sample_gvjp_worker_fun, self.__vector)

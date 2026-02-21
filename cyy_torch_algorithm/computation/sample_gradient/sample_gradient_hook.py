@@ -79,7 +79,7 @@ def sample_gradient_worker_fun(
 
 
 class SampleGradientHook(SampleComputationHook):
-    def _get_sample_computation_fun(self):
+    def _get_sample_computation_fun(self) -> Callable[..., Any]:
         return sample_gradient_worker_fun
 
 
@@ -116,7 +116,7 @@ def get_sample_gradients(
     )
 
 
-def get_sample_gvps(vector, **kwargs) -> dict[int, float]:
+def get_sample_gvps(vector: Any, **kwargs: Any) -> dict[int, float]:
     return get_sample_gradients_impl(
         result_transform=functools.partial(dot_product, b=vector), **kwargs
     )

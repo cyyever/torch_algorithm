@@ -8,15 +8,15 @@ from cyy_naive_lib.log import log_info
 
 class ShapleyValue:
     def __init__(self, players: Iterable[Any], **kwargs: Any) -> None:
-        self.players: tuple = ()
+        self.players: tuple[Any, ...] = ()
         self.set_players(players)
-        self.metric_fun: None | Callable = None
-        self.batch_metric_fun: None | Callable = None
+        self.metric_fun: Callable[..., Any] | None = None
+        self.batch_metric_fun: Callable[..., Any] | None = None
 
     def set_players(self, players: Iterable[Any]) -> None:
-        self.players = tuple(players)
+        self.players: tuple[Any, ...] = tuple(players)
 
-    def __getstate__(self):
+    def __getstate__(self) -> dict[str, Any]:
         # capture what is normally pickled
         state = self.__dict__.copy()
         state["batch_metric_fun"] = None
@@ -28,10 +28,10 @@ class ShapleyValue:
         return len(self.players)
 
     @property
-    def complete_player_indices(self) -> tuple:
+    def complete_player_indices(self) -> tuple[int, ...]:
         return tuple(range(len(self.players)))
 
-    def set_metric_function(self, metric_fun: Callable) -> None:
+    def set_metric_function(self, metric_fun: Callable[..., Any]) -> None:
         assert self.metric_fun is None
         self.metric_fun = lambda subset: metric_fun(self.get_players(subset))
         assert self.batch_metric_fun is None
@@ -39,7 +39,7 @@ class ShapleyValue:
             subset: metric_fun(self.get_players(subset)) for subset in subsets
         }
 
-    def set_batch_metric_function(self, metric_fun: Callable) -> None:
+    def set_batch_metric_function(self, metric_fun: Callable[..., Any]) -> None:
         assert self.batch_metric_fun is None
         assert self.metric_fun is None
         self.batch_metric_fun = metric_fun
@@ -47,15 +47,15 @@ class ShapleyValue:
         self.metric_fun = lambda subset: list(metric_fun([subset]).values())[0]
 
     @classmethod
-    def powerset(cls, iterable: Iterable) -> chain:
+    def powerset(cls, iterable: Iterable[Any]) -> chain[tuple[Any, ...]]:
         "powerset([0,1,2]) --> () (0,) (1,) (2,) (0,1) (0,2) (1,2) (0,1,2)"
-        s: list = list(iterable)
+        s: list[Any] = list(iterable)
         return chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))
 
     @classmethod
     def normalize_shapley_values(
-        cls, shapley_values: dict, marginal_gain: float
-    ) -> dict:
+        cls, shapley_values: dict[Any, float], marginal_gain: float
+    ) -> dict[Any, float]:
         sum_value: float = 0
         if marginal_gain >= 0:
             sum_value = sum(v for v in shapley_values.values() if v >= 0)
@@ -68,7 +68,7 @@ class ShapleyValue:
 
         return {k: marginal_gain * v / sum_value for k, v in shapley_values.items()}
 
-    def get_players(self, indices: Iterable | int) -> tuple | Any:
+    def get_players(self, indices: Iterable[int] | int) -> tuple[Any, ...] | Any:
         if isinstance(indices, int):
             return self.players[indices]
         return tuple(self.players[i] for i in indices)
@@ -113,7 +113,7 @@ class RoundBasedShapleyValue(ShapleyValue):
         self._compute_impl(round_index=round_index)
         return None
 
-    def get_best_players(self, round_index: int) -> set | None:
+    def get_best_players(self, round_index: int) -> set[Any] | None:
         return None
 
     def get_result(self) -> Any:

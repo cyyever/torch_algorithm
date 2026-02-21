@@ -1,6 +1,7 @@
 import collections
 import functools
 from collections.abc import Callable
+from typing import Any
 
 import torch
 import torch.cuda
@@ -20,9 +21,9 @@ from ..evaluation import eval_model
 
 def batch_hvp_worker_fun(
     model_evaluator: ModelEvaluator,
-    inputs,
-    targets,
-    data,
+    inputs: Any,
+    targets: Any,
+    data: list[torch.Tensor] | list[TensorDict],
     worker_device: torch.device,
     parameters: ModelParameter,
 ) -> list[TensorDict] | list[torch.Tensor]:
@@ -86,5 +87,5 @@ class BatchHVPHook(BatchComputationHook):
         self.vectors = vectors
         self.set_data_fun(self.get_vectors)
 
-    def _get_batch_computation_fun(self) -> Callable:
+    def _get_batch_computation_fun(self) -> Callable[..., Any]:
         return batch_hvp_worker_fun

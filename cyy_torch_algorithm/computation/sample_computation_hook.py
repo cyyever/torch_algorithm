@@ -1,5 +1,6 @@
 import functools
 from collections.abc import Callable
+from typing import Any
 
 import torch
 from cyy_torch_toolbox import (
@@ -14,19 +15,19 @@ from .computation_hook import ComputationHook
 
 
 class SampleComputationHook(ComputationHook):
-    __sample_selector: Callable | None = None
-    __input_transform: Callable | None = None
+    __sample_selector: Callable[..., bool] | None = None
+    __input_transform: Callable[..., Any] | None = None
     __batch_index: int = 0
 
-    def __getstate__(self) -> dict:
+    def __getstate__(self) -> dict[str, Any]:
         state = super().__getstate__()
         state["_SampleComputationHook__sample_selector"] = None
         return state
 
-    def set_sample_selector(self, selector: Callable) -> None:
+    def set_sample_selector(self, selector: Callable[..., bool]) -> None:
         self.__sample_selector = selector
 
-    def set_input_transform(self, transform: Callable) -> None:
+    def set_input_transform(self, transform: Callable[..., Any]) -> None:
         self.__input_transform = transform
 
     def set_computed_indices(self, indices: IndicesType) -> None:
@@ -39,7 +40,7 @@ class SampleComputationHook(ComputationHook):
         self,
         model_evaluator: ModelEvaluator,
         sample_indices: torch.Tensor,
-        inputs,
+        inputs: Any,
         targets: torch.Tensor,
     ) -> None:
         res = model_evaluator.split_batch_input(
@@ -100,10 +101,10 @@ class SampleComputationHook(ComputationHook):
             )
         self.__batch_index += 1
 
-    def _get_sample_computation_fun(self):
+    def _get_sample_computation_fun(self) -> Callable[..., Any]:
         raise NotImplementedError()
 
-    def _get_worker_fun(self) -> Callable:
+    def _get_worker_fun(self) -> Callable[..., Any]:
         return functools.partial(
             self.common_worker_fun,
             self._get_sample_computation_fun(),
@@ -115,7 +116,7 @@ class SampleComputationHook(ComputationHook):
         inputs: torch.Tensor,
         targets: torch.Tensor,
         sample_indices: torch.Tensor,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         if executor is not None:
             model_evaluator = executor.model_evaluator
@@ -130,12 +131,12 @@ class SampleComputationHook(ComputationHook):
 
     def common_worker_fun(
         self,
-        worker_fun: Callable,
-        tasks: list,
+        worker_fun: Callable[..., Any],
+        tasks: list[Any],
         device: torch.device,
-        model_queue,
-        **kwargs,
-    ) -> tuple:
+        model_queue: Any,
+        **kwargs: Any,
+    ) -> tuple[int, dict[int, Any]]:
         worker_device, worker_stream = self._setup_device(
             device,
         )
@@ -149,7 +150,7 @@ class SampleComputationHook(ComputationHook):
             sample_indices: list[int] = [task[1] for task in tasks]
             inputs: list = [task[2] for task in tasks]
             targets: list = [task[3] for task in tasks]
-            model_data: dict = self.get_cached_one_shot_data(
+            model_data: dict[str, Any] = self.get_cached_one_shot_data(
                 batch_index=batch_index,
                 worker_device=worker_device,
                 model_queue=model_queue,
@@ -188,7 +189,7 @@ class SampleComputationHook(ComputationHook):
                         target=target,
                     )
 
-        def result_transform2(tensor, **kwargs):
+        def result_transform2(tensor: torch.Tensor, **kwargs: Any) -> Any:
             if tensor.numel() == 1:
                 return tensor.view(-1).item()
             return tensor
