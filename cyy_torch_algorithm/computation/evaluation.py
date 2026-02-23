@@ -17,7 +17,7 @@ def eval_model(
         input_tensors = kwargs.pop("input_tensors")
         input_keys = kwargs.pop("input_keys", None)
         if input_keys:
-            kwargs["inputs"] = dict(zip(input_keys, input_tensors, strict=False))
+            kwargs["inputs"] = dict(zip(input_keys, input_tensors, strict=True))
         else:
             kwargs["inputs"] = input_tensors[0]
 

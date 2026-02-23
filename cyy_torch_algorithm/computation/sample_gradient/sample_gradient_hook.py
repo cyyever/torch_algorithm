@@ -30,7 +30,7 @@ def sample_gradient_worker_fun(
 ) -> dict[int, ModelGradient]:
     def wrapper(parameters, target, *args, input_keys=None):
         if input_keys is not None:
-            inputs = dict(zip(input_keys, args, strict=False))
+            inputs = dict(zip(input_keys, args, strict=True))
         else:
             assert len(args) == 1
             inputs = args[0]
@@ -125,9 +125,7 @@ def get_sample_gvps(vector: Any, **kwargs: Any) -> dict[int, float]:
     def _gvp_transform(result: Any, **_kwargs: Any) -> float:
         return dot_product(result, vector)
 
-    return get_sample_gradients_impl(
-        result_transform=_gvp_transform, **kwargs
-    )
+    return get_sample_gradients_impl(result_transform=_gvp_transform, **kwargs)
 
 
 def __get_self_product(

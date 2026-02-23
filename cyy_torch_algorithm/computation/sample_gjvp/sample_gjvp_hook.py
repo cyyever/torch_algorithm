@@ -39,7 +39,7 @@ def sample_gjvp_worker_fun(
         torch.stack(inputs),
         torch.stack(targets),
     )
-    return dict(zip(sample_indices, products, strict=False))
+    return dict(zip(sample_indices, products, strict=True))
 
 
 class SampleGradientJVPHook(SampleComputationHook):

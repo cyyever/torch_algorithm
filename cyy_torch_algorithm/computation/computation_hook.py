@@ -89,7 +89,6 @@ class ComputationHook(Hook):
                 worker_num = int(worker_num)
             self.__task_queue = TorchProcessTaskQueue(
                 worker_num=worker_num,
-                batch_process=True,
             )
             self.__task_queue.start(
                 worker_fun=functools.partial(
@@ -156,7 +155,9 @@ class ComputationHook(Hook):
             self.__model_queue = None
         self.__shared_models.clear()
 
-    def _setup_device(self, advised_device: torch.device) -> tuple[torch.device, torch.cuda.Stream | None]:
+    def _setup_device(
+        self, advised_device: torch.device
+    ) -> tuple[torch.device, torch.cuda.Stream | None]:
         worker_device = self.get_cached_item("worker_device", advised_device)
         if not torch.cuda.is_available():
             return worker_device, None
@@ -172,7 +173,9 @@ class ComputationHook(Hook):
         if self.__local_data is not None and hasattr(self.__local_data, name):
             delattr(self.__local_data, name)
 
-    def get_cached_item(self, name: str, value: Any, worker_device: torch.device | None = None) -> Any:
+    def get_cached_item(
+        self, name: str, value: Any, worker_device: torch.device | None = None
+    ) -> Any:
         if not hasattr(self.__local_data, name):
             if worker_device is not None:
                 value = tensor_to(

@@ -150,7 +150,9 @@ class GTGShapleyValue(RoundBasedShapleyValue):
             "round_shapley_values_approximated": self.shapley_values_S,
         }
 
-    def not_convergent(self, index: int, contribution_records: list[list[float]]) -> bool:
+    def not_convergent(
+        self, index: int, contribution_records: list[list[float]]
+    ) -> bool:
         if index >= self.max_number:
             log_info("convergent for max_number %s", self.max_number)
             return False

@@ -126,7 +126,9 @@ class NeuralNetworkAdaptiveDeterministicQuant(AdaptiveDeterministicQuant):
                 return data
 
     @classmethod
-    def check_compression_ratio(cls, quantized_data: dict[str, Any], prefix: str | None = None) -> tuple[float, float]:
+    def check_compression_ratio(
+        cls, quantized_data: dict[str, Any], prefix: str | None = None
+    ) -> tuple[float, float]:
         compressed_parameter_num: float = 0
         quantization_levels: list[int] = []
         parameter_numbers: list[Any] = []
@@ -162,7 +164,7 @@ class NeuralNetworkAdaptiveDeterministicQuant(AdaptiveDeterministicQuant):
         if prefix is None:
             prefix = ""
         avg_level = sum(
-            a * b for a, b in zip(quantization_levels, parameter_ratio, strict=False)
+            a * b for a, b in zip(quantization_levels, parameter_ratio, strict=True)
         )
         compression_ratio = compressed_parameter_num / total_parameter_num
         log_info("%s avg quantization level %s", prefix, avg_level)

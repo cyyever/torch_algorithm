@@ -49,7 +49,9 @@ class BatchComputationHook(ComputationHook):
             self._get_batch_computation_fun(),
         )
 
-    def add_task(self, executor: Any, inputs: Any, targets: Any, data: Any, batch_index: int) -> None:
+    def add_task(
+        self, executor: Any, inputs: Any, targets: Any, data: Any, batch_index: int
+    ) -> None:
         assert not self.has_unfetched_result()
         self._broadcast_one_shot_data(
             batch_index=batch_index,
@@ -96,9 +98,9 @@ class BatchComputationHook(ComputationHook):
                         data_index=data_index, result=v, data=data_piece
                     )
                     for data_index, v, data_piece in zip(
-                        data_indices, res, data, strict=False
+                        data_indices, res, data, strict=True
                     )
                 }
             else:
-                new_res = dict(zip(data_indices, res, strict=False))
+                new_res = dict(zip(data_indices, res, strict=True))
             return batch_size, new_res

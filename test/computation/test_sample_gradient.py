@@ -44,6 +44,7 @@ def test_huggingface_sample_gradient() -> None:
     config = Config(
         "imdb", "hugging_face_sequence_classification_distilbert-base-cased"
     )
+    config.dc_config.dataset_kwargs["input_max_len"] = 300
     config.trainer_config.hook_config.use_amp = False
     config.hyper_parameter_config.epoch = 2
     config.hyper_parameter_config.batch_size = 8

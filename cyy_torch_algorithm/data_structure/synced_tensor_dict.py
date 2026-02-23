@@ -35,8 +35,9 @@ try:
 
         def __iter__(self) -> Self:
             self.__iterated_keys = list(
-                self.__eval_key(k) for k in self.__tensor_dict.keys()
-            )  # noqa:SIM118
+                self.__eval_key(k)
+                for k in self.__tensor_dict.keys()  # noqa: SIM118
+            )
             if not self.__iterated_keys:
                 log_warning("empty keys")
             self.__prefetch_size = self.__cache_size
@@ -63,12 +64,14 @@ try:
         def __getattr__(self, name: str) -> Any:
             return getattr(self.__tensor_dict, name)
 
-        def iterate(self, keys: Iterable[Any] | None = None) -> Generator[tuple[Any, torch.Tensor], None, None]:
+        def iterate(
+            self, keys: Iterable[Any] | None = None
+        ) -> Generator[tuple[Any, torch.Tensor]]:
             if keys is None:
                 keys = list(self.__tensor_dict.keys())
             else:
                 keys = list({str(k) for k in keys})
-            for chunk in batched(keys, self.__cache_size // 2):
+            for chunk in batched(keys, self.__cache_size // 2, strict=False):
                 self.__tensor_dict.prefetch(chunk)
                 for k in chunk:
                     yield (self.__eval_key(k), self.__tensor_dict[k])

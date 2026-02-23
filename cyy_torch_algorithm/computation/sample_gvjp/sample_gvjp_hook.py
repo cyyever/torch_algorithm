@@ -63,7 +63,7 @@ def sample_gvjp_worker_fun(
         in_dims=tuple([None] + [0] * (len(input_list) + 1)),
         randomness="same",
     )(parameters, torch.stack(targets), *input_list)
-    return dict(zip(sample_indices, products, strict=False))
+    return dict(zip(sample_indices, products, strict=True))
 
 
 class SampleGradientVJPHook(SampleComputationHook):

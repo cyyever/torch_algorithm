@@ -31,8 +31,9 @@ def test_CV_jvp() -> None:
     trainer.append_named_hook(
         ExecutorHookPoint.AFTER_BATCH,
         "reset_time",
-        lambda **kwargs: time_counter.reset_start_time()
-        and log_error("begin count time"),
+        lambda **kwargs: (
+            time_counter.reset_start_time() and log_error("begin count time")
+        ),
     )
     hook = BatchHVPHook()
     trainer.append_hook(hook)
