@@ -59,24 +59,24 @@ class BatchComputationHook(ComputationHook):
             inputs=inputs,
             targets=targets,
         )
-        for data_idx, data_piece in enumerate(data):
-            self._add_task(
-                task=(batch_index, data_idx, data_piece),
-            )
+        data_indices = list(range(len(data)))
+        self._add_task(
+            task=(batch_index, data_indices, data),
+        )
 
     def common_worker_fun(
         self,
         worker_fun: Callable[..., Any],
-        tasks: list[tuple[int, int, Any]],
+        tasks: list[tuple[int, list[int], Any]],
         device: torch.device,
         model_queue: Any,
         **kwargs: Any,
-    ) -> tuple[int, dict[int, Any]]:
-        batch_size = len(tasks)
+    ) -> list[tuple[int, dict[int, Any]]]:
+        task = tasks[0]
+        batch_index = task[0]
+        data_indices = task[1]
+        data = task[2]
         worker_device, worker_stream = self._setup_device(device)
-        batch_index = tasks[0][0]
-        data_indices = [task[1] for task in tasks]
-        data = [task[2] for task in tasks]
         with torch.cuda.stream(worker_stream):
             one_shot_data = self.get_cached_one_shot_data(
                 batch_index=batch_index,
@@ -103,4 +103,4 @@ class BatchComputationHook(ComputationHook):
                 }
             else:
                 new_res = dict(zip(data_indices, res, strict=True))
-            return batch_size, new_res
+            return [(1, new_res)]

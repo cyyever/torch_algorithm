@@ -41,12 +41,17 @@ class ComputationHook(Hook):
     def _get_worker_fun(self) -> Callable[..., Any]:
         raise NotImplementedError()
 
-    def _model_worker_fun(self, task, **kwargs: Any) -> Any:
-        batch_index, need_model_evaluator = task
-        res = self.__shared_models[batch_index]
-        if need_model_evaluator:
-            res = res | {"model_evaluator": self.__shared_models[0]["model_evaluator"]}
-        return res
+    def _model_worker_fun(self, tasks, **kwargs: Any) -> list[Any]:
+        results = []
+        for task in tasks:
+            batch_index, need_model_evaluator = task
+            res = self.__shared_models[batch_index]
+            if need_model_evaluator:
+                res = res | {
+                    "model_evaluator": self.__shared_models[0]["model_evaluator"]
+                }
+            results.append(res)
+        return results
 
     def reset_result(self) -> None:
         self._drop_result()

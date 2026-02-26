@@ -3,12 +3,11 @@ from collections.abc import Callable
 from typing import Any
 
 import torch
+from cyy_preprocessing_pipeline import recursive_tensor_op, tensor_to
 from cyy_torch_toolbox import (
     Executor,
     IndicesType,
     ModelEvaluator,
-    recursive_tensor_op,
-    tensor_to,
 )
 
 from .computation_hook import ComputationHook
@@ -101,12 +100,14 @@ class SampleComputationHook(ComputationHook):
             batch_index=self.__batch_index,
             model_evaluator=model_evaluator,
         )
-        for item in zip(
-            processed_indices, processed_inputs, processed_targets, strict=True
-        ):
-            self._add_task(
-                task=(self.__batch_index, *item),
-            )
+        self._add_task(
+            task=(
+                self.__batch_index,
+                processed_indices,
+                processed_inputs,
+                processed_targets,
+            ),
+        )
         self.__batch_index += 1
 
     def _get_sample_computation_fun(self) -> Callable[..., Any]:
@@ -144,20 +145,20 @@ class SampleComputationHook(ComputationHook):
         device: torch.device,
         model_queue: Any,
         **kwargs: Any,
-    ) -> tuple[int, dict[int, Any]]:
+    ) -> list[tuple[int, dict[int, Any]]]:
+        task = tasks[0]
         worker_device, worker_stream = self._setup_device(
             device,
         )
 
         with torch.cuda.stream(worker_stream):
-            tasks = tensor_to(
-                tasks, device=worker_device, non_blocking=True, check_slowdown=False
+            task = tensor_to(
+                task, device=worker_device, non_blocking=True, check_slowdown=False
             )
-            batch_index: int = tasks[0][0]
-            batch_size: int = len(tasks)
-            sample_indices: list[int] = [task[1] for task in tasks]
-            inputs: list = [task[2] for task in tasks]
-            targets: list = [task[3] for task in tasks]
+            batch_index: int = task[0]
+            sample_indices: list[int] = task[1]
+            inputs: list = task[2]
+            targets: list = task[3]
             model_data: dict[str, Any] = self.get_cached_one_shot_data(
                 batch_index=batch_index,
                 worker_device=worker_device,
@@ -203,4 +204,4 @@ class SampleComputationHook(ComputationHook):
             return tensor
 
         res = recursive_tensor_op(res, result_transform2)
-        return batch_size, res
+        return [(1, res)]

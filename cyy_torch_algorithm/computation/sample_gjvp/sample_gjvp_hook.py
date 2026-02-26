@@ -4,7 +4,8 @@ from typing import Any
 
 import torch
 import torch.cuda
-from cyy_torch_toolbox import ModelEvaluator, ModelParameter, cat_tensor_dict
+from cyy_preprocessing_pipeline import cat_tensor_dict
+from cyy_torch_toolbox import ModelEvaluator, ModelParameter
 from torch.func import grad, jvp, vmap
 
 from ..evaluation import eval_model

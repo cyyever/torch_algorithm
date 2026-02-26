@@ -3,10 +3,10 @@ from collections.abc import Callable
 from typing import Any
 
 import torch
+from cyy_preprocessing_pipeline import cat_tensor_dict
 from cyy_torch_toolbox import (
     ModelEvaluator,
     ModelParameter,
-    cat_tensor_dict,
 )
 from torch.func import grad, vjp, vmap
 

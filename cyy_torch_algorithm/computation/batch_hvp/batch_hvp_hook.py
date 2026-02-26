@@ -6,12 +6,11 @@ from typing import Any
 import torch
 import torch.cuda
 from cyy_naive_lib.algorithm.mapping_op import get_mapping_items_by_key_order
-from cyy_preprocessing_pipeline import decompose_like_tensor_dict
+from cyy_preprocessing_pipeline import cat_tensor_dict, decompose_like_tensor_dict
 from cyy_torch_toolbox import (
     ModelEvaluator,
     ModelParameter,
     TensorDict,
-    cat_tensor_dict,
 )
 from torch.func import grad, jvp, vmap
 
